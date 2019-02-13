@@ -2,7 +2,7 @@
 
 Many changes, including bug fixes and documentation improvements, can be implemented and reviewed via the normal GitHub pull request workflow. Some changes though are "substantial" - those should be put through an appropriate design process and produce a consensus among the Uyuni core team.
 
-The "RFC" (request for comments) process is intended to provide a consistent and controlled path for new features to enter the project. This process will be adjusted over time as more features are implemented and the community settles on specific approaches to feature development.
+The "RFC" (request for comments) process is intended to provide a consistent and controlled path for such substantial changes to enter the project. This process will be adjusted over time as more features are implemented and the community settles on specific approaches to feature development.
 
 ## TL;DR
 
