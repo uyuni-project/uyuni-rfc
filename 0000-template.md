@@ -14,8 +14,7 @@ Brief (one-paragraph) explanation of the feature.
 - What use cases does it support?
 - What is the expected outcome?
 
-Describe the problem you are trying to solve, and its constraints, without coupling them too closely to the solution you have in mind.
-> If this RFC is not accepted, the motivation can be used to develop alternative solutions.
+Describe the problem you are trying to solve, and its constraints, without coupling them too closely to the solution you have in mind. If this RFC is not accepted, the motivation can be used to develop alternative solutions.
 
 # Detailed design
 [design]: #detailed-design
