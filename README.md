@@ -45,7 +45,7 @@ The RFC process encourages discussions about a proposed feature during its early
 - This does not mean the feature will be merged - only that the core team has agreed to it in principle.
 - The fact that a given RFC has been accepted implies nothing about its implementation priority.
 - Modifications to active RFC's can be done in follow-up pull requests.
-- We should strive to write each RFC in a way that reflects the final design of the feature; However, if during implementation things change, the RFC document should be updated accordingly.
+- We should strive to write each RFC in a way that reflects the final design of the feature; however, during implementation or afterwards things can change. The RFC only documents design decisions at the time it was merged.
 
 ### Implementation
 
