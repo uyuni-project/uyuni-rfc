@@ -16,7 +16,7 @@ The "RFC" (request for comments) process is intended to provide a consistent and
 
 Once the PR is merged, [implementation can start](#first-principles).
 
-> The Uyuni core team will work towards reviewing the set of open RFC pull requests and provide feedback on a weekly basis. All community members are invited to discuss the open pull requests.
+The Uyuni core team will work towards reviewing the set of open RFC pull requests and provide feedback on a weekly basis. All community members are invited to discuss the open pull requests.
 
 ## When to follow this process
 
