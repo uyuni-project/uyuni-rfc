@@ -1,0 +1,56 @@
+#!/bin/sh
+cat <<EOM >/cloud-init-config/meta-data
+instance-id: iid-0000001
+EOM
+
+cat <<EOF >/cloud-init-config/user-data
+#cloud-config
+
+# set as admin node
+suse_caasp:
+  role: admin
+
+#if $varExists('caasp_locale')
+# set locale
+locale: $caasp_locale
+#else
+locale: en_US.UTF-8
+#end if
+
+# set timezone
+#if $varExists('caasp_timezone')
+timezone: $caasp_timezone
+#else
+timezone: UTC
+#end if
+
+#if $varExists('caasp_hostname')
+hostname: $caasp_hostname
+#end if
+#if $varExists('caasp_fqdn')
+fqdn: $caasp_fqdn
+#end if
+
+#if $varExists('caasp_rootpw')
+# set root password
+chpasswd:
+  list: |
+    root:$caasp_rootpw
+  expire: False
+#end if
+
+#if $varExists('caasp_ntpservers')
+# setup and enable ntp
+ntp:
+  servers:
+#for $caasp_ntpsrv in $caasp_ntpservers.split(',')
+    - $caasp_ntpsrv
+#end for
+
+runcmd:
+  - /usr/bin/systemctl enable --now ntpd
+#end if
+
+final_message: "The system is finally up, after $UPTIME seconds"
+EOF
+

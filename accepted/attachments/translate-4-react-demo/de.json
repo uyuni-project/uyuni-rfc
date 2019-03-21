@@ -1,0 +1,11 @@
+{
+    "example.greeting": "Hallo, @@name@@! Wie geht's dir heute so?",
+    "second greeting": "Dies ist eine zweite übersetzte @@object@@!",
+    "object": "objekt",
+    "object_PLURAL": "objekts",
+    "switch locale": "Schalter locale",
+    "Time elapsed parsing @@lang@@.json: @@timelapsed@@ms": "Zeit abgelaufen Parsing @@lang@@.json: @@timelapsed@@ms",
+    "@@lang@@.json contains @@length@@ element": "@@lang@@.json @@length@@ Element enthält",
+    "@@lang@@.json contains @@length@@ element_PLURAL": "@@lang@@.json @@length@@ Elements enthält"
+}
+
