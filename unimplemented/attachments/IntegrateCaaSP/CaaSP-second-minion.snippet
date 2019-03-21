@@ -1,0 +1,54 @@
+MIN_SERVICE_NAME=suse-manager
+
+if [ -x /usr/sbin/update-ca-certificates -a -d /etc/pki/trust/anchors ]; then
+    curl -o /etc/pki/trust/anchors/RHN-ORG-TRUSTED-SSL-CERT http://$redhat_management_server/pub/RHN-ORG-TRUSTED-SSL-CERT
+   /usr/sbin/update-ca-certificates
+fi
+
+cat > /etc/systemd/system/salt-minion@.service <<EOF
+[Unit]
+Description=The Salt Minion for %i
+After=network.target
+
+[Service]
+Type=notify
+NotifyAccess=all
+LimitNOFILE=8192
+ExecStartPre=-/bin/sh -c "[ -d /etc/salt-%i/minion.d ] || (mkdir -p /etc/salt-%i/minion.d && chown root.salt /etc/salt-%i && chmod 0750 /etc/salt-%i)"
+ExecStart=/usr/bin/salt-minion --config-dir=/etc/salt-%i --pid-file=/var/run/salt-minion-%i.pid --log-file=/var/log/salt/minion-%i
+KillMode=process
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# not needed with ro FS
+#systemctl daemon-reload
+
+if [ ! -d /etc/salt-$MIN_SERVICE_NAME/minion.d ]; then
+    mkdir -p /etc/salt-$MIN_SERVICE_NAME/minion.d
+    chown root.salt /etc/salt-$MIN_SERVICE_NAME
+    chmod 0750 /etc/salt-$MIN_SERVICE_NAME
+    mkdir -p /etc/salt-$MIN_SERVICE_NAME/pki
+    chmod 0700 /etc/salt-$MIN_SERVICE_NAME/pki
+    touch /etc/salt-$MIN_SERVICE_NAME/minion
+fi
+
+cat > /etc/salt-$MIN_SERVICE_NAME/minion.d/susemanager.conf <<EOF
+master: $redhat_management_server
+pki_dir: /etc/salt-$MIN_SERVICE_NAME/pki/minion
+
+EOF
+
+#if $varExists('registration_key')
+cat <<EOF >>"/etc/salt-$MIN_SERVICE_NAME/minion.d/susemanager.conf"
+grains:
+    susemanager:
+        activation_key: $registration_key
+EOF
+#end if
+
+systemctl enable salt-minion@$MIN_SERVICE_NAME.service
+

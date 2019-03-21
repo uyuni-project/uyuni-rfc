@@ -44,6 +44,7 @@ The RFC process encourages discussions about a proposed feature during its early
 - The fact that a given RFC has been accepted implies nothing about its implementation priority.
 - Modifications to accepted RFC's can be done in follow-up pull requests.
 - We should strive to write each RFC in a way that reflects the final design of the feature; however, during implementation or afterwards things can change. The RFC only documents design decisions at the time it was merged.
+- some unimplemented RFCs are published in the unimplemented/ subdirectory for historical/inspirational purposes.
 
 ### Implementation
 
