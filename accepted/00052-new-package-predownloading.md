@@ -75,7 +75,7 @@ The following calls will need a new optional `downloadOnly` boolean flag:
  - proposed mechanism is conceptually different from the one in place for traditional clients
 
 # Alternatives
-- add UI pages and API calls to define "download time windows". Allow users to Actions to "download time windows" at scheduling time
+- add UI pages and API calls to define "content staging windows". Allow users to Actions to "content staging windows" at scheduling time
   - pro: with the UI, users do not have to go through the package/patch selection twice
   - con: more difficult to implement
 - also keep the old mechanism in place
