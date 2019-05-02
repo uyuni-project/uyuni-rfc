@@ -42,7 +42,7 @@ Those functions should accept a subset of parameters from the respective origina
 
 # Drawbacks
  - this is limited to Salt minions. Traditional clients have no such feature
- - only covers Zypper at this point
+ - only covers Zypper at this point. Yum/DNF can be implemented by leveraging the [--cacheonly](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/deployment_guide/sec-working_with_yum_cache#idm140707649391200) option
  - no UI
 
 # Alternatives
@@ -52,7 +52,7 @@ Those functions should accept a subset of parameters from the respective origina
 - implement custom modules instead of adding new functions to Salt's core
   - pro: does not need a pull request against Salt
   - con: the functionality might be useful in other contexts
-- add this feature directly to Zypper via a commandline switch
+- add this feature directly to Zypper via a commandline switch (analoguous to [--cacheonly](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/deployment_guide/sec-working_with_yum_cache#idm140707649391200) in `yum` and `dnf`)
   - pro: arguably cleaner design, does not need two calls to Zypper
   - con: updated Zypper would be needed, more difficult to implement
 
