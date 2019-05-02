@@ -8,7 +8,7 @@ Optionally fail package installations and patch applications if they require any
 This is limited to minions on SUSE-based distros.
 
 # Motivation
-Minions with limited connectivity options might have little bandwidth available or bandwidth usage could come with a high cost (eg. in remote areas). In those cases we want users to be fully in control of when downloading happens, eg., to schedule that during off-peak hours (see https://github.com/uyuni-project/uyuni-rfc/pull/6). This RFC is about giving users the possibility to prevent package managers' default behavior of downloading at installation time.
+Minions with limited connectivity options might have little bandwidth available or bandwidth usage could come with a high cost (eg. in remote areas). In those cases we want users to be fully in control of when downloading happens, eg., to schedule that during off-peak hours (see https://github.com/uyuni-project/uyuni-rfc/pull/5). This RFC is about giving users the possibility to prevent package managers' default behavior of downloading at installation time.
 
 Package installation and patch application Actions should thus fail in case packages were not previously downloaded (if so configured).
 
