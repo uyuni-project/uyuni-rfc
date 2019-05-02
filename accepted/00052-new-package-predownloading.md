@@ -72,6 +72,7 @@ The following calls will need a new optional `downloadOnly` boolean flag:
  - this is limited to Salt minions. Traditional clients retain their existing mechanism and are not affected
  - as the `pkg.downloaded` state [is not yet supported in Salt for Debian systems](https://docs.saltstack.com/en/2018.3/ref/states/all/salt.states.pkg.html#salt.states.pkg.downloaded), this remains an exclusive for `yum` and `zypper` (this RFC does not change this aspect)
  - current users of the existing feature will have to adapt their workflows
+ - proposed mechanism is conceptually different from the one in place for traditional clients
 
 # Alternatives
 - add UI pages and API calls to define "download time windows". Allow users to Actions to "download time windows" at scheduling time
