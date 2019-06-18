@@ -203,5 +203,5 @@ No drawbacks.
 # References
 
 1. [Debian Policy Manual: Control files and their fields](https://www.debian.org/doc/debian-policy/ch-controlfields.html)
-- [Debian Policy Manual: User defined fields](https://www.debian.org/doc/debian-policy/ch-controlfields.html#user-defined-fields)
-- [Debian repository format](https://wiki.debian.org/DebianRepository/Format)
+2. [Debian Policy Manual: User defined fields](https://www.debian.org/doc/debian-policy/ch-controlfields.html#user-defined-fields)
+3. [Debian repository format](https://wiki.debian.org/DebianRepository/Format)
