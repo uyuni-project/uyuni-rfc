@@ -49,9 +49,9 @@ Description-md5: 9f2fab36019a61312dec627d1cd80365
 Supported: 5y
 ```
 
-The database schema needs to be extended with a new table to store the additional fields:
+The database schema needs to be extended with new tables to store the additional fields not covered by the existing `rhnPackage*` tables:
 ```
-rhnPackageDebFields
+rhnPackageExtraTags
 ====================
 id          number
 name        string
@@ -62,10 +62,10 @@ primary key (id)
 ```
 
 ```
-rhnPackageDebFieldsValues
+rhnPackageExtraTagsValues
 ==========================
 package_id  number foreign key rhnPackage(id)
-field_id   number foreign key rhnPackageDebFields(id)
+tag_id      number foreign key rhnPackageExtraTags(id)
 value       string not null
 created     timestamp
 modified    timestamp
@@ -73,7 +73,19 @@ modified    timestamp
 primary key (package_id, field_id)
 ```
 
+Another new table is needed to store the source of the GPG keys used to validate the repo metadata.
+```
+rhnContentSourceGPG
+====================
+content_source_id   number foreign key rhnContentSource(id)
+key_url             string not null
+key_id              string not null
+
+```
+
 The class `com.redhat.rhn.taskomatic.task.repomd.DebPackageWriter` must be changed to write any additional fields stored in the database into the generated `Packages.gz` file.
+
+_Note_: The same structure could be used to store additional RPM headers not yet stored.
 
 ## Repo signature checking
 
@@ -120,7 +132,7 @@ There's also an alternative layout for Debian repos called "flat repos". In this
 https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master:/Ubuntu1804-Uyuni-Client-Tools/xUbuntu_18.04/
 ```
 
-_Note:_
+_Note #1:_
 
 In Uyuni the URL of a deb repository must point to the directory containing the binary packages for a specific architecture. E.g. for Ubuntu 18.04 updates repo is something like:
 ```
@@ -131,31 +143,38 @@ or in case of a flat repository to the directory containing both `Release*` and 
 https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master:/Ubuntu1804-Uyuni-Client-Tools/xUbuntu_18.04/
 ```
 
+_Note #2:_
+
+Debian repos don't have a standard location for the public GPG keys used to verify the metadata. Sometimes the key is located in the root of a flat repo but the location is not standardized.
+
 ### GPG keys management
 
-The keys used to verify the channel metadata will be stored in the keyring configured in `/etc/rhn/signing.conf` (`GNUPGHOME`)
+Uyuni ships the SUSE and OpenSUSE keys in the package `uyuni-build-keys`. The keys for Ubuntu and Debian should be shipped in this package.
+
+Any additional keys that need to be used (e.g. for Ubuntu derivatives distros or for custom repos) should be imported in the same keyring using for checking RPM repos, i.e. `/var/lib/spacewalk/gpgdir/pubring.gpg` (`GPG_DIR`)
+
 
 ### Key import via the UI
 
-When creating a channel the user will have to specify the `GPG key URL` and optionally the `GPG key ID` in the channel configuration page under `Software -> Manage -> Channels`.
+The UI for creating/updating a repository (`Software -> Manage -> Repositories`) will be extended with two additional fields:
+- GPG key URL / Keyserver
+- GPG key ID
 
-If only the `GPG key URL` field is populated the Uyuni server will use this URL to fetch the key file and import it into `$GNUPGHOME` keyring.
+These fields should be enabled only if checkbox `Has Signed Metadata` is checked. If present these fields will be saved into `rhnContentSourceGPG`.
 
-If both `GPG key URL` and one of `GPG key ID` or `GPG key Fingerprint` are present then `GPG key URL` should hold just the FQDN of a key server (without `http://`, path, etc) e.g.: `keyring.debian.org`.
+When saving the repository the user will be asked to confirm the import of the GPG key. The confirmation is only needed if `Has Signed Metadata` is checked and if the key doesn't already exist in the `$GPG_DIR` keyring.
 
-To make it clear to the user the field name should be changed to `GPG key URL / Keyserver` in the UI. Some hints should be added to the UI about the usage of these fields.
-
-When saving the channel configuration the user should be asked to confirm the import of a GPG key.
-
-The key import should be done when saving the channel configuration. If a key with the given `GPG key ID` or `GPG key Fingerprint` is present in the `$GNUPGHOME` keyring then an informative message should be shown but no import is necessary.
+The key should be imported into `$GPG_DIR`.
 
 ### Key import via the API
 
-API already supports GPG URL, key ID and key Fingerprint. Backend changes are needed to import the the key on create or update.
+The API method `channel.software.create_repo()` should be extended with two optional arguments to allow specifying the `GPG key URL / Keyserver` and `GPG key ID`.
 
-### Key import via the Client
+An error should be thrown if importing the GPG keys is not successful.
 
-Importing a key can be done using the Standard `gpg` command.
+### Key import via `spacewalk-repo-sync`
+
+`spacewalk-repo-sync` must be extended to be able to import the GPG keys configured in `rhnContentSourceGPG`. Similarly to Yum repos, the user should be asked for confirmation when importing the keys.
 
 ### Metadata and signature lookup
 
@@ -173,15 +192,15 @@ Uyuni should verify the integrity of the `Packages.gz|xz` files using the checks
 
 If the `InRelease` or `Release.pgg` exist in the repo then Uyuni must verify the `Release` file:
 ```
-gpgv --keyring InRelease
+gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg InRelease
 ```
 or
 ```
-gpgv --keyring Release.gpg Release
+gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg Release.gpg Release
 ```
 
 The signature verification should be done during repo syncing when the metadata is parsed.
-Verification is possible only if the user has configured the GPG signing of the channels to be synced. Otherwise a warning should be printed in the logs about the lack of GPG configuration.
+Verification is possible only if the user has configured the GPG signing of the repos to be synced. Otherwise a warning should be printed in the logs about the lack of GPG configuration.
 
 
 # Drawbacks
