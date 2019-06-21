@@ -218,6 +218,7 @@ No drawbacks.
 
 - Should all the fields be stored ? Should only the fields defined in [1] be stored ? If yes what happens with user degined fields [2]
 - In case no GPG keys are configured for a repo (i.e. no GPG verification needed) should the `Release` file still be looked up and the checksums verified ?
+- How to delete keys that are not used anymore from `$GPG_DIR` ?
 
 # References
 
