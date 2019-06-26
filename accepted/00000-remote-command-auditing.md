@@ -29,14 +29,14 @@ Reference: https://fate.suse.com/325624 https://fate.suse.com/327158
 
 In order to overcome the above limitations, in this RFC we are going to introduce:
 
-- Role-based restriction for `Remote Command`: a new role will be introduced. Every user associated with this role (in addition to one of the `Administrative Role`s) can access the `Remote Command` feature and issue commands. Every other user will not see the `Remote Command` tab nor the `Salt > Remote Commands` menu item.
+- Role-based restriction for `Remote Command`: a new role will be introduced. Every user associated with this role (in addition to either `SUSE Manager Administrator` or `Organization Administrator`) can access the `Remote Command` feature and issue commands. Every other user will not see the `Remote Command` tab nor the `Salt > Remote Commands` menu item.
 - Auditing for `Remote Command` and `Salt > Remote Commands`: the product will log the user that has issued the command, the command itself and its result.
 
 # Detailed design
 [design]: #detailed-design
 
 The first step is to introduce a new role in the roles list: `Remote Command Administrator` (`RhnUserGroupType` table).
-The role is not an `Administrative Role` type (e.g. `Organization Admin`) but rather a normal role (comparable to `Config Administrator`, `Image Administrator`, etc). If a user has a `Remote Command Administrator` role but not one of the `Administrative Role`s, then the user cannot see any system and thus should behave like the other normal roles.
+The role is a normal role (comparable to `Config Administrator`, `Image Administrator`, etc) and not an `Administrative Role` (`SUSE Manager Administrator` or `Organization Administrator`). If a user has a `Remote Command Administrator` role but not one of the `Administrative Role`s, then the user cannot see any system and thus should behave like the other normal roles.
 
 In the Java backend, the following menu items and associated pages must be hidden and not accessible if the logged in user does not have the `Remote Command Administrator` role + an `Administrative Role` (`UserImpl.hasPermanentRole`) or there are no systems manageable by the user (count needs to be cached):
 
