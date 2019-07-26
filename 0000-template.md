@@ -1,5 +1,5 @@
 - Feature Name: (fill with a unique ident, my_awesome_feature)
-- Start Date: (fill with today's date, DD-MM-YYYY)
+- Start Date: (fill with today's date, YYYY-MM-DD)
 - RFC PR: (leave this empty)
 
 # Summary
