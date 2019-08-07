@@ -5,84 +5,92 @@
 # Summary
 [summary]: #summary
 
-Implement a role-based access model to access `Remote Command` for managed systems and log every command executed.
+Implement a role-based access model to access `Remote Command` for managed systems.
 
 # Motivation
 [motivation]: #motivation
+
+Many customers claim to require a role differentiation for `Remote Command(s)` before migrating from traditional clients to Salt minions.
+
+Reference: https://fate.suse.com/325624 https://fate.suse.com/327158
+
+## Current implementation
 
 At the time of the writing, there are three features to issue a remote command on a managed system or a group of systems registered to the product:
 - A `Remote Command` tab is present in the details section of a traditional or minion system (or a `System Set Manager` group)
 - The API exposes the `system.scheduleScriptRun` to issue a command
 - (Only for minions) a `Salt > Remote Commands` page to launch a command on minions by leveraging [Salt targeting](https://docs.saltstack.com/en/latest/topics/targeting/index.html) to identify the target(s)
 
-Each user can only target the systems within the same organization that the systems are registered to, provided that the user has a particular role:
-- Every user that has `SUSE Manager Administrator` or `Organization Administrator` role can access the tab and run a remote command on the selected system or a group of systems
-- The API is always exposed but checks for the role of the user supplying the command after the API is called
-- For every user registered to SUSE Manager, independent of the role, the menu item `Salt > Remote Commands` is accessible. Only users with the `SUSE Manager Administrator` or `Organization Administrator` role, though, can impact systems using this feature, whereas all other users cannot target any system (`"no systems found"`).
+There are the following rules already in place:
 
-Every system outside the organization of the user issuing the command is not impacted nor is it visible by the user.
+- Every user that with the proper role can access the tab and run a remote command on the selected system or a group of systems
+- For every user registered to SUSE Manager, independent of the role, the menu item `Salt > Remote Commands` is accessible. Only the users that have the proper role can issue any command targeting the systems he/she is entitled to access with his/her role.
+- The API is always exposed but checks for the role of the user issuing the command after the API is called
 
-The motivations behind the changes introduced in this RFC are _security_ and _auditing_. Any command issues via the `Remote Command` will be run with `root` privileges on the target system(s). Additionally, the user that issued the command is not logged along with the command issues and its output.
-Many customers claim to require this feature before migrating from traditional clients to Salt minions.
+How roles profile the systems that a user can reach?
 
-Reference: https://fate.suse.com/325624 https://fate.suse.com/327158 
+A user associated with the following roles can issue any command in the associated systems:
 
-In order to overcome the above limitations, in this RFC we are going to introduce:
+- Users associated with any of the `Administrative Roles` (`SUSE Manager Administrator` or `Organization Administrator`) can reach any system within the same organization
+- Every other user (from now on: one does not have any of the above roles) can reach all the systems that he is been assigned to in his/her `System Groups` (this is regulated in the `rhnuserserverperms` table)
 
-- Role-based restriction for `Remote Command`: a new role will be introduced. Every user associated with this role (in addition to either `SUSE Manager Administrator` or `Organization Administrator`) can access the `Remote Command` feature and issue commands. Every other user will not see the `Remote Command` tab nor the `Salt > Remote Commands` menu item.
-- Auditing for `Remote Command` and `Salt > Remote Commands`: the product will log the user that has issued the command, the command itself and its result.
+NOTE: starting from SUSE Manager 4.0, every command issued in the `Salt > Remote Commands` page is logged.
+
+## Proposal
+
+The motivations behind the changes introduced in this RFC are _security_ and _auditing_. Any command issues via the `Remote Command` will be run with `root` privileges on the target system(s).
+
+To overcome the above limitations, in this RFC we are going to introduce a new role for enabling/disabling the `Remote Command(s)` feature for users that do not have `Administrative Roles`.
+
+Users associated with `Administrative Roles` will not be impacted: they are assimilated as being `root` and they are allowed to do anything.
+
+## Caveats
+
+From a security point of view, if a user does not have any role associated to him/her the surface of the attack is still not negligible: the user can install and remove packages using SUSE Manager on the systems he/she is assigned to. Those packages can be ad-hoc crafted to contain {pre, post}-install script to execute what an attacker wants.
+
+### Comparison with `Configuration Administrator`
+
+A user having the `Configuration Administrator` role can create and apply states to the systems he/she is entitled to. This offers the same surface of attack, as an attacker could simply drop a `cmd.run` into the desired state.
+
+Should `Remote Command Administrator` just another addition to the access control list of the `Configuration Administrator`?
 
 # Detailed design
 [design]: #detailed-design
 
+## A new role `Remote Command Administrator`
+
 The first step is to introduce a new role in the roles list: `Remote Command Administrator` (`RhnUserGroupType` table).
-The role is a normal role (comparable to `Config Administrator`, `Image Administrator`, etc) and not an `Administrative Role` (`SUSE Manager Administrator` or `Organization Administrator`). If a user has a `Remote Command Administrator` role but not one of the `Administrative Role`s, then the user cannot see any system and thus should behave like the other normal roles.
+The role is normal (comparable to `Config Administrator`, `Image Administrator`, etc).
 
-In the Java backend, the following menu items and associated pages must be hidden and not accessible if the logged in user does not have the `Remote Command Administrator` role + an `Administrative Role` (`UserImpl.hasPermanentRole`) or there are no systems manageable by the user (count needs to be cached):
+This translates to:
 
-- Traditional systems and Salt systems: `path="/systems/details/SystemRemoteCommand"`, `path="/systems/ssm/provisioning/RemoteCommand"` and `SystemRemoteCommandAction` and `ProvisioningRemoteCommand` Java classes.
-- Salt systems: `path="/manager/systems/cmd"` and `RemoteMinionCommands` Java class.
+  1. For non-`Administrative Role` users that can manage the selected systems who do not have the `Remote Command Administrator Role`, `Remote Command` tab would be unavailable.
+
+  2. `Salt > Remote Commands` is unavailable if the user is not associated with any `Administrative Role` or has not any assigned System Group.
+
+In the Java backend:
+
+  1. Traditional systems and Salt systems: `path="/systems/details/SystemRemoteCommand"`, `path="/systems/ssm/provisioning/RemoteCommand"` and `SystemRemoteCommandAction` and `ProvisioningRemoteCommand` Java classes
+  2. Salt systems: `path="/manager/systems/cmd"` and `RemoteMinionCommands` Java class.
 
 NOTE: the API call and the `spacecmd` command (`system_runscript`) will still be visible independent of the role.
 
-Additionally, the two mentioned Java classes must implement auditing in the form of logging.
-A new file that will be placed under `/var/log/rhn/` and it will be called `rhn_remote_commands_audit.log` will contain entries in the form:
+## Re-using `Configuration Administrator`
+
+In this case, the Java backend changes the ACL for the `Remote Command(s)` page(s) to honor the `Configuration Administrator` ACL.
+This approach would be the clearest and consistent security-wise.
+
+The downside of it is that, for every `Remote Command(s)` ACL check, we should add an additional check for the user role:
 
 ```
-[timestamp in UTC]
-command executed by the user
-target: 
-  - "local" + system if RemoteCommand on a single system or SSM 
-  - "target-pattern" + pattern if RemoteMinionCommands action
-result
-login of the user in the product that has issued the command
-the IP address of the user originating the command
+select ugt.label as role
+  from rhnUserGroup ug,    
+        rhnUserGroupType ugt,
+        rhnUserGroupMembers ugm
+  where ugm.user_id = :user_id       
+    and ugm.user_group_id = ug.id   
+    and ug.group_type = ugt.id
 ```
-
-Example:
-
-```
-[21/Jun/2019:10:57:50 +0000]
-"ls -l"
-"local" + suma-refhead-min-centos7.mgr.suse.de
-"total 0\n-rw-r--r-- 1 mbologna users 0 Jun 21 13:09 test"
-mbologna
-10.31.33.7
-
-[22/Jun/2019:11:32:50 +0000]
-"rm -fr /"
-"target-pattern" + '*'
-""
-nastyuser
-192.168.18.81
-```
-
-The final format of the log could be formatted in a JSON fashion to be easily parseable.
-The log file should be rotated and archived as usual product logs.
-
-The `Remote Command Administrator` role must be explicitly set. By default, the `Remote Command Administrator` role is not assigned to a new user.
-
-Existing users: it has been suggested that existing users should not have the current behavior modified. In that case, the migration script must assign the `Remote Command Administrator` role to all user that have `Administrative Role`s.
 
 ## Future Developments
 
@@ -92,15 +100,17 @@ Additional tables to hold user and systems associated with the role must be intr
 # Drawbacks
 [drawbacks]: #drawbacks
 
-- The file `rhn_remote_commands_audit.log` will contain every command issued by any user (could be a problem in some sensitive environments)
-- Change of expected behavior for new users (change must be documented in release-notes and official documentation)
+Users are probably using `Administrative Roles` excessively because of some gap in the roles spectrum. This change might not be what a user wants: a stripped-down `Administrative Role` with no access to `Remote Commands` (see next section).
 
 # Alternatives
 [alternatives]: #alternatives
 
-If we do not implement this feature, there is a lack of security and traceability of every command issues via web or API
+By reading the two fate entries linked it seems that customers are looking for a solution to disable Remote Commands for users within the Administrative Roles (SUSE Manager Administrator and Org Administrator). Those users are assimilated as root` so they cannot be changed.
+
+Meeting halfway would be to offer a way to disable Remote Command(s) for users with Administrative Roles.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- Right now, if a user does not have an `Administrative Role`, cannot access any system (he/she does not even see them in the `Systems list`). The new `Remote Command Administrator` should follow the same principle and be an addition to the `Administrative Role` or a new `Administrative Role` by itself?
+- Do we want to decrease the power of the `Administrative Roles` by adding an option to hide `Remote Command(s)` or do we want `non-Administrative Roles` to be required to have the `Remote Command Administrator`?
+- Is the `Configuration Administrator` to be merged with the `Remote Command Administrator`?
