@@ -94,7 +94,7 @@ select ugt.label as role
 
 ## Future Developments
 
-If needed, the `Remote Commands Administrator` role can be customized with a system granularity level: every user can access the `Remote Command` tab on a system if he/she is entitled to do via ACL.
+If needed, the `Remote Command Administrator` role can be customized with a system granularity level: every user can access the `Remote Command` tab on a system if he/she is entitled to do via ACL.
 Additional tables to hold user and systems associated with the role must be introduced and the associated backend code must be implemented.
 
 # Drawbacks
