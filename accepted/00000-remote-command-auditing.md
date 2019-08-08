@@ -105,7 +105,7 @@ Users are probably using `Administrative Roles` excessively because of some gap 
 # Alternatives
 [alternatives]: #alternatives
 
-By reading the two fate entries linked it seems that customers are looking for a solution to disable Remote Commands for users within the Administrative Roles (SUSE Manager Administrator and Org Administrator). Those users are assimilated as root` so they cannot be changed.
+By reading the two fate entries linked it seems that customers are looking for a solution to disable Remote Commands for users within the Administrative Roles (SUSE Manager Administrator and Org Administrator). Those users are assimilated as `root` so they cannot be changed.
 
 Meeting halfway would be to offer a way to disable Remote Command(s) for users with Administrative Roles.
 
