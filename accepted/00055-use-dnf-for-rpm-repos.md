@@ -1,6 +1,6 @@
 - Feature Name: Accept and Manage GPG Keys with Salt
 - Start Date: 2019-07-19
-- RFC PR: (leave this empty)
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/9
 
 # Summary
 [summary]: #summary
