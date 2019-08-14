@@ -52,11 +52,11 @@ This section should cover architecture aspects and the rationale behind disrupti
 
   Every detail about the cluster is saved into corresponding database tables (e.g. `susecaaspcluster`).
 
-  NOTE: the load balancer is unique for the cluster. The management node can manage different clusters at the same time. (TODO: Check with CaaSP team the assumption).
+  NOTE: the load balancer is unique for the cluster and it is a level 4 load balancer (no TLS termination). The management node can manage different clusters at the same time.
 
   #### Cluster node requirements
 
-  Every machine that needs to be part of cluster (either a master or a worker) has strictly hardware and software requirements (e.g.: every machine has to run SUSE Linux Enterprise 15, has a fixed IP that can be resolved, [a precise partition layout with no swap](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_suse_linux_enterprise_server_installation), at least 2 CPUs, etc.). From now on, these requirements will be called "CaaS Platform node requirements".
+  Every machine that needs to be part of cluster (either a control plane or a worker) has strictly hardware and software requirements (e.g.: every machine has to run SUSE Linux Enterprise 15, has a fixed IP that can be resolved, [a precise partition layout with no swap](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_suse_linux_enterprise_server_installation), at least 2 CPUs, etc.). From now on, these requirements will be called "CaaS Platform node requirements".
 
   For this reason, the CaaS Platform [supports deployment on](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_platform):
 
@@ -88,7 +88,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 
   ##### The Management Node
 
-  CaaS Platform requires a "Management Node" to deploy itself. The Management node must run SUSE Linux Enterprise 15 SP1 or an OpenSUSE equivalent (TODO: check with CaaSP team: there aren't repos for OpenSUSE).
+  CaaS Platform requires a "Management Node" to deploy itself. The Management node must run SUSE Linux Enterprise 15 SP1.
   The Management Node will be used for deployment of the CaaS Platform cluster, and cannot be re-used to be part of the cluster.
 
   Provided that the machine is a minion (Salt-only feature) and is running the correct OS (checked via grains), we can introduce a new entitlement ("Add-On System type") to entitle the machine as a Management Node.
@@ -103,6 +103,7 @@ This section should cover architecture aspects and the rationale behind disrupti
   In the corresponding Salt state, that must be applied via the usual highstate, the state must:
 
   - Generate an SSH keypair for accessing the cluster nodes. It is also possible to generate the keys locally to the SUSE Manager server and make use of SSH's forwarding agent mechanism.
+  - Import the SSH key into the `ssh-agent` and `export` the `SSH_AUTH_SOCK` environment variable
   - Install the pattern `SUSE-CaaSP-Management` (depends on `terraform` and `skuba` packages)
 
   e.g.
@@ -131,19 +132,21 @@ This section should cover architecture aspects and the rationale behind disrupti
 
   ##### Load balancer
 
-  Every CaaS Platform production cluster must have at least one load balancer associated. There is not a standardized way to deploy a load balancer. One example that the CaaS Platform suggests using is the [`nginx` TCP Load Balancer with passive checks](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_configuring_the_load_balancer).
+  Every CaaS Platform production cluster must have at least one load balancer associated. There is not a standardized way to deploy a load balancer. One example that the CaaS Platform suggests using is the [`nginx` TCP Load Balancer with passive health checks](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_configuring_the_load_balancer).
 
-  In this case, every Salt minion registered with SUSE Manager that runs SUSE Linux Enterprise 15 or OpenSUSE can be used to be a load balancer. The configuration of the load balancer can be offered via a new "CaaS Platform" entitlement that modifies the highstate of the minion by configuring `nginx` as the load balancer.
+  In this case, every Salt minion registered with SUSE Manager that runs SUSE Linux Enterprise 15 can be used to be a load balancer. The configuration of the load balancer can be offered via a new "CaaS Platform" entitlement that modifies the highstate of the minion by configuring `nginx` as the load balancer.
 
   Every update to the load balancer `nginx` will be handled via SUSE Manager.
 
   ##### Bootstrapping an empty cluster
 
   Salt will invoke `skuba` (using `cmd.run`) in the Management Node. Unfortunately, `skuba` does not offer an API yet (is in the progress).
+
+  NOTE: every `skuba` command will make us of the `SSH_AUTH_SOCK` variable. The `Management Node` must run and import the SSH key deployed during provisioning into the `ssh-agent`.
   Example:
 
   ```
-  bootstrap_master:
+  bootstrap_control_plane:
     cmd.run:
       - name: skuba cluster init --control-plane <load balancer IP> <cluster name>
   ```
@@ -154,42 +157,42 @@ This section should cover architecture aspects and the rationale behind disrupti
   
   Single Sign-On is out of scope until further developments from the Product Management.
   
-  ##### Master and worker nodes
+  ##### Control plane and worker nodes
 
-  ###### Registering master and worker to SUSE Manager
+  ###### Registering control plane and worker to SUSE Manager
 
-  The core of the CaaS Platform is master and worker nodes. The Management Node, instructed by SUSE Manager, will take care of bootstrapping master and worker nodes.
+  The core of the CaaS Platform is control plane and worker nodes. The Management Node, instructed by SUSE Manager, will take care of bootstrapping control plane and worker nodes.
 
-  The critical part of every master and worker node is handling updates of the underlying Kubernetes-related packages (`kubernetes-kubeadm kubernetes-kubelet kubernetes-client cri-o cni-plugins`): these updates must be handled with `skuba` from the Management Node.
+  The critical part of every control plane and worker node is handling updates of the underlying Kubernetes-related packages (`kubernetes-kubeadm kubernetes-kubelet kubernetes-client cri-o cni-plugins`): these updates must be handled with `skuba` from the Management Node.
 
-  [`skuba-update` will take care of updating the Base Operating System](https://susedoc.github.io/doc-caasp/beta/caasp-admin/single-html/#_base_os): this means we cannot register any master or worker node with SUSE Manager (otherwise an end-user could apply updates to the machine).
+  [`skuba-update` will take care of updating the Base Operating System](https://susedoc.github.io/doc-caasp/beta/caasp-admin/single-html/#_base_os): this means we cannot register any control plane or worker node with SUSE Manager (otherwise an end-user could apply updates to the machine).
   In case the machines are registered to SUSE Manager, the machines will be de-registered during the bootstrapping.
   
-  ###### Bootstrapping master and worker nodes
+  ###### Bootstrapping control plane and worker nodes
 
   In SUSE Manager under "CaaS Platform > Deployment > cluster name" there will be a list of machines that:
   - are not part of any other CaaS Platform cluster
   - are not already bootstrapped into the current cluster
   - satisfy the CaaS Platform node requirements: those machines are either bootstrapped via the AutoYaST profile or are already registered with SUSE Manager and satisfy the node requirements (checked via grains).
 
-  The user will then have the option to bootstrap the selected machine as the first master (or subsequently, as an additional master or worker). Upon triggering of this event, the SUSE Manager will:
+  The user will then have the option to bootstrap the selected machine as the first control plane (or subsequently, as an additional control plane or worker). Upon triggering of this event, the SUSE Manager will:
 
-  - operate on the to-be master or worker node:
+  - operate on the to-be control plane or worker node:
     - Copy the SSH key of the Management Node for passwordless login in the node. In case of existing machines, the SSH file must be copied (e.g. via Salt), whereas the AutoYaST case will be already covered during provisioning.
     - Assign the CaaS Platform channels assigned via Salt (SUSE CaaS Platform Extension to SUSE Linux Enterprise 15 and SUSE Containers Module 15 SP1 x86_64), whereas the AutoYaST case will be already covered during provisioning.
     - De-register the machine from SUSE Manager (if it is registered)
 
   - operate on the Management Node:
-    - Salt will invoke `skuba` (using `cmd.run`) to bootstrap the first master or make the selected node join the cluster. The user must specify which user to use for passwordless login (in this case `sles`) and whether to use `sudo` or not.
+    - Salt will invoke `skuba` (using `cmd.run`) to bootstrap the first control plane or make the selected node join the cluster. The user must specify which user to use for passwordless login (in this case `sles`) and whether to use `sudo` or not.
 
     Example:
 
     ```
-    bootstrap_first_master:
+    bootstrap_first_control_plane:
       cmd.run:
         - name: skuba node bootstrap --user sles --sudo --target <node IP> <node name>
     
-    bootstrap_additional_master:
+    bootstrap_additional_control_plane:
       cmd.run:
         - name: skuba node join --role master --user sles --sudo --target <node IP> <node name>
     
@@ -198,7 +201,7 @@ This section should cover architecture aspects and the rationale behind disrupti
         - name: skuba node join --role worker --user sles --sudo --target <node IP> <node name>
     ```
 
-    The output of the `skuba` command must be parsed and shown to the user in SUSE Manager in case of errors.
+    SUSE Manager will check the return code of the `skuba` command and, in case of errors, show the raw output.
 
 ## Manage a CaaS Platform cluster using SUSE Manager
 
@@ -210,7 +213,7 @@ E.g. of the output:
 
 ```
 NAME         OS-IMAGE                              KERNEL-VERSION        CONTAINER-RUNTIME   HAS-UPDATES   HAS-DISRUPTIVE-UPDATES
-master0   SUSE Linux Enterprise Server 15 SP1   4.12.14-110-default   cri-o://1.13.3      <none> <none>
+cp0       SUSE Linux Enterprise Server 15 SP1   4.12.14-110-default   cri-o://1.13.3      <none> <none>
 worker0   SUSE Linux Enterprise Server 15 SP1   4.12.14-110-default   cri-o://1.13.3      <none> <none>
 ```
 
@@ -220,8 +223,8 @@ The output is presented in the "CaaS Platform > cluster name" section.
 
 A node can also be removed from the cluster:
 
-- temporarily (cordoned off): using `kubectl` from the Management Node via Salt.
-- permanently: by invoking `skuba node remove <nodename>` via Salt
+- temporarily (drained and cordoned off): [using `kubectl`](https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/#use-kubectl-drain-to-remove-a-node-from-service) from the Management Node via Salt.
+- permanently: by invoking `skuba node remove <nodename>` via Salt. NOTE: this removal is permanent and the cluster cannot join any cluster in the future (a complete reinstallation is required to so).
 
 Example state:
 
@@ -239,13 +242,13 @@ All the cluster updates must be handled by `skuba`.
 
 SUSE Manager can check and notify the user if an update for the cluster is present by triggering `skuba cluster upgrade plan` on the Management Node (using Salt) and check if a new output is available in a cron fashion (e.g. Taskomatic job).
 
-SUSE Manager will then interface with the Management node and upgrade every master in the cluster first:
+SUSE Manager will then interface with the Management node and upgrade every control plane in the cluster first:
 
-`skuba node upgrade apply --target <master-node-ip> --user <user> --sudo`
+`skuba node upgrade apply --target <control-plane-node-ip> --user <user> --sudo`
 
 and then every worker:
 
-`skuba node upgrade apply --target <master-node-ip> --user <user> --sudo`
+`skuba node upgrade apply --target <worker-node-ip> --user <user> --sudo`
 
 This can be done by supplying the command to the Management Node via Salt.
 
@@ -255,9 +258,13 @@ By leveraging the existing feature of CVE Auditing, SUSE Manager can detect and 
 
 ## Future work
 
+### CVE Auditing
+
+An useful addition would be to have SUSE Manager as an admission controller for rejecting pod creation whenever an image used is vulnerable.
+
 ### Deploy OpenStack Cloud
 
-The approach described in this RFC can be further reused for deploying and managing an OpenStack Cloud using AirShip, given that `skuba` is similar to `airshipctl`:
+If OpenStack Cloud will be deployed using AirShip (still under discussion), the approach described in this RFC can be further reused for deploying and managing an OpenStack Cloud, given that `skuba` is similar to `airshipctl`:
 
 - provision nodes to be part of the cloud
 - tag nodes and bootstrap them to be part of the cloud
@@ -265,7 +272,10 @@ The approach described in this RFC can be further reused for deploying and manag
 
 ### Run other products in the cluster
 
-It would also be possible, after that the cluster has been deployed, to deploy other SUSE products on top of the cluster (e.g. SUSE OpenStack Cloud, SUSE Enterprise storage): every product would have a deployment descriptor on top of CaaS Platform, and SUSE Manager would only have to deploy CaaS Platform and then the deployment of the product.
+It would also be possible, after that the cluster has been deployed, to deploy other SUSE products on top of the cluster (e.g. SUSE OpenStack Cloud, SUSE Enterprise storage): 
+
+- CaaS Platform deploys a SUSE Application Lifecycle operator on top of the cluster with a set of custom resources (CRDs)
+- SUSE Manager can then deploy SOC, SES or any other combination of products on top of the cluster and manage the lifecycle of the deployed products
 
 In this case, SUSE Manager would be the central point of deployment for other products based on CaaS Platform and show the health of every cluster installed, while offering the possibility of managing and upgrading the cluster.
 
@@ -278,14 +288,13 @@ The alternative of offering to configure application deployments from SUSE Manag
 
 A small part of the deployment of the CaaS Platform can be reused for other Kubernetes distributions (e.g. OpenShift); deploying on bare metal requires machines configured with very specific requirements and that can be solved with AutoYaST (or Kickstart in the Red Hat case).
 
-Every distribution uses then its deployment helper (OpenShift uses `openshift-install`) to bootstrap the cluster. In this regard, `skuba` is only targeting SUSE CaaS Platform and cannot be reused for bootstrapping and managing a cluster.
+Every distribution uses then its deployment helper (OpenShift uses `openshift-install`) to bootstrap the cluster. In this regard, `skuba` is only targeting SUSE CaaS Platform and cannot be reused for bootstrapping and managing a cluster that is not CaaS Platform based.
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
 What if the customer wants to deploy another Kubernetes distribution?
-There will not be complete support for its deployment, or at least there is only support for the deployment on bare metal.
-Also, there is not support for managing this cluster because we are relying on `skuba`.
+If we are using `skuba`, we only target CaaS Platform deployments.
 
 # Alternatives
 [alternatives]: #alternatives
