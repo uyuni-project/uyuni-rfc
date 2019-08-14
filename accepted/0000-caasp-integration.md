@@ -5,7 +5,7 @@
 # Summary
 [summary]: #summary
 
-This RFC describes how SUSE Manager can be leveraged to perform cross-product integration with Container as a Service Platform.
+This RFC describes how SUSE Manager can be leveraged to perform cross-product integration with a cluster solution like Container as a Service Platform.
 
 # Motivation
 [motivation]: #motivation
@@ -23,6 +23,7 @@ We will be focusing on the following scenarios:
 1. Deploy a CaaS Platform cluster using SUSE Manager
 2. Manage a CaaS Platform cluster using SUSE Manager
 
+Every following section will contain a general specific scenario (e.g. integrating with a generic cluster interface) and a subsequent CaaS Platform-specific section follows.
 
 # Detailed design
 [design]: #detailed-design
@@ -31,7 +32,38 @@ We will be focusing on the following scenarios:
 
 This section should cover architecture aspects and the rationale behind disruptive technical decisions (when applicable), as well as corner-cases and warnings. Whenever the new feature creates new user interactions, this section should include examples of how the feature will be used. -->
 
-## Deploy a CaaS platform cluster using SUSE Manager
+## Deploy a cluster using SUSE Manager
+
+Under SUSE Manager main menu, a new menu item "Cluster" should be introduced.
+Under that item, it should be possible to create, edit, and remove a cluster.
+
+To create a cluster, a user has to enter its name.
+
+Every detail about the cluster is saved into corresponding database tables (e.g. `susecluster`).
+
+### Cluster requirements
+
+If the cluster required a specific set of nodes optionally with a defined configuration, the cluster provider muster offer a way to deploy the whole infrastructure automatically, e.g. using AutoYaST profiles.
+
+SUSE Manager will provision bare-metal machines using the supplied AutoYaST profile to have a complete set of machines ready to be hosting the cluster.
+
+### The Management Node
+
+The cluster provider must also indicate:
+
+- how and the number of Management Node(s) must be elected among the provisioned machines (e.g. based on hardware requirements)
+- how Management Node(s) should be deployed (e.g. additional software to be installed via AutoYaST or Salt states)
+- whether Management Node(s) can be managed by SUSE Manager (specifically: can users manage the updates of the Management Node via SUSE Manager?)
+
+### Cluster bootstrapping
+
+The cluster must be initiated by the Management Node that has all the tools to bootstrap and manage the cluster. Specific instructions on how to bootstrap the cluster must be provided.
+Questions that need to be answered by the cluster provider:
+- Upon successful bootstrapping, can the worker nodes be managed by SUSE Manager?
+- Do the nodes have a specific agent running on them and/or can we install a `salt-minion` or use `salt-ssh` on those nodes?
+- Can the nodes be managed by SUSE Manager? Can the packages be updated or do they require specific handling by the Management Node?
+
+## Specific section: deploy a CaaS platform cluster using SUSE Manager
 
   ### Cluster Deployment
 
@@ -54,7 +86,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 
   NOTE: the load balancer is unique for the cluster and it is a level 4 load balancer (no TLS termination). The management node can manage different clusters at the same time.
 
-  #### Cluster node requirements
+  ### Cluster node requirements
 
   Every machine that needs to be part of cluster (either a control plane or a worker) has strictly hardware and software requirements (e.g.: every machine has to run SUSE Linux Enterprise 15, has a fixed IP that can be resolved, [a precise partition layout with no swap](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_suse_linux_enterprise_server_installation), at least 2 CPUs, etc.). From now on, these requirements will be called "CaaS Platform node requirements".
 
@@ -72,7 +104,7 @@ This section should cover architecture aspects and the rationale behind disrupti
   One additional scenario would be to use [an existing node running SUSE Linux Enterprise 15](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_deployment_on_existing_sles_installation). In this particular case, we should check that the CaaS Platform requirements are satisfied before offering this node to be part of the cluster.
   These checks can be done using Salt grains. 
 
-  ##### Templating selection
+  ### Templating selection
   
   SUSE Manager has an existing integration with VMWare (Virtual Host Manager). This integration is read-only, as SUSE Manager can show the guests running in the VMWare host and display information about the guests.
   Currently, there is no any integration with SUSE OpenStack Cloud 8.
@@ -86,7 +118,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 
   **NOTE**: skuba also provides templates for AWS and libvirt, but those are not supported at the moment of writing.
 
-  ##### The Management Node
+  ### The Management Node
 
   CaaS Platform requires a "Management Node" to deploy itself. The Management node must run SUSE Linux Enterprise 15 SP1.
   The Management Node will be used for deployment of the CaaS Platform cluster, and cannot be re-used to be part of the cluster.
@@ -130,7 +162,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 
   Given that the Management Node is a Salt minion managed by SUSE Manager, every update for `SUSE-CaaSP-Management` can be installed directly from SUSE Manager. Extra care should be put into protecting the cluster configuration file generated by `skuba` during cluster bootstrapping (rsync into SUSE Manager nightly?).
 
-  ##### Load balancer
+  ### Load balancer
 
   Every CaaS Platform production cluster must have at least one load balancer associated. There is not a standardized way to deploy a load balancer. One example that the CaaS Platform suggests using is the [`nginx` TCP Load Balancer with passive health checks](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_configuring_the_load_balancer).
 
@@ -138,7 +170,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 
   Every update to the load balancer `nginx` will be handled via SUSE Manager.
 
-  ##### Bootstrapping an empty cluster
+  ### Bootstrapping an empty cluster
 
   Salt will invoke `skuba` (using `cmd.run`) in the Management Node. Unfortunately, `skuba` does not offer an API yet (is in the progress).
 
@@ -157,9 +189,9 @@ This section should cover architecture aspects and the rationale behind disrupti
   
   Single Sign-On is out of scope until further developments from the Product Management.
   
-  ##### Control plane and worker nodes
+  ### Control plane and worker nodes
 
-  ###### Registering control plane and worker to SUSE Manager
+  ### Registering control plane and worker to SUSE Manager
 
   The core of the CaaS Platform is control plane and worker nodes. The Management Node, instructed by SUSE Manager, will take care of bootstrapping control plane and worker nodes.
 
@@ -168,7 +200,7 @@ This section should cover architecture aspects and the rationale behind disrupti
   [`skuba-update` will take care of updating the Base Operating System](https://susedoc.github.io/doc-caasp/beta/caasp-admin/single-html/#_base_os): this means we cannot register any control plane or worker node with SUSE Manager (otherwise an end-user could apply updates to the machine).
   In case the machines are registered to SUSE Manager, the machines will be de-registered during the bootstrapping.
   
-  ###### Bootstrapping control plane and worker nodes
+  ### Bootstrapping control plane and worker nodes
 
   In SUSE Manager under "CaaS Platform > Deployment > cluster name" there will be a list of machines that:
   - are not part of any other CaaS Platform cluster
@@ -203,7 +235,35 @@ This section should cover architecture aspects and the rationale behind disrupti
 
     SUSE Manager will check the return code of the `skuba` command and, in case of errors, show the raw output.
 
-## Manage a CaaS Platform cluster using SUSE Manager
+## Manage a cluster using SUSE Manager
+
+SUSE Manager offers to show the status of the running cluster by either accessing the cluster directly or via the Management Node.
+In this regard, the cluster provider should provide a way to expose the cluster status (e.g. running nodes, health of each node, monitoring metrics...) to SUSE Manager.
+
+### Add and removal of nodes to the cluster
+
+SUSE Manager also offers the possibility of adding and removing nodes to the cluster:
+
+- To add a node from scratch, an AutoYaST profile can be reused
+- To remove a node, SUSE Manager must remove the node from the cluster using the Management Node and issuing the proper procedure to restrict a node off the cluster
+
+SUSE Manager should be instructed to perform additional actions depending on the role of added/removed node (e.g. control plane, worker, load balancer, ...).
+
+### Cluster upgrade
+
+If every node of the cluster is not directly registered to SUSE Manager, SUSE Manager should offer the possibility to use the Management Node to trigger an update of every node in the cluster, following the standard procedure of upgrading predisposed by the cluster provider.
+
+Also, SUSE Manager must coordinate the Management Node to issue a correct upgrade procedure of the product (e.g. from CaaS Platform version 3 to 4).
+
+### Application deployment
+
+SUSE Manager can also offer the possibility of deploying an application on top of the cluster deployed (e.g. Kubernetes deployment descriptor to deploy a Kubernetes operator). In this case, the cluster provider must provide the Management Node of the necessary tooling to deploy an application using an API. SUSE Manager makes use of the Management Node to deploy a provided application.
+
+### Specific usage of SUSE Manager features
+
+One cluster deployment can also leverage SUSE Manager features: SUSE CaaS Platform can trigger a CVE Audit on a container image before deploying it. The cluster provider must outline which features intend to use and which interface is to be used (preferred: XMLRPC API).
+
+## Specific section: manage a CaaS Platform cluster using SUSE Manager
 
 ### Show cluster status
 
