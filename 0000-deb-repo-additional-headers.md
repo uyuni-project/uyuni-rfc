@@ -53,24 +53,13 @@ The database schema needs to be extended with new tables to store the additional
 ```
 rhnPackageExtraTags
 ====================
-id          number
-name        string
-created     timestamp
-modified    timestamp
-
-primary key (id)
-```
-
-```
-rhnPackageExtraTagsValues
-==========================
-package_id  number foreign key rhnPackage(id)
-tag_id      number foreign key rhnPackageExtraTags(id)
+id          number not null
+name        string no null
 value       string not null
 created     timestamp
 modified    timestamp
 
-primary key (package_id, field_id)
+primary key (id)
 ```
 
 Another new table is needed to store the source of the GPG keys used to validate the repo metadata.
@@ -85,7 +74,7 @@ key_id              string not null
 
 The class `com.redhat.rhn.taskomatic.task.repomd.DebPackageWriter` must be changed to write any additional fields stored in the database into the generated `Packages.gz` file.
 
-_Note_: The same structure could be used to store additional RPM headers not yet stored.
+_Note_: The same structure could be used to store additional RPM headers not yet stored. The corresponding class that needs to be changed is `com.redhat.rhn.taskomatic.task.repomd.PrimaryXmlWriter`.
 
 ## Repo signature checking
 
@@ -178,7 +167,7 @@ An error should be thrown if importing the GPG keys is not successful.
 
 ### Metadata and signature lookup
 
-In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file  and verify its signature. This file can be in one of these locations:
+In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file and verify its signature. This file can be in one of these locations:
 - `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST` in case of repos with a `dists` directory when the Uyuni repo URL points to `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST/$COMPONENT/binary-$ARCH/`.
 - `http://mirror.example.com/$REPODIR/` in the case of flat repositories
 
@@ -211,12 +200,12 @@ No drawbacks.
 # Alternatives
 [alternatives]: #alternatives
 
-- Support only a very limited set of additional fields like `Multi-Arch` discarding all others.
+- Support only a very limited set of additional fields like `Multi-Arch` while discarding all others.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- Should all the fields be stored ? Should only the fields defined in [1] be stored ? If yes what happens with user degined fields [2]
+- Should all the fields be stored ? Should only the fields defined in [1] be stored ? If yes what happens with user defined fields [2]
 - In case no GPG keys are configured for a repo (i.e. no GPG verification needed) should the `Release` file still be looked up and the checksums verified ?
 - How to delete keys that are not used anymore from `$GPG_DIR` ?
 
