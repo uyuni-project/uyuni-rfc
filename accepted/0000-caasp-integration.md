@@ -364,4 +364,3 @@ If we are using `skuba`, we only target CaaS Platform deployments.
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-Ctrl-F: TODO
