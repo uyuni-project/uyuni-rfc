@@ -60,7 +60,7 @@ This translates to:
 
   1. For non-`Administrative Role` users that can manage the selected systems who do not have the `Remote Command Administrator Role`, `Remote Command` tab would be unavailable.
 
-  2. `Salt > Remote Commands` is unavailable if the user is not associated with any `Administrative Role` or has not any assigned System Group.
+  2. `Salt > Remote Commands` will be available but no system will be impacted by the command launched by the user.
 
 In the Java backend:
 
@@ -69,14 +69,15 @@ In the Java backend:
 
 The role `Remote Command Administrator` will be enabled for all non-`Administrative` existing users. It will be disabled by default for new users: it must be manually enabled by the Administrator that creates the user.
 
-## A new config option `java.disable_remote_commands`
+## A new config option `java.allow_remote_commands`
 
 A new `rhn.conf` will be introduced that disables the `Remote Command` tab and the `Salt > Remote Commands` feature. Codepaths are the same as the previous section, but it will be enforced for every user.
+The option will be enabled by default for consistency with the current situation.
 
 ## Future Developments
 
 If needed, the `Remote Command Administrator` role can be customized with a system group granularity level: every user can access the `Remote Command` tab on a system if he/she is entitled to do via ACL.
-Additional tables to hold user and system groups associated with the role must be introduced and the associated backend code must be implemented.
+Additional tables to system groups associated with the role must be introduced and the associated backend code must be implemented. In order to enable `Remote Command(s)` on a system group, a minimum of the `System Group Administrator` will be required.
 
 # Drawbacks
 [drawbacks]: #drawbacks
