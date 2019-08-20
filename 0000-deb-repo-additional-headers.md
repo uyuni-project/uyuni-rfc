@@ -13,7 +13,7 @@ Support additional packages fields in Debian repos.
 - What is the expected outcome?
 
 Uyuni doesn't expose all the metadata coming from the upstream repos. Additional package metadata like `Multi-Arch` is needed by `apt` in some cases to avoid installing a package over and over again.
-Uyuni should copy the package metadata into its channels.
+Uyuni must be able to create Debian repositories with the correct metadata.
 
 # Detailed design
 
@@ -62,17 +62,18 @@ modified    timestamp
 primary key (id)
 ```
 
-Another new table is needed to store the source of the GPG keys used to validate the repo metadata.
+Another new table is needed to store the association of a GPG key to a repository:
 ```
-rhnContentSourceGPG
+rhnContentSourceGpg
 ====================
-content_source_id   number foreign key rhnContentSource(id)
-key_url             string not null
-key_id              string not null
+content_source_id   number not null foreign key rhnContentSource(id)
+gpg_key_id          number not null foreign key rhnCryptoKey(id)
+created             timestamp
+modified            timestamp
 
 ```
 
-The class `com.redhat.rhn.taskomatic.task.repomd.DebPackageWriter` must be changed to write any additional fields stored in the database into the generated `Packages.gz` file.
+The class `com.redhat.rhn.taskomatic.task.repomd.DebPackageWriter` must be enhanced to write any additional fields stored in the database into the generated `Packages.gz` file.
 
 _Note_: The same structure could be used to store additional RPM headers not yet stored. The corresponding class that needs to be changed is `com.redhat.rhn.taskomatic.task.repomd.PrimaryXmlWriter`.
 
@@ -138,32 +139,33 @@ Debian repos don't have a standard location for the public GPG keys used to veri
 
 ### GPG keys management
 
-Uyuni ships the SUSE and OpenSUSE keys in the package `uyuni-build-keys`. The keys for Ubuntu and Debian should be shipped in this package.
+Uyuni ships the SUSE and OpenSUSE keys in the package `uyuni-build-keys`. The keys for Ubuntu and Debian should be shipped in this package too.
 
-Any additional keys that need to be used (e.g. for Ubuntu derivatives distros or for custom repos) should be imported in the same keyring using for checking RPM repos, i.e. `/var/lib/spacewalk/gpgdir/pubring.gpg` (`GPG_DIR`)
+Any additional keys that need to be used (e.g. for Ubuntu derivatives distros or for custom repos) must be created manually using the existing UI (`Systems -> Autoinstallation -> GPG and SSL keys`)
 
 
-### Key import via the UI
+### GPG Key usage in the UI
 
-The UI for creating/updating a repository (`Software -> Manage -> Repositories`) will be extended with two additional fields:
-- GPG key URL / Keyserver
-- GPG key ID
+The UI for creating/updating a repository (`Software -> Manage -> Repositories`) must be extended with one additional field:
+- GPG key
 
-These fields should be enabled only if checkbox `Has Signed Metadata` is checked. If present these fields will be saved into `rhnContentSourceGPG`.
+This field must be visible only if the selected repository type is `deb` and the checkbox `Has Signed Metadata` is checked. For `deb` repositories the `Has Signed Metadata` checkbox must be enabled by default.
 
-When saving the repository the user will be asked to confirm the import of the GPG key. The confirmation is only needed if `Has Signed Metadata` is checked and if the key doesn't already exist in the `$GPG_DIR` keyring.
+The field must be shown as a selector. The values used to populate the selector come from the existing table `rhnCryptoKey`. Only keys for current organization must be shown.
 
-The key should be imported into `$GPG_DIR`.
+An additional option `Default keys` must shown in the selector as default. If this option is selected, the validation will be done using the GPG keys from package `uyuni-build-keys`.
 
-### Key import via the API
+When saving the repository data, in case there was a GPG key selected other then `Default keys` the assignment will be saved into the new table `rhnContentSourceGpg`.
 
-The API method `channel.software.create_repo()` should be extended with two optional arguments to allow specifying the `GPG key URL / Keyserver` and `GPG key ID`.
+### Key usage in the API
 
-An error should be thrown if importing the GPG keys is not successful.
+The API method `channel.software.create_repo()` must be extended with one optional arguments to allow specifying the `GPG key ID`.
+
+An error should be thrown if the the GPG key does not exist.
 
 ### Key import via `spacewalk-repo-sync`
 
-`spacewalk-repo-sync` must be extended to be able to import the GPG keys configured in `rhnContentSourceGPG`. Similarly to Yum repos, the user should be asked for confirmation when importing the keys.
+`spacewalk-repo-sync` must be extended to be able to import the GPG keys configured in `rhnContentSourceGpg`. Similarly to Yum repos, the user should be asked for confirmation when importing the keys.
 
 ### Metadata and signature lookup
 
@@ -179,7 +181,7 @@ Uyuni should verify the integrity of the `Packages.gz|xz` files using the checks
 
 ### Signature verification
 
-If the `InRelease` or `Release.pgg` exist in the repo then Uyuni must verify the `Release` file:
+If the `InRelease` or `Release.pgg` exist in the repo to be synced then Uyuni must verify the `Release` file. If the repo has signed metadata enabled but no GPG key selected, the default keyring must be used:
 ```
 gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg InRelease
 ```
@@ -188,8 +190,17 @@ or
 gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg Release.gpg Release
 ```
 
+Otherwise the custom GPG key associated with the repo must be used:
+```
+gpgv --keyring </path/to/temp/keyring/file.gpg> InRelease
+```
+or
+```
+gpgv --keyring </path/to/temp/keyring/file.gpg> Release.gpg Release
+```
+
 The signature verification should be done during repo syncing when the metadata is parsed.
-Verification is possible only if the user has configured the GPG signing of the repos to be synced. Otherwise a warning should be printed in the logs about the lack of GPG configuration.
+Verification must be done only if the user has configured the GPG signing of the repos to be synced. Otherwise a warning must be printed in the logs about the lack of GPG configuration.
 
 
 # Drawbacks
@@ -207,7 +218,6 @@ No drawbacks.
 
 - Should all the fields be stored ? Should only the fields defined in [1] be stored ? If yes what happens with user defined fields [2]
 - In case no GPG keys are configured for a repo (i.e. no GPG verification needed) should the `Release` file still be looked up and the checksums verified ?
-- How to delete keys that are not used anymore from `$GPG_DIR` ?
 
 # References
 
