@@ -163,10 +163,6 @@ The API method `channel.software.create_repo()` must be extended with one option
 
 An error should be thrown if the the GPG key does not exist.
 
-### Key import via `spacewalk-repo-sync`
-
-`spacewalk-repo-sync` must be extended to be able to import the GPG keys configured in `rhnContentSourceGpg`. Similarly to Yum repos, the user should be asked for confirmation when importing the keys.
-
 ### Metadata and signature lookup
 
 In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file and verify its signature. This file can be in one of these locations:
@@ -179,7 +175,7 @@ Looking up the `Release` file should be done automatically when syncing of the r
 
 Uyuni should verify the integrity of the `Packages.gz|xz` files using the checksums present in the `Release` file.
 
-### Signature verification
+### GPG signature verification
 
 If the `InRelease` or `Release.pgg` exist in the repo to be synced then Uyuni must verify the `Release` file. If the repo has signed metadata enabled but no GPG key selected, the default keyring must be used:
 ```
