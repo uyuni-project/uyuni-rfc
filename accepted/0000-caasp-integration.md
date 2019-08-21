@@ -109,7 +109,7 @@ One cluster deployment can also leverage SUSE Manager features: SUSE CaaS Platfo
 
   The cluster is then identified by:
   - a unique name
-  - the hostname of the load balancer
+  - the FQDN of the load balancer
   - the hostname of its management node
 
   (more on the load balancer and the management node below).
