@@ -36,7 +36,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 
 ### Deploy a cluster using SUSE Manager
 
-Under SUSE Manager main menu, a new menu item "Cluster" should be introduced.
+Under SUSE Manager main menu, a new menu item "Clusters" should be introduced.
 Under that item, it should be possible to create, edit, and remove a cluster.
 
 To create a cluster, a user has to enter its name.
