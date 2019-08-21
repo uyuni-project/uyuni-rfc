@@ -95,7 +95,8 @@ Uyuni/SUSE Manager can also offer the possibility of deploying an application on
 
 #### Specific usage of Uyuni/SUSE Manager features
 
-One cluster deployment can also leverage Uyuni/SUSE Manager features: SUSE CaaS Platform can trigger a CVE Audit on a container image before deploying it. The cluster provider must outline which features intend to use and which interface is to be used (preferred: XMLRPC API).
+One cluster deployment can also leverage Uyuni/SUSE Manager features via API.
+For example, a cluster deployment may invoke `CVEAuditHandler` and test if a container image built by SUSE Manager is vulnerable against a particular CVE and decide whether to allow the deployment of the image or not.
 
 ## CaaS Platform-specific design
 
@@ -158,7 +159,7 @@ One cluster deployment can also leverage Uyuni/SUSE Manager features: SUSE CaaS 
 
   CaaS Platform requires a "Management Node" to deploy itself. Uyuni/SUSE Manager will offer to elect as Management Node:
 
-  - The Uyuni/SUSE Manager itself
+  - The Uyuni/SUSE Manager itself. In this case, SUSE Manager does not obviously need to manage itself by installing `salt-minion` and will just apply the Management Node state.
   - A node deployed for this particular purpose (must run SUSE Linux Enterprise 15 SP1). Provided that the machine is a minion (Salt-only feature) and is running the correct OS (checked via grains), we can introduce a new entitlement ("Add-On System type") to entitle an existing machine as a Management Node.
   - An ephemeral container
 
@@ -239,7 +240,7 @@ One cluster deployment can also leverage Uyuni/SUSE Manager features: SUSE CaaS 
   - registry.suse.com
   - Uyuni/SUSE Manager with Content Lifecycle Management filters
 
-  NOTE: `skuba-update` will not update the Management Node.
+  NOTE: `skuba-update` will not update the Management Node. Before calling `skuba-update` from the Uyuni/SUSE Manager web interface or API, Uyuni/SUSE Manager will update the `skuba` package running on the corresponding Management Node.
   
   #### Bootstrapping control plane and worker nodes
 
