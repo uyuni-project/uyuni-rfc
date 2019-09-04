@@ -43,9 +43,15 @@ Under that item, it should be possible to create, edit, and remove a cluster.
 
 To create a cluster, a user has to enter its name.
 
-Every detail about the cluster is saved into corresponding database tables (e.g. `susecluster`).
+The general details about the cluster (e.g. name) are saved into corresponding database tables (e.g. `susecluster`).
+Every other cluster-specific details (depending on the cluster provider) can be saved in dynamic JSON schemas that can be optionally versioned in a git repository.
 
 API support for all the activities described below should be implemented as well as front-end support.
+
+A new system group will be created for all the nodes that constitute the cluster.
+A new role: "Cluster Administrator" will be created. This is the same as the "Image Administrator" Uyuni/SUSE Manager currently has for containers and OS images.
+Along with root users of Uyuni/SUSE Manager, Cluster Administrator can create, deploy and manage a cluster.
+All the other users without this role cannot see the nodes of the cluster unless they are made System Group Administrators.
 
 #### Cluster requirements
 
@@ -87,7 +93,7 @@ Uyuni/SUSE Manager should be instructed to perform additional actions depending 
 
 If every node of the cluster is not directly registered to Uyuni/SUSE Manager, Uyuni/SUSE Manager should offer the possibility to use the Management Node to trigger an update of every node in the cluster, following the standard procedure of upgrading predisposed by the cluster provider.
 
-Also, Uyuni/SUSE Manager must coordinate the Management Node to issue a correct upgrade procedure of the product (e.g. from CaaS Platform version 3 to 4).
+Also, Uyuni/SUSE Manager must coordinate the Management Node to issue a correct upgrade procedure of the product (e.g. from CaaS Platform version 3 to 4): this process is initiated by Uyuni/SUSE Manager by using the cluster provider framework implementation (e.g. `skuba`) to handle the upgrade operation.
 
 #### Application deployment
 
@@ -127,6 +133,10 @@ For example, a cluster deployment may invoke `CVEAuditHandler` and test if a con
 
   Every machine that needs to be part of cluster (either a control plane or a worker) has strictly hardware and software requirements (e.g.: every machine has to run SUSE Linux Enterprise 15, has a fixed IP that can be resolved, [a precise partition layout with no swap](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_suse_linux_enterprise_server_installation), at least 2 CPUs, etc.). From now on, these requirements will be called "CaaS Platform node requirements".
 
+  NOTE: In the future, there might be a CaaSP Community that will work on openSUSE. The stack would then be:
+  - CaaSP 4.0 + SUSE Manager 4.0
+  - CaaSP Community 4.0 + Uyuni Server 4.0
+
   For this reason, the CaaS Platform [supports deployment on](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_platform):
 
   - VMware ESXi
@@ -159,7 +169,7 @@ For example, a cluster deployment may invoke `CVEAuditHandler` and test if a con
 
   CaaS Platform requires a "Management Node" to deploy itself. Uyuni/SUSE Manager will offer to elect as Management Node:
 
-  - The Uyuni/SUSE Manager itself. In this case, SUSE Manager does not obviously need to manage itself by installing `salt-minion` and will just apply the Management Node state. It doesn't require an extra management node for CaaSP (save resources and time) and `skuba` can be installed inside on top of a regular SLE15 SP1 (it is not going to cause any interference with the stack used by SUSE Manager).
+  - The Uyuni/SUSE Manager itself. In this case, SUSE Manager does not need to manage itself by installing `salt-minion` and will just apply the Management Node state. It doesn't require an extra management node for CaaSP (save resources and time) and `skuba` can be installed inside on top of a regular SLE15 SP1 (it is not going to cause any interference with the stack used by SUSE Manager).
 
   - A node deployed for this particular purpose (must run SUSE Linux Enterprise 15 SP1). Provided that the machine is a minion (Salt-only feature) and is running the correct OS (checked via grains), we can introduce a new entitlement ("Add-On System type") to entitle an existing machine as a Management Node.
   - An ephemeral container
@@ -223,10 +233,6 @@ For example, a cluster deployment may invoke `CVEAuditHandler` and test if a con
 
   The parameters above are already known to Uyuni/SUSE Manager.
 
-  It is probably not in the scope of this RFC to offer to the user the ability to customize the configuration directly from Uyuni/SUSE Manager, but it will be in the future (e.g. text editing of the configuration file directly from Uyuni/SUSE Manager). At this point, the configuration of the cluster is in the Management Node and can be customized by the user (e.g. [integrating an external LDAP](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_integrate_external_ldap) or [configure `kured`](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_prevent_nodes_running_special_workloads_from_being_rebooted)).
-
-  Single Sign-On is out of scope until further developments from the Product Management.
-
   #### Control plane and worker nodes
 
   #### Registering control plane and worker to Uyuni/SUSE Manager
@@ -241,7 +247,7 @@ For example, a cluster deployment may invoke `CVEAuditHandler` and test if a con
   - registry.suse.com
   - Uyuni/SUSE Manager with Content Lifecycle Management filters
 
-  NOTE: `skuba-update` will not update the Management Node - this upgrade must be initiated by SUSE Manager, if the Management Node is not the SUSE Manager node itself.
+  NOTE: `skuba-update` will not update the Management Node - this upgrade must be initiated by SUSE Manager if the Management Node is not the SUSE Manager node itself.
 
   #### Bootstrapping control plane and worker nodes
 
@@ -345,8 +351,19 @@ NOTE: CaaS Platform stack is also deployed via containers. We will need to updat
 #### CVE Auditing
 
 By leveraging the existing feature of CVE Auditing, Uyuni/SUSE Manager can detect and notify the user whether the cluster is running a vulnerable image. When Uyuni/SUSE Manager rebuilds the image and patches it, Uyuni/SUSE Manager can also guide the user in modifying the Kubernetes deployment to pull the updated image (in case of `imagePullPolicy:` is not `Always`) or do a `kubectl rolling-update`.
+In this example, Uyuni/SUSE Manager can offer two strategies:
+- just warn that the image is vulnerable (conservative)
+- refuse to start the vulnerable cluster (disruptive)
+
+The final choice about the strategy is up to the user.
 
 ##  Future work
+
+### Cluster configuration customization
+
+The configuration of the cluster is in the Management Node and can optionally be customized by the user directly from Uyuni/SUSE Manager (e.g. Uyuni/SUSE Manager offering a text editor to configure [integrating an external LDAP](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_integrate_external_ldap) or [configure `kured`](https://susedoc.github.io/doc-caasp/beta/caasp-deployment/single-html/#_prevent_nodes_running_special_workloads_from_being_rebooted)).
+
+Single Sign-On is out of scope until further developments from the Product Management.
 
 ### CVE Auditing
 
@@ -359,6 +376,8 @@ If OpenStack Cloud will be deployed using AirShip (still under discussion), the 
 - provision nodes to be part of the cloud
 - tag nodes and bootstrap them to be part of the cloud
 - manage the lifecycle of the cloud
+
+NOTE: Uyuni/SUSE Manager has just the knowledge of deploying and managing clusters and does not know what is running on top.
 
 ### Run other products in the cluster
 
