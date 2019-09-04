@@ -86,7 +86,7 @@ Since the `virtual-host-gatherer` would only deal with the public APIs, each vir
 
 TODO: Examples of how to deal with Azure API
 
-The `vmId` reported from the API response corresponds with the "uuid" of the instance.
+The `vmId` reported from the API response corresponds with the "uuid" of the instance but might be swapped.
 
 ### AWS module:
 
@@ -107,11 +107,13 @@ TODO: Describe generic module
 # Drawbacks
 [drawbacks]: #drawbacks
 
-## Gathering the UUID for the virtual instances
+## Gathering the UUID (instance id) from virtual instances
 
-For AWS and GCE, the instance id that is returned from the API is not actually the real "uuid" from the instance. In order to get it, it would be previously needed to store that "uuid" on the metadata/tags for each instance.
+For AWS and GCE, the instance id that is returned from the API is not actually the real "uuid" from the instance. On Azure, the instance id is an UUID but not necessary correspond with the SMBIOS "uuid" value we get from Salt.
 
-TODO: Evaluate if the "uuid" could be stored from within the instance into the "instanceMetadata" / "instanceTags" using the internal API available for the instances. That way, an automate action could be executed on the registered instances to store this information and then have it available when running `virtual-host-gatherer`.
+An easy approach here would be to use the Instance ID (instead of smbios uuid) when registering a system which is a public cloud virtual instance. Salt currently does not provide the instance id as part of the grains but it would be really easy to provide a custom grain at the time of registration that would expose the "instance id" as part of the grains only when the system is an EC2, GCE or Azure instance. [Example here](https://gist.github.com/meaksh/1ed58ece0f26ce27a8445985de9ad6a2)
+
+This way, doing some minor fixes on the Java side [Example here](https://github.com/meaksh/uyuni/commit/03d88550dd87d22f3fabd25cebd7c23432285a3c), we could easily use the "instance-id" as "UUID" for the registered system and automatically match it with the data provided by the `virtual-host-gatherer` plugin (which does not include "uuid" but instance id).
 
 # Alternatives
 [alternatives]: #alternatives
