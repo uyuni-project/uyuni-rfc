@@ -46,7 +46,7 @@ The required output from a plugin is a JSON response to the STDOUT, like the fol
             ...
             "type": "aws",
             "vms": {
-                "my-aws-instance-1": "564d6d90-459c-2256-8f39-3cb2bd24b7b0"
+                "my-aws-instance-1": "i-564d6d90459c2256"
             }
         },
         "tenancy2": {
@@ -54,9 +54,9 @@ The required output from a plugin is a JSON response to the STDOUT, like the fol
             ...
             "type": "aws",
             "vms": {
-                "my-aws-instance-2": "4230c60f-3f98-2a65-f7c3-600b26b79c22",
-                "my-aws-instance-3": "4230b00f-0b21-0e9d-dfde-6c7b06909d5f",
-                "my-aws-instance-4": "4230e924-b714-198b-348b-25de01482fd9"
+                "my-aws-instance-2": "i-4230c60f3f982a65",
+                "my-aws-instance-3": "i-4230b00f0b210e9d",
+                "my-aws-instance-4": "i-4230e924b714198b"
             }
         }
     }
@@ -70,7 +70,17 @@ NOTE: All "vms" that belongs to the same virtual-host-manager, in the above exam
 New virtual instance types would be needed on the `rhnVirtualInstanceType` database table, these would be `azure`, `aws`, `gce` and `generic` to indicate the type of the instance.
 
 
-## Gather instances and "uuid" from Public Clouds using API
+## Gather virtual instances and "instance id" from Public Clouds using API
+
+Neither EC2, GCE or Azure expose the smbios "uuid" from the virtual instance through the public API, but instead they identify each instance using an "instance id" which is unique on that particular Public Cloud.
+
+Examples:
+
+- AWS EC2: i-1234567890abcdef0
+- GCE: 152986662232938449
+- Azure: 13f56399-bd52-4150-9748-7190aae1ff21
+
+Since the `virtual-host-gatherer` would only deal with the public APIs, each virtual instance will be identified by its "instance id" on the JSON output from the `virtual-host-gatherer` execution. In order to properly match this "instance id" with the "uuid" of a registered system, this will need some ajustments as describer later on this RFC.
 
 ### Azure module:
 
