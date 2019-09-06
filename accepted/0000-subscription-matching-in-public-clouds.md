@@ -85,19 +85,73 @@ Since the `virtual-host-gatherer` would only deal with the public APIs, each vir
 
 ### Azure module:
 
-TODO: Examples of how to deal with Azure API
+This is an example about how to deal with Azure Public API to collect the virtual instances, using Azure Python SDK:
+
+```python
+from azure.common.credentials import ServicePrincipalCredentials
+from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.resource import ResourceManagementClient, SubscriptionClient
+
+
+# Tenant ID for your Azure Subscription
+TENANT_ID = 'MY-TENANT-ID'
+
+# Your Service Principal App ID
+CLIENT = 'MY-CLIENT-ID'
+
+# Your Service Principal Password
+KEY = 'MY-SECRET'
+
+credentials = ServicePrincipalCredentials(client_id = CLIENT, secret = KEY, tenant = TENANT_ID)
+subscription_id = 'MY-SUBSCRIPTION-ID'
+compute_client = ComputeManagementClient(credentials, subscription_id)
+
+vmss = compute_client.virtual_machines.list_all()
+for i in vmss:
+    print(i.name)
+```
 
 The `vmId` reported from the API response corresponds with the "uuid" of the instance but might be swapped.
 
 ### AWS module:
 
-TODO: Examples of how to deal with AWS API
+This is an example about how to deal with AWS EC2 Public API to collect the virtual instances on a particular Zone, using "boto3":
+
+```python
+import boto3
+ec2 = boto3.client("ec2",
+                   region_name='MY-REGION-NAME',
+                   aws_access_key_id='MY-AWS-ACCESS-KEY-ID',
+                   aws_secret_access_key='MY-AWS-ACCESS-KEY-SECRET')
+
+response = ec2.describe_instances()
+for i in response['Reservations']:
+    for j in i['Instances']:
+        print(j)
+```
 
 The `instanceId` returned from the API is **NOT** the "uuid", on this particular module, we could get the corresponding "uuid" from an "uuid" instance tag that needs to be set before in order to this module to incorporate this instance into the generated output.
 
 ### Google Compute Engine module:
 
-TODO: Examples of how to deal with GCE API
+This is an example about how to deal with Google Compute Engine API to collect the virtual instances on a particular Zone, using "google-api-python-client":
+
+```python
+import googleapiclient.discovery
+
+def list_instances(compute, project, zone):
+    result = compute.instances().list(project=project, zone=zone).execute()
+    return result['items'] if 'items' in result else None
+
+    zone = 'MY-ZONE'
+    project = 'MY-PROJECT-NAME'
+
+    compute = googleapiclient.discovery.build('compute', 'v1')
+
+instances = list_instances(compute, project, zone)
+for i in instances:
+    print(i)
+```
 
 In the case of GCE, the instance id is **NOT** the "uuid" so we need to also to gather the "uuid" from a previously store "uuid" on the instanceMetadata.
 
