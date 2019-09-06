@@ -61,7 +61,7 @@ The required output from a plugin is a JSON response to the STDOUT, like the fol
 }
 ```
 
-All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances, those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0.
+All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances, those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0 or, as mentioned before, do adaptations in the Java side to not require those values (like for KUBERNETES).
 
 
 ## Add new Virtual Instance Types to the DB
@@ -157,7 +157,9 @@ In the case of GCE, the instance id is **NOT** the "uuid" so we need to also to 
 
 ### A generic JSON-file module:
 
-TODO: Describe generic module
+Currently, there is already a "File based" plugin for `virtual-host-gatherer` which allows to import instances from a custom provided JSON file. According to the existing documentation, the aim of this plugin is to import VMware instances when there is no access from the SUSE Manager server to the VMware.
+
+We can already use this plugin for importing virtual instances from the Public Cloud using a tailored JSON file like the one from the above example, so it would be worth to generalize the SUSE Manager documentation to expose this plugin as a general virtual instances importer and not as a VMware-specific.
 
 # Drawbacks
 [drawbacks]: #drawbacks
