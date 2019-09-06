@@ -172,7 +172,7 @@ For AWS and GCE, the instance id that is returned from the API is not actually t
 
 An easy approach here would be to use the "Instance ID" (instead of smbios uuid) when registering a system which is a public cloud virtual instance. Salt currently does not provide the instance id as part of the grains but it would be really easy to provide a custom grain at the time of registration that would expose the "instance id" as part of the grains only when the system is an EC2, GCE or Azure instance. [Example here](https://gist.github.com/meaksh/1ed58ece0f26ce27a8445985de9ad6a2)
 
-This way, doing some minor fixes on the Java side [Example here](https://github.com/meaksh/uyuni/commit/03d88550dd87d22f3fabd25cebd7c23432285a3c), we could easily use the "instance-id" as "UUID" for the registered system and automatically match it with the data provided by the `virtual-host-gatherer` plugin (which does not include "uuid" but instance id).
+This way, doing some minor fixes on the Java side ([example here](https://github.com/meaksh/uyuni/commit/03d88550dd87d22f3fabd25cebd7c23432285a3c)), we could easily use the "instance-id" as "UUID" for the registered system and automatically match it with the data provided by the `virtual-host-gatherer` plugin (which does not include "uuid" but instance id).
 
 In case of systems that are already registered in SUSE Manager using a smbios "uuid", if the new "instance_id" grain is there, it should be enough with scheduling a "Hardware Refresh" action to reflect the new "instance_id" grain value as the "uuid" for that system.
 
