@@ -34,6 +34,7 @@ From [SUSE Terms & Conditions](https://www.suse.com/products/terms_and_condition
 
 > Up to 2 Virtual Machines running on the same Virtualization Host or Virtualization Environment or within the same Private Cloudaccount or **Public Cloud zone can be deployed with one "1-2 Sockets or 1-2 Virtual Machines" Subscription Offering**.
 
+This means, all virtual instances that belongs to the same "zone" (not region) will match with the "1-2 Virtual Machines" subscription.
 
 ## The output from a `virtual-host-gatherer` plugin:
 The required output from a plugin is a JSON response to the STDOUT, that looks like the following:
@@ -63,6 +64,7 @@ The required output from a plugin is a JSON response to the STDOUT, that looks l
 
 All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances, those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0. As mentioned before, with some adaptations in the Java side we could not require those values (like for KUBERNETES).
 
+NOTE: All the "vms" that belongs to the same "Virtual Host Manager", are considered in the same Virtualization group for subscription matching. In the case of Public Clouds, this means a different "Virtual Host Manager" needs to be added for each one of the "Zones" of the particular Public Cloud provider.
 
 ## Add new Virtual Instance Types to the DB
 New virtual instance types would be needed on the `rhnVirtualInstanceType` database table, these would be `azure`, `aws`, `gce` and `generic` to indicate the type of the instance.
