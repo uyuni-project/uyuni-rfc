@@ -36,9 +36,9 @@ From [SUSE Terms & Conditions](https://www.suse.com/products/terms_and_condition
 
 
 ## The output from a `virtual-host-gatherer` plugin:
-The required output from a plugin is a JSON response to the STDOUT, like the following
+The required output from a plugin is a JSON response to the STDOUT, that looks like the following:
 
-```
+```json
 {
     "my-amazon-us-east-2c": {
         "my-amazon-us-east-2c": {
@@ -61,7 +61,7 @@ The required output from a plugin is a JSON response to the STDOUT, like the fol
 }
 ```
 
-All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances, those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0 or, as mentioned before, do adaptations in the Java side to not require those values (like for KUBERNETES).
+All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances, those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0. As mentioned before, with some adaptations in the Java side we could not require those values (like for KUBERNETES).
 
 
 ## Add new Virtual Instance Types to the DB
@@ -69,7 +69,7 @@ New virtual instance types would be needed on the `rhnVirtualInstanceType` datab
 
 Also, it's necessary to add new types of CPU Arch ("rhnCpuArch" DB table) and "Server Arch" ("rhnServerArch") to allow those new types of systems. We could adding one type per public cloud provider, i.a. aws, azure, etc, or maybe go with a generic type called `public_cloud`.
 
-An important thing is to add the respective entry to `rhnServerServerGroupArchCompat` database table to allow `FOREIGN_ENTITLEMENT` to be assigned to these new architectures.
+An important thing is also to add the corresponding entry to `rhnServerServerGroupArchCompat` database table to allow `FOREIGN_ENTITLEMENT` to be assigned to any of these new architectures.
 
 ## Gather virtual instances and "instance id" from Public Clouds using API
 
@@ -111,7 +111,7 @@ for i in vmss:
     print(i.name)
 ```
 
-The `vmId` reported from the API response corresponds with the "uuid" of the instance but might be swapped.
+The response contains the "instance name" as well as the "instance id".
 
 ### AWS module:
 
@@ -130,7 +130,7 @@ for i in response['Reservations']:
         print(j)
 ```
 
-The `instanceId` returned from the API is **NOT** the "uuid", on this particular module, we could get the corresponding "uuid" from an "uuid" instance tag that needs to be set before in order to this module to incorporate this instance into the generated output.
+The response contains the "instance name" as well as the "instance id".
 
 ### Google Compute Engine module:
 
@@ -153,7 +153,7 @@ for i in instances:
     print(i)
 ```
 
-In the case of GCE, the instance id is **NOT** the "uuid" so we need to also to gather the "uuid" from a previously store "uuid" on the instanceMetadata.
+The response contains the "instance name" as well as the "instance id".
 
 ### A generic JSON-file module:
 
@@ -168,9 +168,11 @@ We can already use this plugin for importing virtual instances from the Public C
 
 For AWS and GCE, the instance id that is returned from the API is not actually the real "uuid" from the instance. On Azure, the instance id is an UUID but not necessary correspond with the SMBIOS "uuid" value we get from Salt.
 
-An easy approach here would be to use the Instance ID (instead of smbios uuid) when registering a system which is a public cloud virtual instance. Salt currently does not provide the instance id as part of the grains but it would be really easy to provide a custom grain at the time of registration that would expose the "instance id" as part of the grains only when the system is an EC2, GCE or Azure instance. [Example here](https://gist.github.com/meaksh/1ed58ece0f26ce27a8445985de9ad6a2)
+An easy approach here would be to use the "Instance ID" (instead of smbios uuid) when registering a system which is a public cloud virtual instance. Salt currently does not provide the instance id as part of the grains but it would be really easy to provide a custom grain at the time of registration that would expose the "instance id" as part of the grains only when the system is an EC2, GCE or Azure instance. [Example here](https://gist.github.com/meaksh/1ed58ece0f26ce27a8445985de9ad6a2)
 
 This way, doing some minor fixes on the Java side [Example here](https://github.com/meaksh/uyuni/commit/03d88550dd87d22f3fabd25cebd7c23432285a3c), we could easily use the "instance-id" as "UUID" for the registered system and automatically match it with the data provided by the `virtual-host-gatherer` plugin (which does not include "uuid" but instance id).
+
+In case of systems that are already registered in SUSE Manager using a smbios "uuid", if the new "instance_id" grain is there, it should be enough with scheduling a "Hardware Refresh" action to reflect the new "instance_id" grain value as the "uuid" for that system.
 
 # Alternatives
 [alternatives]: #alternatives
