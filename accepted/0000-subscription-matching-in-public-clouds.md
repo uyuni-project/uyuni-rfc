@@ -34,7 +34,7 @@ From [SUSE Terms & Conditions](https://www.suse.com/products/terms_and_condition
 
 > Up to 2 Virtual Machines running on the same Virtualization Host or Virtualization Environment or within the same Private Cloudaccount or **Public Cloud zone can be deployed with one "1-2 Sockets or 1-2 Virtual Machines" Subscription Offering**.
 
-This means, all virtual instances that belongs to the same "zone" (not region) will match with the "1-2 Virtual Machines" subscription.
+This means, all virtual instances that belong to the same "zone" (not region) will match with the "1-2 Virtual Machines" subscription.
 
 ## The output from a `virtual-host-gatherer` plugin:
 The required output from a plugin is a JSON response to the STDOUT, that looks like the following:
