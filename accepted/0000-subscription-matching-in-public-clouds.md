@@ -40,35 +40,36 @@ The required output from a plugin is a JSON response to the STDOUT, like the fol
 
 ```
 {
-    "my-amazon-ec2-region-X": {
-        "tendancy1": {
-            "hostIdentifier": "tenancy1",
-            ...
+    "my-amazon-us-east-2c": {
+        "my-amazon-us-east-2c": {
+            "name": "my-amazon-us-east-2c",
+            "hostIdentifier": "my-amazon-us-east-2c",
+            "ramMb": 0,
+            "cpuArch": "aws",
+            "cpuMhz": 0,
+            "os": "Amazon AWS",
+            "osVersion": "Amazon AWS",
+            "totalCpuCores": 0,
+            "totalCpuSockets": 0,
             "type": "aws",
             "vms": {
-                "my-aws-instance-1": "i-564d6d90459c2256"
-            }
-        },
-        "tenancy2": {
-            "hostIdentifier": "tenancy2",
-            ...
-            "type": "aws",
-            "vms": {
-                "my-aws-instance-2": "i-4230c60f3f982a65",
-                "my-aws-instance-3": "i-4230b00f0b210e9d",
-                "my-aws-instance-4": "i-4230e924b714198b"
+                "instance4": "i-fffcb2bd24b7b9",
+                "instance5": "i-fffcb2bd24b7b11"
             }
         }
     }
 }
 ```
-TODO: Complete the example JSON to add all attributes required from the Uyuni database.
 
-NOTE: All "vms" that belongs to the same virtual-host-manager, in the above example "my-amazon-ec2-region-X", regarding its tenancy, they all will be considered in the same virtualization group.
+All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances, those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0.
+
 
 ## Add new Virtual Instance Types to the DB
 New virtual instance types would be needed on the `rhnVirtualInstanceType` database table, these would be `azure`, `aws`, `gce` and `generic` to indicate the type of the instance.
 
+Also, it's necessary to add new types of CPU Arch ("rhnCpuArch" DB table) and "Server Arch" ("rhnServerArch") to allow those new types of systems. We could adding one type per public cloud provider, i.a. aws, azure, etc, or maybe go with a generic type called `public_cloud`.
+
+An important thing is to add the respective entry to `rhnServerServerGroupArchCompat` database table to allow `FOREIGN_ENTITLEMENT` to be assigned to these new architectures.
 
 ## Gather virtual instances and "instance id" from Public Clouds using API
 
