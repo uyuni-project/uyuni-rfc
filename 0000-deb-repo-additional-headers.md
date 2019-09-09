@@ -51,15 +51,19 @@ Supported: 5y
 
 The database schema needs to be extended with a new table to store the additional fields not covered by the existing `rhnPackage*` tables:
 ```
-rhnPackageExtraTags
-====================
-id          number not null
-name        string no null
-value       string not null
-created     timestamp
-modified    timestamp
+rhnPackageExtraTagKey
+=====================
+id          NUMERIC NOT NULL
+name        VARCHAR(256) NOT NULL
 
-primary key (id)
+rhnPackageExtraTag
+====================
+package_id  NUMERIC NOT NULL
+                   REFERENCES rhnPackage (id),
+key_id      NUMERIC NOT NULL
+                   REFERENCES rhnPackageExtraTagKey (id),
+value       VARCHAR(2048) NOT NULL,
+primary key (package_id, key_id)
 ```
 
 The class `com.redhat.rhn.taskomatic.task.repomd.DebPackageWriter` must be enhanced to write any additional fields stored in the database into the generated `Packages.gz` file.
@@ -69,7 +73,7 @@ _Note_: The same structure could be used to store additional RPM headers not yet
 
 ### Metadata and signature lookup
 
-In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file and verify the checksum it contains and its GPGc signature. This file can be in one of these locations:
+In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file and verify the checksum it contains and its GPG signature. This file can be in one of these locations:
 - `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST` in case of repos with a `dists` directory when the Uyuni repo URL points to `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST/$COMPONENT/binary-$ARCH/`.
 - `http://mirror.example.com/$REPODIR/` in the case of flat repositories
 
@@ -80,7 +84,7 @@ Looking up the `Release` file should be done automatically when syncing of the r
 Uyuni should verify the integrity of the `Packages.gz|xz` files using the checksums present in the `Release` file.
 The integrity of the `deb` binary packages must be verified using the checksums from the `Packages` file.
 
-### GPG signature checking
+### GPG signature checking and checksum verification
 
 This will be handled in a separate RFC.
 
