@@ -106,6 +106,8 @@ For example, a cluster deployment may invoke `CVEAuditHandler` and test if a con
 
 ## CaaS Platform-specific design
 
+It is intended that Uyuni/SUSE Manager will not deal and will not know with the application deployed on top of CaaS Platform.
+
 ### Deploy a CaaS platform cluster using Uyuni/SUSE Manager
 
   #### Cluster Deployment
