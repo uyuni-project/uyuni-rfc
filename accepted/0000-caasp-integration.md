@@ -334,6 +334,10 @@ remove_node:
 
 NOTE: Other `skuba` options can be implemented in the future (e.g. resetting and reconfiguring a node).
 
+#### Labeling nodes
+
+Uyuni/SUSE Manager can apply node labels to describe what is a node used for. This possiblity is offered to the user and it translated to a `kubectl label node nodename description` issued by the Management Node.
+
 #### Cluster upgrade
 
 All the cluster updates must be handled by `skuba`. NOTE: it is recommended to upgrade the whole cluster machine by machine, all of them at the same time.
