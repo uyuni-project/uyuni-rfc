@@ -5,7 +5,7 @@
 # Summary
 [summary]: #summary
 
-This RFC set the guides for supporting "Subscription Matching" on virtual instances created on Public Clouds like AWS, Azure or Google Compute Engine. Exploring and gatehering virtual instances from those Public Clouds enables "Subscription Matching" to properly match subscriptions for "1-2 Virtual Machines".
+This RFC set the guides for supporting "Subscription Matching" on virtual instances created on Public Clouds like AWS, Azure or Google Compute Engine. Exploring and gatehering virtual instances from those Public Clouds enables "Subscription Matching" to properly match subscriptions for "1-2 Virtual Machines". In the context of Public Clouds, "Unlimited VMs" subscriptions are not allowed by T&C.
 
 # Motivation
 [motivation]: #motivation
@@ -33,6 +33,8 @@ Most of the implementation effort needed is about coding each one of the needed 
 From [SUSE Terms & Conditions](https://www.suse.com/products/terms_and_conditions.pdf):
 
 > Up to 2 Virtual Machines running on the same Virtualization Host or Virtualization Environment or within the same Private Cloudaccount or **Public Cloud zone can be deployed with one "1-2 Sockets or 1-2 Virtual Machines" Subscription Offering**.
+
+In the Public Cloud, the "region" is defined as de geographic location where the public cloud datacenter resides (like, US-East, Asia, US-West, etc). On the other hand, a "zone" represents an isolated location within a particular datacenter (region) where the cloud services originate and operate. i.a. "us-west-2a", "europe-west2-b", etc.
 
 This means, all virtual instances that belong to the same "zone" (not region) will match with the "1-2 Virtual Machines" subscription.
 
