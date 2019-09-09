@@ -407,7 +407,7 @@ Every distribution uses then its deployment helper (OpenShift uses `openshift-in
 [drawbacks]: #drawbacks
 
 What if the customer wants to deploy another Kubernetes distribution? If we are using `skuba`, we only target CaaS Platform deployments.
-When targeting a different Kubernetes distribution a set of integration points with `kubectl` must be defined as per the generic design described in this RFC.
+When targeting a different Kubernetes distribution a set of integration points with `kubectl` and all the other product specific commands must be defined as per the generic design described in this RFC.
 
 # Alternatives
 [alternatives]: #alternatives
