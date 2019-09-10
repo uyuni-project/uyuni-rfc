@@ -154,7 +154,7 @@ gpgv --keyring </path/to/temp/keyring/file.gpg> Release.gpg Release
 ```
 
 The signature verification should be done during repo syncing when the metadata is parsed.
-Verification must be done only if the user has configured the GPG signing of the repos to be synced. Otherwise a warning must be printed in the logs about the lack of GPG configuration.
+If the user has turned off GPG signature verification, a warning should be printed into the logs.
 
 
 # Drawbacks
