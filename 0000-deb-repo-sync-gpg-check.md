@@ -32,7 +32,7 @@ modified            timestamp
 
 ## Repo signature checking
 
-The GPG verification should be optional but a warning should be shown to the the user in case he's not providing information about the GPG key used to verify the metadata.
+The GPG verification must be done always. The user should have the option to disable it.
 
 ### Repo metadata location and signatures
 
@@ -52,14 +52,15 @@ http://mirror.example.com/ubuntu  <- $ARCHIVE_ROOT
          |
          +- Packages.gz           <- Packages indices
          +- Packages.xz
+         +- Release               <- Legacy, not used by modern clients
          . . .
       +- binary-i386
       . . .
    +- universe
    . . .
    +- Release                     <- Plain file
+   +- Release.gpg                 <- Detached signature
    +- InRelease                   <- Release file + inline signature
-   +- Release.gpg                 <- Separate signature
 
 ```
 
@@ -69,7 +70,7 @@ http://mirror.example.com/ubuntu/dists/bionic-updates/InRelease
 http://mirror.example.com/ubuntu/dists/bionic-updates/Release.gpg
 ```
 
-There's also an alternative layout for Debian repos called "flat repos". In this case the repo directory containins both `Release*` and `Packages*` files. E.g.:
+There's also an alternative layout for Debian repos called "flat repos". In this case the repo directory contains both `Release*` and `Packages*` files. E.g.:
 ```
 https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master:/Ubuntu1804-Uyuni-Client-Tools/xUbuntu_18.04/
 ```
@@ -163,12 +164,10 @@ No drawbacks.
 # Alternatives
 [alternatives]: #alternatives
 
-- Support only a very limited set of additional fields like `Multi-Arch` while discarding all others.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- Should all the fields be stored ? Should only the fields defined in [1] be stored ? If yes what happens with user defined fields [2]
 - In case no GPG keys are configured for a repo (i.e. no GPG verification needed) should the `Release` file still be looked up and the checksums verified ?
 
 # References
