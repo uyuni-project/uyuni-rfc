@@ -48,14 +48,14 @@ http://mirror.example.com/ubuntu  <- $ARCHIVE_ROOT
    |
    +- main                        <- $COMPNENT directories
       |
-      +- binary-amd64
+      +- binary-amd64             <- Architecture
          |
          +- Packages.gz           <- Packages indices
          +- Packages.xz
          +- Release               <- Legacy, not used by modern clients
          . . .
       +- binary-i386
-      . . .
+         . . .
    +- universe
    . . .
    +- Release                     <- Plain file
@@ -90,19 +90,20 @@ _Note #2:_
 
 Debian repos don't have a standard location for the public GPG keys used to verify the metadata. Sometimes the key is located in the root of a flat repo but the location is not standardized.
 
-### GPG keys management
+### GPG keys management for official repositories
 
-Uyuni ships the SUSE and OpenSUSE keys in the package `uyuni-build-keys`. The keys for Ubuntu and Debian should be shipped in this package too.
+Uyuni ships the SUSE and OpenSUSE keys in the package `uyuni-build-keys`. The Ubuntu and Debian will be shipped in separate packages, i.e. `debian-build-keys` and `ubu-build-keys`.
+
+### GPG keys management for third-party repositories
 
 Any additional keys that need to be used (e.g. for Ubuntu derivatives distros or for custom repos) must be created manually using the existing UI (`Systems -> Autoinstallation -> GPG and SSL keys`)
-
 
 ### GPG Key usage in the UI
 
 The UI for creating/updating a repository (`Software -> Manage -> Repositories`) must be extended with one additional field:
 - GPG key
 
-This field must be visible only if the selected repository type is `deb` and the checkbox `Has Signed Metadata` is checked. For `deb` repositories the `Has Signed Metadata` checkbox must be enabled by default.
+This field must be visible only if the selected repository type is `deb` and the checkbox `Has Signed Metadata` is checked. For `deb` repositories the `Has Signed Metadata` checkbox must be checked by default.
 
 The field must be shown as a selector. The values used to populate the selector come from the existing table `rhnCryptoKey`. Only keys for current organization must be shown.
 
@@ -172,6 +173,4 @@ No drawbacks.
 
 # References
 
-1. [Debian Policy Manual: Control files and their fields](https://www.debian.org/doc/debian-policy/ch-controlfields.html)
-2. [Debian Policy Manual: User defined fields](https://www.debian.org/doc/debian-policy/ch-controlfields.html#user-defined-fields)
-3. [Debian repository format](https://wiki.debian.org/DebianRepository/Format)
+1. [Debian repository format](https://wiki.debian.org/DebianRepository/Format)
