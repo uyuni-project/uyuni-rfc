@@ -5,7 +5,7 @@
 # Summary
 [summary]: #summary
 
-This RFC set the guides for supporting "Subscription Matching" on virtual instances created on Public Clouds like AWS, Azure or Google Compute Engine. Exploring and gatehering virtual instances from those Public Clouds enables "Subscription Matching" to properly match subscriptions for "1-2 Virtual Machines". In the context of Public Clouds, "Unlimited VMs" subscriptions are not allowed by T&C.
+This RFC set the guides for supporting "Subscription Matching" on virtual instances created on Public Clouds like AWS, Azure or Google Compute Engine. Exploring and gatehering virtual instances from those Public Clouds enables "Subscription Matching" to properly match subscriptions for "1-2 Virtual Machines". In the context of Public Clouds, "Unlimited VMs" subscriptions are not allowed by the "[Terms & Conditions](https://www.suse.com/products/terms_and_conditions.pdf)".
 
 # Motivation
 [motivation]: #motivation
