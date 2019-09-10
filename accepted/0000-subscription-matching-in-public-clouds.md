@@ -26,11 +26,11 @@ This way, the Administrators will be able to define and/or gather their virtuali
 # Detailed design
 [design]: #detailed-design
 
-Most of the implementation effort needed is about coding each one of the needed plugins for `virtual-host-gatherer`. On the Java side, an alternative is to fake some info provided by the gatherer since we don't know really about some details of the Public Cloud node: like "CPUArch", "RAM", "number of CPU" and some others. On the other hand, an adaptation could be done in `VirtualHostManagerProcessor.java` and most probably also `VirtualInstanceManager.java` in a similar way that we do when processing a KUBERNETES virtual host, to not require those values when creating the information about the nodes (foreign hosts).
+Most of the implementation effort needed is about coding each one of the needed plugins for `virtual-host-gatherer`. On the Java side, an alternative is to fake some info provided by the gatherer since we don't know really about some details of the Public Cloud node: like "CPUArch", "RAM", "number of CPU" and some others. On the other hand, an adaptation could be done in `VirtualHostManagerProcessor.java` and most probably also `VirtualInstanceManager.java` in a similar way that we do when processing a KUBERNETES virtual host, to not require those values when creating the information about the nodes (foreign hosts):
 
 - Implement different Public Cloud providers plugins for `virtual-host-gatherer` as detailed later on this RFC.
-- Java side to allow "nodes" (FOREIGN hosts) that doesn't contains "RAM", "number CPU", "Mhz", etc (as currently required and described later on the example JSON). (optional)
-- Add a generic "cloud" CPUArch/ServerArch value to allow "nodes" from Public Cloud where we don't know the architecture. Allow `FOREIGN_ENTITLEMENT` for it.
+- Modify the Java side to allow "nodes" (`FOREIGN` hosts) that doesn't contains "RAM", "number CPU", "Mhz", etc (as currently required and described later on the example JSON). (optional)
+- Add a generic `cloud` CPUArch/ServerArch value to allow "nodes" from Public Cloud where we don't know the architecture. Allow `FOREIGN_ENTITLEMENT` for it.
 - Generalize the documentation about File-based Virtual Host Manager to extend it to the Public Cloud usage [link to doc](https://www.suse.com/documentation/suse-manager-4/4.0/suse-manager/client-configuration/virt-file.html)
 
 
