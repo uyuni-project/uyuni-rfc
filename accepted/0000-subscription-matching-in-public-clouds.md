@@ -14,7 +14,7 @@ Currently the subscription matcher does not work for VMs that are running in pub
 
 This RFC defines the procedures to enabling "Subscriptions Matching" on different Public Clouds providers.
 
-Also provides implementation details for implementing the following modules for `virtual-host-gatherer`:
+Also provides implementation details for supporting the following modules for `virtual-host-gatherer`:
 
 - A generic (JSON-file based) module that enables Administrators to provide its own custom virtual instances definition.
 - A module for gathering virtual instances from Azure Cloud.
@@ -26,7 +26,12 @@ This way, the Administrators will be able to define and/or gather their virtuali
 # Detailed design
 [design]: #detailed-design
 
-Most of the implementation effort needed is about coding each one of the needed plugins for `virtual-host-gatherer`. On the Java side, we would need to adapt `VirtualHostManagerProcessor.java` and most probably also `VirtualInstanceManager.java` in a similar way that we do when processing a KUBERNETES virtual host, since we don't always know about amount of RAM, number of CPUs, etc from the Virtualization Host.
+Most of the implementation effort needed is about coding each one of the needed plugins for `virtual-host-gatherer`. On the Java side, an alternative is to fake some info provided by the gatherer since we don't know really about some details of the Public Cloud node: like "CPUArch", "RAM", "number of CPU" and some others. On the other hand, an adaptation could be done in `VirtualHostManagerProcessor.java` and most probably also `VirtualInstanceManager.java` in a similar way that we do when processing a KUBERNETES virtual host, to not require those values when creating the information about the nodes (foreign hosts).
+
+- Implement different Public Cloud providers plugins for `virtual-host-gatherer` as detailed later on this RFC.
+- Java side to allow "nodes" (FOREIGN hosts) that doesn't contains "RAM", "number CPU", "Mhz", etc (as currently required and described later on the example JSON). (optional)
+- Add a generic "cloud" CPUArch/ServerArch value to allow "nodes" from Public Cloud where we don't know the architecture. Allow `FOREIGN_ENTITLEMENT` for it.
+- Generalize the documentation about File-based Virtual Host Manager to extend it to the Public Cloud usage [link to doc](https://www.suse.com/documentation/suse-manager-4/4.0/suse-manager/client-configuration/virt-file.html)
 
 
 ## 1-2 Virtual Machine Licensing
@@ -39,7 +44,7 @@ In the Public Cloud, the "region" is defined as de geographic location where the
 This means, all virtual instances that belong to the same "zone" (not region) will match with the "1-2 Virtual Machines" subscription.
 
 ## The output from a `virtual-host-gatherer` plugin:
-The required output from a plugin is a JSON response to the STDOUT, that looks like the following:
+The required output from a plugin is a JSON response to the STDOUT, that would look like the following:
 
 ```json
 {
@@ -64,14 +69,14 @@ The required output from a plugin is a JSON response to the STDOUT, that looks l
 }
 ```
 
-All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances, those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0. As mentioned before, with some adaptations in the Java side we could not require those values (like for KUBERNETES).
+All the attributes on the above JSON example are currently required by SUMA to properly create the entries on the DB. Since we don't know the real hardware used to virtualize the instances (node info), those values like `ramMb`, `cpuMhz`, `totalCpuCores`, `totalCpuSockets` have been faked to 0. As mentioned before, with some adaptations in the Java side we could not require those values (similar to the KUBERNETES case).
 
-NOTE: All the "vms" that belongs to the same "Virtual Host Manager", are considered in the same "Virtualization group" for subscription matching. In the case of Public Clouds, this means a different "Virtual Host Manager" needs to be added for each one of the "Zones" of the particular Public Cloud provider where we want gather virtual instances.
+NOTE: All the "vms" that belongs to the same "Virtual Host Manager", are considered in the same "Virtualization group" for subscription matching. In the case of Public Clouds, this means a customer needs to add a different "Virtual Host Manager" in SUSE Manager for each one of the "zones" of the particular Public Cloud provider where customer wants to gather virtual instances. The "Terms & Conditions" explicitly mentions grouping by "Public Cloud zone" (and not account). Therefore, a customer using i.a. AWS will need to create as many "Virtual Host Manager" on SUSE Manager as "zones" they want to gather. Then each one of those "Virtual Host Manager" is considered as independent Virtualization Group for "1-2 subscriptions" matching.
 
 ## Add new Virtual Instance Types to the DB
-New virtual instance types would be needed on the `rhnVirtualInstanceType` database table, these would be `azure`, `aws`, `gce` and `generic` to indicate the type of the instance.
+New virtual instance types would be needed on the `rhnVirtualInstanceType` database table, these would be `azure`, `aws` and `gce` to indicate the type of the instance.
 
-Also, it's necessary to add new types of CPU Arch ("rhnCpuArch" DB table) and "Server Arch" ("rhnServerArch") to allow those new types of systems. We could adding one type per public cloud provider, i.a. aws, azure, etc, or maybe go with a generic type called `public_cloud`.
+Also, keep in mind that on Public Clouds we don't really know the architecture of the node that is running the Virtual Instances (we only know the arch of the VM itself) so it might be necessary to add new types of CPU Arch ("rhnCpuArch" DB table) and "Server Arch" ("rhnServerArch") to allow those new types of systems. We could add one type per public cloud provider, i.a. aws, azure, etc, or maybe go with a generic type called `cloud`.
 
 An important thing is also to add the corresponding entry to `rhnServerServerGroupArchCompat` database table to allow `FOREIGN_ENTITLEMENT` to be assigned to any of these new architectures.
 
@@ -161,12 +166,9 @@ The response contains the "instance name" as well as the "instance id".
 
 ### A generic JSON-file module:
 
-Currently, there is already a "File based" plugin for `virtual-host-gatherer` which allows to import instances from a custom provided JSON file. According to the existing documentation, the aim of this plugin is to import VMware instances when there is no access from the SUSE Manager server to the VMware.
+Currently, there is already a "File based" plugin for `virtual-host-gatherer` which allows to import instances from a custom provided JSON file. According to the existing documentation, the aim of this plugin is to import VMware instances when there is no access from the SUSE Manager server to the VMware. [link to doc](https://www.suse.com/documentation/suse-manager-4/4.0/suse-manager/client-configuration/virt-file.html)
 
 We can already use this plugin for importing virtual instances from the Public Cloud using a tailored JSON file like the one from the above example, so it would be worth to generalize the SUSE Manager documentation to expose this plugin as a general virtual instances importer and not as a VMware-specific.
-
-# Drawbacks
-[drawbacks]: #drawbacks
 
 ## Gathering the UUID (instance id) from virtual instances
 
@@ -177,6 +179,9 @@ An easy approach here would be to use the "Instance ID" (instead of smbios uuid)
 This way, doing some minor fixes on the Java side ([example here](https://github.com/meaksh/uyuni/commit/03d88550dd87d22f3fabd25cebd7c23432285a3c)), we could easily use the "instance-id" as "UUID" for the registered system and automatically match it with the data provided by the `virtual-host-gatherer` plugin (which does not include "uuid" but instance id).
 
 In case of systems that are already registered in SUSE Manager using a smbios "uuid", if the new "instance_id" grain is there, it should be enough with scheduling a "Hardware Refresh" action to reflect the new "instance_id" grain value as the "uuid" for that system.
+
+# Drawbacks
+[drawbacks]: #drawbacks
 
 # Alternatives
 [alternatives]: #alternatives
@@ -191,6 +196,9 @@ Cons:
 - These virtualization groups need to be defined manually. No way of automation.
 - Refreshing the state of a virtualization group also needs to be done manually.
 - Require new DB tables and UI for managing those groups.
+- Most probably no customer would maintain these data.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
+
+- This approach is based on matching only Salt virtual instances. Should we also change the reported "uuid" for Traditional Clients running on the Public Cloud?
