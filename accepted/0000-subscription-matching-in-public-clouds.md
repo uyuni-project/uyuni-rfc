@@ -20,6 +20,7 @@ Also provides implementation details for supporting the following modules for `v
 - A module for gathering virtual instances from Azure Cloud.
 - A module for gathering virtual instances from AWS.
 - A module for gathering virtual instances from Google Compute Engine.
+- A generic Public Cloud module based on Apache Libcloud (support for multiple Public Clouds).
 
 This way, the Administrators will be able to define and/or gather their virtualization environments in the public clouds and make the subscription matcher do a succesfull matching of the "1-2 Virtual Machine" subscriptions.
 
@@ -163,6 +164,74 @@ for i in instances:
 ```
 
 The response contains the "instance name" as well as the "instance id".
+
+### A generic LibCloud based module:
+
+The [Apache libcloud](https://libcloud.readthedocs.io/en/latest/index.html) library allows to deal with different Public Cloud providers using a common interface. Currently it supports EC2, Azure, GCE amount other providers, so this would allow to not only support EC2, Azure and GCE but also any other Public Cloud provider.
+
+The idea here would be to create a generic `libcloud` plugin for `virtual-host-gatherer` that would received the selected provider and the necessary authentication parameters. Then, the plugin would use a common interface to gather the instances.
+
+Resquirements:
+
+- Provide a map between "provider" -> "authentication parameters".
+- A dynamic form in the UI (based on the selected Public Cloud provider from a SelectBox) to ask for the necessary credentials that this provider requires.
+
+Example of gathering instances using libcloud using for different providers. Notice that each provider requires different authentication parameters, but the interface is common (`driver.list_nodes()`).
+
+```python
+#-*- coding: utf8 -*-
+
+# AWS related variables
+AWS_ACCESS_KEY_ID = "EXAMPLE"
+AWS_SECRET_ACCESS_KEY = "EXAMPLE"
+AWS_REGION = "us-east-2"
+
+# Azure related variables
+AZURE_SUBSCRIPTION_ID = "EXAMPLE"
+AZURE_APPLICATION_ID = "EXAMPLE"
+AZURE_TENANT_ID = "EXAMPLE"
+AZURE_SECRET_KEY = "EXAMPLE"
+
+# GCE related variables
+GOOGLE_SERVICE_ACCOUNT_EMAIL = "EXAMPLE"
+GOOGLE_CERT_PATH = "/foo/bar/example.json"
+GOOGLE_ZONE = "us-central1-a"
+GOOGLE_PROJECT_ID = "EXAMPLE"
+
+# Import
+from libcloud.compute.types import Provider
+from libcloud.compute.providers import get_driver
+
+# List Google Compute Engine virtual machines
+cls = get_driver(Provider.GCE)
+driver = cls(GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_CERT_PATH, datacenter=GOOGLE_ZONE, project=GOOGLE_PROJECT_ID)
+nodes = driver.list_nodes()
+print ("Listing Google Compute Engine virtual machines...")
+for node in nodes:
+    print ("{} - {} - {}".format(node.id, node.name, node.state))
+print()
+
+# List AWS virtual machines
+cls = get_driver(Provider.EC2)
+driver = cls(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, region=AWS_REGION)
+nodes = driver.list_nodes()
+print ("Listing AWS virtual machines...")
+for node in nodes:
+    print ("{} - {} - {}".format(node.id, node.name, node.state))
+print()
+
+# List Azure virtual machines
+cls = get_driver(Provider.AZURE_ARM)
+driver = cls(tenant_id=AZURE_TENANT_ID, subscription_id=AZURE_SUBSCRIPTION_ID,
+             key=AZURE_APPLICATION_ID, secret=AZURE_SECRET_KEY)
+nodes = driver.list_nodes()
+print ("Listing Azure (classic) virtual machines...")
+for node in nodes:
+    print ("{} - {} - {}".format(node.id, node.name, node.state))
+
+```
+
+It's also interesting that "libcloud" also provides information about the "Princing" of each Public Cloud provider. This means, it allows us to think in estimating and optimizing infrastructure costs. Of course, this would require a different RFC in the future.
 
 ### A generic JSON-file module:
 
