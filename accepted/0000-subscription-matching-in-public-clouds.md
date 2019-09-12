@@ -235,6 +235,16 @@ It's also interesting that "libcloud" also provides information about the "Princ
 
 The only restriction we have about available providers is that we need to know the "instance_id" from within the Virtual Instance (using the custom grain), and not all the providers have its own internal API where we can gather the "instance_id".
 
+At a first glance, the following providers have internal metadata API, so it would be possible to add support for them in our custom grain:
+
+- AWS EC2
+- Azure
+- Google Compute Cloud
+- DigitalOcean
+- OpenStack
+- Joyent
+- 1&1
+
 
 ### A generic JSON-file module:
 
