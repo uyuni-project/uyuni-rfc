@@ -167,13 +167,13 @@ The response contains the "instance name" as well as the "instance id".
 
 ### A generic LibCloud based module:
 
-The [Apache libcloud](https://libcloud.readthedocs.io/en/latest/index.html) library allows to deal with different Public Cloud providers using a common interface. Currently it supports EC2, Azure, GCE amount other providers, so this would allow to not only support EC2, Azure and GCE but also any other Public Cloud provider.
+The [Apache libcloud](https://libcloud.readthedocs.io/en/latest/index.html) library allows to deal with different Public Cloud providers using a common interface. Currently it supports EC2, Azure, GCE amount other providers, so this would allow to not only support EC2, Azure and GCE but also other Public Cloud providers.
 
 The idea here would be to create a generic `libcloud` plugin for `virtual-host-gatherer` that would received the selected provider and the necessary authentication parameters. Then, the plugin would use a common interface to gather the instances.
 
 Resquirements:
 
-- Provide a map between "provider" -> "authentication parameters".
+- Provide a map between "provider" -> "authentication parameters". (This could be generated automatically)
 - A dynamic form in the UI (based on the selected Public Cloud provider from a SelectBox) to ask for the necessary credentials that this provider requires.
 
 Example of gathering instances using libcloud using for different providers. Notice that each provider requires different authentication parameters, but the interface is common (`driver.list_nodes()`).
@@ -232,6 +232,9 @@ for node in nodes:
 ```
 
 It's also interesting that "libcloud" also provides information about the "Princing" of each Public Cloud provider. This means, it allows us to think in estimating and optimizing infrastructure costs. Of course, this would require a different RFC in the future.
+
+The only restriction we have about available providers is that we need to know the "instance_id" from within the Virtual Instance (using the custom grain), and not all the providers have its own internal API where we can gather the "instance_id".
+
 
 ### A generic JSON-file module:
 
