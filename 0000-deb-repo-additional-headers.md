@@ -88,6 +88,50 @@ The integrity of the `deb` binary packages must be verified using the checksums 
 
 This will be handled in a separate RFC.
 
+## Failure Registry
+
+Packages might have sync issues, such as wrong GPG signature or
+checksum mismatch or downloading issues etc. However, broken packages
+still can be assigned to the channels/repos and thus potentially
+invaliadate them. In some circumstances this might have serious impact
+on the infrastructure update performance. To avoid that, we need to
+have a mechanism that will verify if a particular channel is "clean",
+i.e. no any broken packages involved.
+
+### Use Case Scenario Example
+
+Following example should be able to happen:
+
+1. An admin runs reposync in a background.
+2. Broken package appears, reposync is writing an error in the log, as
+   usual.
+3. The error is not noticed by another admin on a shift (UX is unused
+   at the moment, other circumstances).
+4. Synchronised channel is noticed and thus scheduled for an update.
+5. An update cannot be completed due to broken package.
+
+In this case an admin did not noticed that the channel contains broken
+packages and thus should not be recommended for an update, but needs
+to be fixed first.
+
+### Solution
+
+The solution is simply add the following table:
+
+```
+rhnPackageErrors
+================
+package_id  NUMERIC NOT NULL
+error       VARCHAR NOT NULL
+```
+
+During the synchronisation, reposync will log error about broken
+packages. Later on, UX can use this information for various purposes,
+such as:
+1. Mark with an icon for the channel(s) has issues (permanent reminder)
+2. Display more detailed drill-down what packages are affected and why
+3. Display a warning/confirmation dialog for admin, once affected
+   channel is attempted to be scheduled for something.
 
 # Drawbacks
 [drawbacks]: #drawbacks
