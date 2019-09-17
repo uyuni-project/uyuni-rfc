@@ -17,10 +17,11 @@ This RFC defines the procedures to enabling "Subscriptions Matching" on differen
 Also provides implementation details for supporting the following modules for `virtual-host-gatherer`:
 
 - A generic (JSON-file based) module that enables Administrators to provide its own custom virtual instances definition.
-- A module for gathering virtual instances from Azure Cloud.
-- A module for gathering virtual instances from AWS.
-- A module for gathering virtual instances from Google Compute Engine.
-- A generic Public Cloud module based on Apache Libcloud (support for multiple Public Clouds).
+- A module for gathering virtual instances from Azure Cloud (based on libcloud).
+- A module for gathering virtual instances from AWS (based on libcloud).
+- A module for gathering virtual instances from Google Compute Engine (based on libcloud).
+
+As an alternative, this RFC also provides examples of "non-libcloud" based module implementation using particular libraries to deal with each Public Cloud provider.
 
 This way, the Administrators will be able to define and/or gather their virtualization environments in the public clouds and make the subscription matcher do a succesfull matching of the "1-2 Virtual Machine" subscriptions.
 
@@ -93,88 +94,12 @@ Examples:
 
 Since the `virtual-host-gatherer` would only deal with the public APIs, each virtual instance will be identified by its "instance id" on the JSON output from the `virtual-host-gatherer` execution. In order to properly match this "instance id" with the "uuid" of a registered system, this will need some ajustments as describer later on this RFC.
 
-### Azure module:
 
-This is an example about how to deal with Azure Public API to collect the virtual instances, using Azure Python SDK:
-
-```python
-from azure.common.credentials import ServicePrincipalCredentials
-from azure.mgmt.compute import ComputeManagementClient
-from azure.mgmt.resource import ResourceManagementClient, SubscriptionClient
-
-
-# Tenant ID for your Azure Subscription
-TENANT_ID = 'MY-TENANT-ID'
-
-# Your Service Principal App ID
-CLIENT = 'MY-CLIENT-ID'
-
-# Your Service Principal Password
-KEY = 'MY-SECRET'
-
-credentials = ServicePrincipalCredentials(client_id = CLIENT, secret = KEY, tenant = TENANT_ID)
-subscription_id = 'MY-SUBSCRIPTION-ID'
-compute_client = ComputeManagementClient(credentials, subscription_id)
-
-vmss = compute_client.virtual_machines.list_all()
-for i in vmss:
-    print(i.name)
-```
-
-The response contains the "instance name" as well as the "instance id".
-
-### AWS module:
-
-This is an example about how to deal with AWS EC2 Public API to collect the virtual instances on a particular Zone, using "boto3":
-
-```python
-import boto3
-ec2 = boto3.client("ec2",
-                   region_name='MY-REGION-NAME',
-                   aws_access_key_id='MY-AWS-ACCESS-KEY-ID',
-                   aws_secret_access_key='MY-AWS-ACCESS-KEY-SECRET')
-
-response = ec2.describe_instances()
-for i in response['Reservations']:
-    for j in i['Instances']:
-        print(j)
-```
-
-The response contains the "instance name" as well as the "instance id".
-
-### Google Compute Engine module:
-
-This is an example about how to deal with Google Compute Engine API to collect the virtual instances on a particular Zone, using "google-api-python-client":
-
-```python
-import googleapiclient.discovery
-
-def list_instances(compute, project, zone):
-    result = compute.instances().list(project=project, zone=zone).execute()
-    return result['items'] if 'items' in result else None
-
-    zone = 'MY-ZONE'
-    project = 'MY-PROJECT-NAME'
-
-    compute = googleapiclient.discovery.build('compute', 'v1')
-
-instances = list_instances(compute, project, zone)
-for i in instances:
-    print(i)
-```
-
-The response contains the "instance name" as well as the "instance id".
-
-### A generic LibCloud based module:
+### "libcloud" based modules for AWS, Azure and GCE:
 
 The [Apache libcloud](https://libcloud.readthedocs.io/en/latest/index.html) library allows to deal with different Public Cloud providers using a common interface. Currently it supports EC2, Azure, GCE amount other providers, so this would allow to not only support EC2, Azure and GCE but also other Public Cloud providers.
 
-The idea here would be to create a generic `libcloud` plugin for `virtual-host-gatherer` that would received the selected provider and the necessary authentication parameters. Then, the plugin would use a common interface to gather the instances.
-
-Resquirements:
-
-- Provide a map between "provider" -> "authentication parameters". (This could be generated automatically)
-- A dynamic form in the UI (based on the selected Public Cloud provider from a SelectBox) to ask for the necessary credentials that this provider requires.
+We would need a `virtual-host-gatherer` plugin per each Public Cloud provider. Each one of these modules would require different authentication parameters (as required by the provider) but the gathering part will be common for all the providers since this will use the same libcloud interface for all different providers.
 
 Example of gathering instances using libcloud using for different providers. Notice that each provider requires different authentication parameters, but the interface is common (`driver.list_nodes()`).
 
@@ -240,6 +165,7 @@ At a first glance, the following providers have internal metadata API, so it wou
 - AWS EC2
 - Azure
 - Google Compute Cloud
+- Alibaba Cloud (Aliyun)
 - DigitalOcean
 - OpenStack
 - Joyent
@@ -262,11 +188,85 @@ This way, doing some minor fixes on the Java side ([example here](https://github
 
 In case of systems that are already registered in SUSE Manager using a smbios "uuid", if the new "instance_id" grain is there, it should be enough with scheduling a "Hardware Refresh" action to reflect the new "instance_id" grain value as the "uuid" for that system.
 
+NOTE: It's crucial that we're able to figure out the "instance id" in a really fast way in case that we're doing it as part of grains. We know that Salt grains must be render so fast, so the mechanism should be efficient enough to produce a fast response either if the instance is NOT a virtual instance or it's a virtual instance in any of the Public Cloud supported providers.
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
 # Alternatives
 [alternatives]: #alternatives
+
+### Azure module (based on Azure SDK):
+
+This is an example about how to deal with Azure Public API to collect the virtual instances, using Azure Python SDK:
+
+```python
+from azure.common.credentials import ServicePrincipalCredentials
+from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.resource import ResourceManagementClient, SubscriptionClient
+
+
+# Tenant ID for your Azure Subscription
+TENANT_ID = 'MY-TENANT-ID'
+
+# Your Service Principal App ID
+CLIENT = 'MY-CLIENT-ID'
+
+# Your Service Principal Password
+KEY = 'MY-SECRET'
+
+credentials = ServicePrincipalCredentials(client_id = CLIENT, secret = KEY, tenant = TENANT_ID)
+subscription_id = 'MY-SUBSCRIPTION-ID'
+compute_client = ComputeManagementClient(credentials, subscription_id)
+
+vmss = compute_client.virtual_machines.list_all()
+for i in vmss:
+    print(i.name)
+```
+
+The response contains the "instance name" as well as the "instance id".
+
+### AWS module (based on boto3):
+
+This is an example about how to deal with AWS EC2 Public API to collect the virtual instances on a particular Zone, using "boto3":
+
+```python
+import boto3
+ec2 = boto3.client("ec2",
+                   region_name='MY-REGION-NAME',
+                   aws_access_key_id='MY-AWS-ACCESS-KEY-ID',
+                   aws_secret_access_key='MY-AWS-ACCESS-KEY-SECRET')
+
+response = ec2.describe_instances()
+for i in response['Reservations']:
+    for j in i['Instances']:
+        print(j)
+```
+
+The response contains the "instance name" as well as the "instance id".
+
+### Google Compute Engine module (based on googleapiclient):
+
+This is an example about how to deal with Google Compute Engine API to collect the virtual instances on a particular Zone, using "google-api-python-client":
+
+```python
+import googleapiclient.discovery
+
+def list_instances(compute, project, zone):
+    result = compute.instances().list(project=project, zone=zone).execute()
+    return result['items'] if 'items' in result else None
+
+    zone = 'MY-ZONE'
+    project = 'MY-PROJECT-NAME'
+
+    compute = googleapiclient.discovery.build('compute', 'v1')
+
+instances = list_instances(compute, project, zone)
+for i in instances:
+    print(i)
+```
+
+The response contains the "instance name" as well as the "instance id".
 
 ### Use special "System Grouping" and do not use `virtual-host-gatherer`:
 This alternative approach will be based on implementing an special "System Groups" where Administrators could define their virtualization enviroments and set the systems that belong to those groups.
