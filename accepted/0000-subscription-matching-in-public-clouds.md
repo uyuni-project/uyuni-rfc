@@ -284,3 +284,4 @@ Cons:
 [unresolved]: #unresolved-questions
 
 - This approach is based on matching only Salt virtual instances. Should we also change the reported "uuid" for Traditional Clients running on the Public Cloud?
+- Is there a more efficient way to discover the "instance id" from within a virtual instance apart from using the internal metadata API? We asked our Public Cloud team colleages but we didn't get an answer yey. Any feedback here could be used to enhance the proposed implementation of the custom grain proposed on this RFC.
