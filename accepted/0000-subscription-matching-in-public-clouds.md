@@ -95,7 +95,7 @@ Examples:
 Since the `virtual-host-gatherer` would only deal with the public APIs, each virtual instance will be identified by its "instance id" on the JSON output from the `virtual-host-gatherer` execution. In order to properly match this "instance id" with the "uuid" of a registered system, this will need some ajustments as describer later on this RFC.
 
 
-### "libcloud" based modules for AWS, Azure and GCE:
+## "libcloud" based modules for AWS, Azure and GCE:
 
 The [Apache libcloud](https://libcloud.readthedocs.io/en/latest/index.html) library allows to deal with different Public Cloud providers using a common interface. Currently it supports EC2, Azure, GCE amount other providers, so this would allow to not only support EC2, Azure and GCE but also other Public Cloud providers.
 
@@ -172,13 +172,13 @@ At a first glance, the following providers have internal metadata API, so it wou
 - 1&1
 
 
-### A generic JSON-file module:
+## A generic JSON-file module:
 
 Currently, there is already a "File based" plugin for `virtual-host-gatherer` which allows to import instances from a custom provided JSON file. According to the existing documentation, the aim of this plugin is to import VMware instances when there is no access from the SUSE Manager server to the VMware. [link to doc](https://www.suse.com/documentation/suse-manager-4/4.0/suse-manager/client-configuration/virt-file.html)
 
 We can already use this plugin for importing virtual instances from the Public Cloud using a tailored JSON file like the one from the above example, so it would be worth to generalize the SUSE Manager documentation to expose this plugin as a general virtual instances importer and not as a VMware-specific.
 
-## Gathering the UUID (instance id) from virtual instances
+## Gathering the UUID (instance id) from within the virtual instances
 
 For AWS and GCE, the instance id that is returned from the API is not actually the real "uuid" from the instance. On Azure, the instance id is an UUID but not necessary correspond with the SMBIOS "uuid" value we get from Salt.
 
