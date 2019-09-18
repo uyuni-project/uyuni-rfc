@@ -71,13 +71,62 @@ The class `com.redhat.rhn.taskomatic.task.repomd.DebPackageWriter` must be enhan
 _Note_: The same structure could be used to store additional RPM headers not yet stored. The corresponding class that needs to be changed is `com.redhat.rhn.taskomatic.task.repomd.PrimaryXmlWriter`.
 
 
-### Metadata and signature lookup
+### Metadata location and signatures
 
 In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file and verify the checksum it contains and its GPG signature. This file can be in one of these locations:
 - `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST` in case of repos with a `dists` directory when the Uyuni repo URL points to `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST/$COMPONENT/binary-$ARCH/`.
 - `http://mirror.example.com/$REPODIR/` in the case of flat repositories
 
-Looking up the `Release` file should be done automatically when syncing of the repo. An error should be shown if it's not possible to locate the `Release` file and its corresponding signature.
+Looking up the `Release` file should be done automatically when syncing of the repo. An error should be shown if it's not possible to locate the `Release` file.
+
+_Note #1: debian repo structure_
+
+Debian/Ubuntu repos use GPG signing to ensure the integrity of the `Release` file. The signature can be either in a separate file `Release.gpg` or inline in a file called `InRelease`. If both files are present the `InRelease` file is preferred.
+
+Typically the structure of a repo is like this:
+```
+http://mirror.example.com/ubuntu  <- $ARCHIVE_ROOT
+|
++- dists/bionic                   <- Suite or Codename
+   |
+   +- main                        <- $COMPNENT directories
+      |
+      +- binary-amd64             <- Architecture
+         |
+         +- Packages.gz           <- Packages indices
+         +- Packages.xz
+         +- Release               <- Legacy, not used by modern clients
+         . . .
+      +- binary-i386
+         . . .
+   +- universe
+   . . .
+   +- Release                     <- Plain file
+   +- Release.gpg                 <- Detached signature
+   +- InRelease                   <- Release file + inline signature
+```
+
+E.g. for official Ubuntu repos the URL of these files:
+```
+http://mirror.example.com/ubuntu/dists/bionic-updates/InRelease
+http://mirror.example.com/ubuntu/dists/bionic-updates/Release.gpg
+```
+
+There's also an alternative layout for Debian repos called "flat repos". In this case the repo directory contains both `Release*` and `Packages*` files. E.g.:
+```
+https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master:/Ubuntu1804-Uyuni-Client-Tools/xUbuntu_18.04/
+```
+
+_Note #2:_
+
+In Uyuni the URL of a deb repository must point to the directory containing the binary packages for a specific architecture. E.g. for Ubuntu 18.04 updates repo is something like:
+```
+http://mirror.example.com/ubuntu/dists/bionic-updates/main/binary-amd64/
+```
+or in case of a flat repository to the directory containing both `Release*` and `Packages*` files:
+```
+https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master:/Ubuntu1804-Uyuni-Client-Tools/xUbuntu_18.04/
+```
 
 ### Metadata Checksum Verification
 
