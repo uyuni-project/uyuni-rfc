@@ -108,7 +108,21 @@ or
 gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg Release.gpg Release
 ```
 
+<<<<<<< HEAD
 The signature verification must be done in `spacewalk-repo-sync` during repo syncing when the metadata is parsed.
+=======
+Otherwise the custom GPG key associated with the repo must be used:
+```
+gpgv --keyring </path/to/temp/keyring/file.gpg> InRelease
+```
+or
+```
+gpgv --keyring </path/to/temp/keyring/file.gpg> Release.gpg Release
+```
+
+The signature verification should be done during repo syncing when the metadata is parsed.
+If the user has turned off GPG signature verification, a warning should be printed into the logs.
+>>>>>>> 9d45ec18bf150a85cd046624a10d15f02c90926d
 
 
 # Drawbacks
