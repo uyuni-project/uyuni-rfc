@@ -99,30 +99,11 @@ The signature must be looked up together with the `Release` file. If the `Has si
 
 The GPG verification must be done always. The user should have the option to disable it by unchecking the `Has signed metadata` checkbox in the repository UI.
 
-If the `InRelease` or `Release.pgg` exist in the repo to be synced then Uyuni must verify the `Release` file:
-```
-gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg InRelease
-```
-or
-```
-gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg Release.gpg Release
-```
+If both the `InRelease` or `Release.pgg` exist in the repo the `InRelease` file takes precedence.
 
-<<<<<<< HEAD
 The signature verification must be done in `spacewalk-repo-sync` during repo syncing when the metadata is parsed.
-=======
-Otherwise the custom GPG key associated with the repo must be used:
-```
-gpgv --keyring </path/to/temp/keyring/file.gpg> InRelease
-```
-or
-```
-gpgv --keyring </path/to/temp/keyring/file.gpg> Release.gpg Release
-```
 
-The signature verification should be done during repo syncing when the metadata is parsed.
-If the user has turned off GPG signature verification, a warning should be printed into the logs.
->>>>>>> 9d45ec18bf150a85cd046624a10d15f02c90926d
+If the signature verification fails `spacewalk-repo-sync` must abort.
 
 
 # Drawbacks
