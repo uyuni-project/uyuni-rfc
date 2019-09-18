@@ -17,125 +17,89 @@ In order to import the metadata in a secure way Uyuni must be able to verify the
 
 # Detailed design
 
-## Database changes
+## Current implementation
 
-A new table is needed to store the association of a GPG key to a repository:
+Currently Uyuni uses its own keyring from `/var/lib/spacewalk/gpgdir/pubring.gpg` to verify RPM repo metadata.
+
+By default it contains various keys for verifying SLES and OpenSUSE repos. The content of this keyring is shipped in the `uyuni-build-keys` package.
+
+In case of third-party RPM repos there is a standard location for the GPG keys used to verify the metadata. Because of this `spacewalk-repo-sync` can import those keys when syncing the repo (the user is prompted to accept the keys).
+
+## Use cases
+
+1. Verify metadata from "official" distro repos.
+2. Verify third-party repos.
+
+## GPG verification implementation
+
+In case of Debian repos there is no standard location for the GPG keys. The user has to import it manually using `apt-key`.
+
+Uyuni will provide keys for "official" repos using packages and will allow the user to upload keys for thid-party repos.
+
+### Official repos
+
+In case of official repos, Uyuni should ship the GPG keys for Ubuntu and Debian in packages similar to `uyuni-build-keys`:
+- `debian-build-keys`
+- `ubuntu-build-keys`
+
+When installing the packages the keys will be added to the Uyuni keyring automatically.
+
+These packages will expose the short ID of the keys they contain using RPM `Provides`. This is needed to allow querying by Uyuni (see later).
+
+### Third party repos
+
+For third-party repos the user will have the option to upload GPG keys via the current UI `Software -> Manage -> Repositories`.
+
+The uploaded key will be added to the Uyuni keyring `/var/lib/spacewalk/gpgdir/pubring.gpg` by the Taskomatic job.
+
+### Keys management
+
+The GPG keys will be stored in the database in the existing table `rhnCryptoKey`.
+
+The keyring `/var/lib/spacewalk/gpgdir/pubring.gpg` and the DB will be kept in sync automatically by a Taskomatic job (`gpg-key-sync`).
+
+The Taskomatic job  will be triggered periodically.
+
+Sync algorithm:
 ```
-rhnContentSourceGpg
-====================
-content_source_id   number not null foreign key rhnContentSource(id)
-gpg_key_id          number not null foreign key rhnCryptoKey(id)
-created             timestamp
-modified            timestamp
+for each $key in db:
+   if ($key not exists in keyring):
+      import $key into keyring
 
-```
+   if ($key exists in keyring) and ($key.use_for_signing == false) and not (pkg installed with Provides == short_id($key):
+       delete from keyring
 
-## Repo signature checking
+for each $key in keyring:
+    if ($key not exists in db):
+      if pkg installed with Provides == short_id($key):
+        import $key into db
+      else:
+        delete from keyring
 
-The GPG verification must be done always. The user should have the option to disable it.
-
-### Repo metadata location and signatures
-
-_Note: this section is only informative_
-
-Debian/Ubuntu repos use GPG signing to ensure the integrity of the `Release` file. The signature can be either in a separate file `Release.gpg` or inline in a file called `InRelease`. If both files are present the `InRelease` file is preferred.
-
-Typically the structure of a repo is like this:
-```
-http://mirror.example.com/ubuntu  <- $ARCHIVE_ROOT
-|
-+- dists/bionic                   <- Suite or Codename
-   |
-   +- main                        <- $COMPNENT directories
-      |
-      +- binary-amd64             <- Architecture
-         |
-         +- Packages.gz           <- Packages indices
-         +- Packages.xz
-         +- Release               <- Legacy, not used by modern clients
-         . . .
-      +- binary-i386
-         . . .
-   +- universe
-   . . .
-   +- Release                     <- Plain file
-   +- Release.gpg                 <- Detached signature
-   +- InRelease                   <- Release file + inline signature
-
-```
-
-E.g. for official Ubuntu repos the URL of these files:
-```
-http://mirror.example.com/ubuntu/dists/bionic-updates/InRelease
-http://mirror.example.com/ubuntu/dists/bionic-updates/Release.gpg
-```
-
-There's also an alternative layout for Debian repos called "flat repos". In this case the repo directory contains both `Release*` and `Packages*` files. E.g.:
-```
-https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master:/Ubuntu1804-Uyuni-Client-Tools/xUbuntu_18.04/
-```
-
-_Note #1:_
-
-In Uyuni the URL of a deb repository must point to the directory containing the binary packages for a specific architecture. E.g. for Ubuntu 18.04 updates repo is something like:
-```
-http://mirror.example.com/ubuntu/dists/bionic-updates/main/binary-amd64/
-```
-or in case of a flat repository to the directory containing both `Release*` and `Packages*` files:
-```
-https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master:/Ubuntu1804-Uyuni-Client-Tools/xUbuntu_18.04/
 ```
 
-_Note #2:_
+### UI changes
 
-Debian repos don't have a standard location for the public GPG keys used to verify the metadata. Sometimes the key is located in the root of a flat repo but the location is not standardized.
+In the current UI `Software -> Manage -> Repositories` a new checkbox will be added `Use to verify repo metadata`.
 
-### GPG keys management for official repositories
+Updating or deleting GPG keys shipped by packages (`uyuni-build-keys`, etc) will not be allowed. Only GPG keys uploaded by the user can be updated or deleted.
 
-Uyuni ships the SUSE and OpenSUSE keys in the package `uyuni-build-keys`. The Ubuntu and Debian will be shipped in separate packages, i.e. `debian-build-keys` and `ubu-build-keys`.
+### API
 
-### GPG keys management for third-party repositories
-
-Any additional keys that need to be used (e.g. for Ubuntu derivatives distros or for custom repos) must be created manually using the existing UI (`Systems -> Autoinstallation -> GPG and SSL keys`)
-
-### GPG Key usage in the UI
-
-The UI for creating/updating a repository (`Software -> Manage -> Repositories`) must be extended with one additional field:
-- GPG key
-
-This field must be visible only if the selected repository type is `deb` and the checkbox `Has Signed Metadata` is checked. For `deb` repositories the `Has Signed Metadata` checkbox must be checked by default.
-
-The field must be shown as a selector. The values used to populate the selector come from the existing table `rhnCryptoKey`. Only keys for current organization must be shown.
-
-An additional option `Default keys` must shown in the selector as default. If this option is selected, the validation will be done using the GPG keys from package `uyuni-build-keys`.
-
-When saving the repository data, in case there was a GPG key selected other then `Default keys` the assignment will be saved into the new table `rhnContentSourceGpg`.
-
-### Key usage in the API
-
-The API method `channel.software.create_repo()` must be extended with one optional arguments to allow specifying the `GPG key ID`.
-
-An error should be thrown if the the GPG key does not exist.
-
-### Key import via `spacewalk-repo-sync`
-
-`spacewalk-repo-sync` must be extended to be able to import the GPG keys configured in `rhnContentSourceGpg`. Similarly to Yum repos, the user should be asked for confirmation when importing the keys.
+TODO
 
 ### Metadata and signature lookup
 
-In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file and verify its signature. This file can be in one of these locations:
-- `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST` in case of repos with a `dists` directory when the Uyuni repo URL points to `http://mirror.example.com/$ARCHIVE_ROOT/dists/$DIST/$COMPONENT/binary-$ARCH/`.
-- `http://mirror.example.com/$REPODIR/` in the case of flat repositories
+In order to verify integrity of the `Packages.gz` file Uyuni must first lookup the `Release` file and verify its signature (see the `Support for additional fields in the metadata of Deb repos ` RFC for the location of the `Release` file).
 
-Looking up the `Release` file should be done automatically when syncing of the repo. An error should be shown if it's not possible to locate the `Release` file and its corresponding signature.
+The signature must be looked up together with the `Release` file. If the `Has signed metadata` flag is not disabled then an error must be thrown in case the `InRelease` or `Release.gpg` file can't be found in the repo.
 
-### Metadata Verification
-
-Uyuni should verify the integrity of the `Packages.gz|xz` files using the checksums present in the `Release` file.
 
 ### Signature verification
 
-If the `InRelease` or `Release.pgg` exist in the repo to be synced then Uyuni must verify the `Release` file. If the repo has signed metadata enabled but no GPG key selected, the default keyring must be used:
+The GPG verification must be done always. The user should have the option to disable it by unchecking the `Has signed metadata` checkbox in the repository UI.
+
+If the `InRelease` or `Release.pgg` exist in the repo to be synced then Uyuni must verify the `Release` file:
 ```
 gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg InRelease
 ```
@@ -144,17 +108,7 @@ or
 gpgv --keyring /var/lib/spacewalk/gpgdir/pubring.gpg Release.gpg Release
 ```
 
-Otherwise the custom GPG key associated with the repo must be used:
-```
-gpgv --keyring </path/to/temp/keyring/file.gpg> InRelease
-```
-or
-```
-gpgv --keyring </path/to/temp/keyring/file.gpg> Release.gpg Release
-```
-
-The signature verification should be done during repo syncing when the metadata is parsed.
-Verification must be done only if the user has configured the GPG signing of the repos to be synced. Otherwise a warning must be printed in the logs about the lack of GPG configuration.
+The signature verification must be done in `spacewalk-repo-sync` during repo syncing when the metadata is parsed.
 
 
 # Drawbacks
@@ -168,8 +122,6 @@ No drawbacks.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
-
-- In case no GPG keys are configured for a repo (i.e. no GPG verification needed) should the `Release` file still be looked up and the checksums verified ?
 
 # References
 
