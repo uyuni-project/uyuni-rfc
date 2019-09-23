@@ -80,6 +80,11 @@ the other one with the browser timezone.
 ![timezones](images/timezones.png)
 
 
+In cases we are dealing with user operations, for instance, scheduling new actions, more context information should be added.
+
+**Example:** `Applying the highstate has been scheduled at '2019-09-10 13:00:00 CEST', 14 hours from now`
+
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
@@ -94,7 +99,4 @@ It might not be trivial.
 
 Although some of the new features of Uyuni use this timezone, it's wrong. It was not the way of doing things in spacewalk, 
 it creates confusion and increases the change of errors, specially when not showing timezone information at all.
-
-
-
 
