@@ -22,9 +22,11 @@ he is accessing from.
 # Glossary
 [glossary]: #glossary
 
-When talking about uyuni there are 3 different Timezones contexts that are important to understand and distinguish:
+When talking about uyuni there are 4 different Timezones contexts that are important to understand and distinguish:
 
-* *Server timezone:* the configured timezone in the server where uyuni is deployed 
+* *Managed systems timezone:* the timezone of each minion/client. This doesn't have any impact on this RFC, but it's important to mention.
+
+* *Uyuni Server timezone:* the configured timezone in the server where uyuni is deployed 
 
 * *User preferences timezone:* the defined timezone on the user preferences settings. Here we should be able to choose the timezone, date format (yyyyddmm) and the time format (12/24 hours).
 
