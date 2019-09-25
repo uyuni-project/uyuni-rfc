@@ -24,13 +24,14 @@ he is accessing from.
 
 When talking about uyuni there are 4 different Timezones contexts that are important to understand and distinguish:
 
-* *Managed systems timezone:* the timezone of each minion/client. This doesn't have any impact on this RFC, but it's important to mention.
+* **Managed systems timezone:** the timezone of each minion/client. This doesn't have any impact on this RFC, but it's important to mention.
 
-* *Uyuni Server timezone:* the configured timezone in the server where uyuni is deployed 
+* **Uyuni Server timezone:** the configured timezone in the server where uyuni is deployed 
 
-* *User preferences timezone:* the defined timezone on the user preferences settings. Here we should be able to choose the timezone, date format (yyyyddmm) and the time format (12/24 hours).
+* **User preferences timezone:** the defined timezone on the user preferences settings. Here we should be able to choose the timezone, date format (yyyyddmm) and the time format (12/24 hours).
+All the shown dates on the UI and operations on them should always assume these user settings. 
 
-* *Client browser timezone:* the browser/pc timezone where the client is accessing from. This timezone shouldn’t affect any displayed date, but the user should be aware of it.
+* **Client browser timezone:** the browser/pc timezone where the client is accessing from. This timezone shouldn’t affect any displayed date, but the user should be aware of it.
 
 
 # Detailed design
