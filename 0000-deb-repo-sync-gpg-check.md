@@ -103,7 +103,7 @@ If both the `InRelease` or `Release.pgg` exist in the repo the `InRelease` file 
 
 The signature verification must be done in `spacewalk-repo-sync` during repo syncing when the metadata is parsed.
 
-If the signature verification fails `spacewalk-repo-sync` must abort.
+If the verification of the repo metadata fails then `spacewalk-repo-sync` must abort and log an appropriate error into table `rhnChannelError`.
 
 
 # Drawbacks
