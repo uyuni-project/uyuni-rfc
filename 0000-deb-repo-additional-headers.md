@@ -156,7 +156,7 @@ Following example can happen:
    usual.
 3. The error is not noticed by another admin on a shift (UX is unused
    at the moment, other circumstances).
-4. Synchronised channel is noticed and thus scheduled for an update.
+4. Synchronized channel is noticed and thus scheduled for an update.
 5. An update cannot be completed due to broken package.
 
 In this case an admin did not noticed that the channel contains broken
@@ -169,29 +169,31 @@ of dependencies are involved, but still admin needs to be aware of it.
 The solution is simply add the following table:
 
 ```
-rhnPackageErrors
+rhnChannelError
 ================
-package_id  NUMERIC NOT NULL
+id          NUMERIC NOT NULL PRIMARY KEY
+channel_id  NUMERIC NOT NULL REFERENCES rhnChannel(id)
 error       VARCHAR NOT NULL
 ```
 
-During the synchronisation, reposync will log all errors about broken
-packages. Later on, UX can use this information for various purposes,
+During the synchronization, reposync will log all errors about broken
+packages. Later on, UI can use this information for various purposes,
 such as:
 1. Mark with an icon for the channel(s) has issues (permanent reminder)
 2. Display more detailed drill-down what packages are affected and why
 3. Display a warning/confirmation dialog for admin, once affected
    channel is attempted to be scheduled for something.
 
-In case package cannot be synchronised at all due to various reasons,
-the information about it still needs to be appearing in the database
-and marked as "broken". So then tools, like `spacewalk-data-fsck` can
-verify that the record is there, but the file isn't etc. As well as an
-error message can be placed to the log table "File was unable to be
-downloaded".
+In case package cannot be synchronized at all due to various reasons,
+the information about the failure needs to appear in the database.
+So then tools, like `spacewalk-data-fsck` can make use of this information.
 
 This information can be reused across all the channels, UI and CLI
 tools to display warning/status of a specified channel.
+
+The repo-sync process will not stop if a broken is encountered. An error will be inserted in the `rhnChannelError` table and the process will continue.
+No entry in `rhnPackage` will be created for broken packages (this is the current behavior) and no package will be saved to disk.
+In the future the broken package might be saved to disk to allow for auditing.
 
 # Drawbacks
 [drawbacks]: #drawbacks
