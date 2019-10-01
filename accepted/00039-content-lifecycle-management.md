@@ -29,7 +29,7 @@ This RFC was inspired by best practices, Customer feedback and Katello.
 
 * *Content Build (CB)*: A snapshot of *Content* - optionally filtered - in an *Environment*.
 
-* *Filter*: A filter to denylist or allowlist different kind of *Content*.
+* *Filter*: A filter to deny or allow different kind of *Content*.
 
 * *Environment*: AKA *Stage* or *Landscape* (`DEV`, `TEST`, `PRODUCTION`). Contains a version of a *Content Build*.
 
@@ -63,7 +63,7 @@ Our *Best Practices Guide* says that custom channels (Channel created by the cus
 we must also allow to select other channels from different base channels. They need to be cloned during the *building process* under the new common
 base channel.
 
-To create a *Content Build* from a *Content Project* it needs to be *builded*. While *building* it generates clones of all the
+To create a *Content Build* from a *Content Project* it needs to be *built*. While *building* it generates clones of all the
 attached *Sources* and applies the *Filters* if there were any attached. The result is a versioned snapshot of the *Content Build* in the first *Environment* of the *Lifecycle*.
 
 It should be possible to add a description to the version of the *Content Build*.
@@ -71,7 +71,7 @@ Showing a *History* of an *Environment* with descriptions of all promoted(?) *Co
 Automatically added text snippets for the description while adding or removing a *Filter* help to know when a certain package or patch
 was excluded or included again.
 
-After the *Content Build* is builded, it can be *promoted* to the next *Environment* defined by the *Lifecycle*.
+After the *Content Build* is built, it can be *promoted* to the next *Environment* defined by the *Lifecycle*.
 Promote *Content Builds* is just copying it from one *Environment* to the next. It is not possible to change the content between the *Environment*s.
 *Filter*s are applied only when *building* the *Content Build* for the first *Environment*.
 
