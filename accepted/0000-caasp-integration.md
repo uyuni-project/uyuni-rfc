@@ -45,7 +45,7 @@ NOTE: both of the above actions will not cluster-coordinated, so it is entirely 
 Under Virtual Host Manager, there is an already Kubernetes integration that supports CaaS Platform version 3.
 The current implementation breaks with CaaS Platform version 4: the Salt runner needs to take into account that CaaS Platform version 4 switched from Docker to CRI-O.
 Uyuni/SUSE Manager must check if the underlying container engine is running Docker (and use the existing Kubernetes integration) or CRI-O (and adapt the current implementation to support CRI-O).
-The Kubernetes implementation that this RFC is targeting is the one in CaaS Platform version 4: 1.15.2. Other Kubernetes distributions will not be targeted, at least initially.
+The Kubernetes implementation that this RFC is targeting is the one in CaaS Platform version 4: 1.16. Other Kubernetes distributions will not be targeted, at least initially.
 
 Into the Virtual Host Manager, when a Kubernetes cluster is selected, the properties and the names of the nodes are shown, together with CPU Arch, CPU Sockets and RAM of the node.
 
@@ -63,9 +63,8 @@ In addition to all the above, we are enriching our documentation on the CaaS Pla
 
 CaaS Platform provides AutoYaST templates for deploying a standard cluster (in the `SUSE-CaaSP-Management` package) comprising of:
 
-- 2 Load Balancers
 - 3 Masters
-- 3 Workers
+- 2 Workers
 
 In the Uyuni/SUSE Manager documentation, we need to provide a step-by-step guide on how to customize the AutoYaST template, import it in Uyuni/SUSE Manager and deploy it to bare-metal machines.
 
@@ -76,14 +75,18 @@ Possible next steps are presented as additional "stretch goals": if time permits
 ### Minion blackout configuration
 
 If the [minion blackout](https://docs.saltstack.com/en/latest/topics/blackout/) is feasible, we can set to blackout every minion registered to Uyuni/SUSE Manager that is part of a Kubernetes or CaaS Platform cluster. Every minion that is in blackout mode will reject all incoming commands.
+In case we want to debug the minion, we might want to either:
+
+- Remove the blackout when we need to debug
+- Whitelist the additional functions that will be allowed during blackout for debugging.
 
 ### Container registry documentation
 
-In the documentation, we can write a guide on how to set up a container registry (using a standard container registry or Portus) and mirror SUSE container registry.
+In the documentation, [we can link to the CaaS Platform documentation to explain how to setup a local container registry and mirror the SUSE one](https://github.com/SUSE/doc-caasp/blob/master/adoc/admin-crio-registries.adoc#mirror).
 
 ### Management node
 
-As part of the support for the CaaS Platform version 4, SUSE Manager can elect (via the Add-On System Type) a node as "Management Node" for the cluster. This node must run SUSE Linux Enterprise Server and have `skuba` (a tool packaged by CaaS Platform) to deploy and manage the node.
+As part of the support for the CaaS Platform version 4, SUSE Manager can elect (via the Add-On System Type) a node as "Management Node" for the cluster. This node must run SUSE Linux Enterprise Server and have `skuba` (a tool packaged by CaaS Platform) to deploy and manage the systems comprising the cluster.
 Alternatively, we can choose to run `skuba` on the SUSE Manager server, we should add it to the packaging pattern of SUSE Manager server. The package is Go-vendored, no other dependency is required.
 
 `skuba` is not packaged for OpenSUSE at the time of writing: Uyuni support will be implemented but enabled later, as soon as the package is released for OpenSUSE.
@@ -98,5 +101,3 @@ If a user does not read the documentation, a Kubernetes cluster can be broken by
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
-
-- CaaS Platform: for Container registry do you suggest a standard container registry or Portus?
