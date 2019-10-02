@@ -191,9 +191,12 @@ So then tools, like `spacewalk-data-fsck` can make use of this information.
 This information can be reused across all the channels, UI and CLI
 tools to display warning/status of a specified channel.
 
-The repo-sync process will not stop if a broken is encountered. An error will be inserted in the `rhnChannelError` table and the process will continue.
-No entry in `rhnPackage` will be created for broken packages (this is the current behavior) and no package will be saved to disk.
-In the future the broken package might be saved to disk to allow for auditing.
+The repo-sync process will not stop if a broken is encountered. An
+error will be inserted in the `rhnChannelError` table and the process
+will continue. No entry in `rhnPackage` will be created for broken
+packages (this is the current behavior) and no package will be saved
+to disk. In the future the broken package might be saved to disk to
+allow for auditing (see the notes).
 
 # Drawbacks
 [drawbacks]: #drawbacks
