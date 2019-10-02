@@ -211,6 +211,46 @@ No drawbacks.
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
+# Notes
+
+This section describes further steps that requires another, related
+RFC, in order to implement this.
+
+There are three possible use cases in repository synchronisation:
+
+1. Direct one-to-one mirroring of the remote repository.
+2. Verification of the downloaded payload.
+3. Audit of invalid packages.
+
+While first two use cases are already implemented and used, yet
+the third use case is when an admin wants to know why actually the
+error had happened. Any failure such as GPG signature is invalid or Checksum
+doesn't match is subject to audit and report the outcome. Such audit
+is useful to investigate fraudulent activity or make better reports of
+delayed (or rejected) infrastructure updates etc.
+
+Everything that is in `/var/spacewalk/packages/<ORG>/<3 chars>/...`
+supposed to be an imported package, has metadata in the DB and be safe
+to use. At this point the checksum of the package is already
+calculated and verified, so it is fixed permanently and is not going
+to change in any case for this package. Changing the checksum would
+immediately orphan the file from the database, rendering the tie
+inconsistent.
+
+Therefore any data that is yet to be understood and verified is first
+going to `/var/spacewalk/packages/<ORG>/stage` directory, which has to
+be always empty at the end of the reposync transaction.
+
+In order to perform auditing of failed packages, a new directory
+`/var/spacewalk/packages/<ORG>/lost` should be introduced. It will be
+the final destination for all the broken packages that are about to be
+further investigated. These files should be also properly tracked as
+broken and thus flushed away automatically, once proper package
+comes. At this point, since package was not imported anywhere and its
+size/checksum may vary, the very link is its name. Thus if such
+package with the exactly same name has been imported succesfully, then
+this package should be removed from `lost` directory and all the
+related errors for this channel should be disposed from the database.
 
 
 # References
