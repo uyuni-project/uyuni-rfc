@@ -35,7 +35,7 @@ NOTE: `skuba-update` is **NOT** invoked by Uyuni/SUSE Manager and it is running 
 
 For example, an organization could have a "staging" cluster with a set of staging channels. The operator would cherry-pick Kubernetes updates from the SCC channels into the staging ones and then wait for skuba-update to roll them out into the staging cluster. At a later time, once testing is green inside of the staging cluster, the packages can be promoted to the "production channels" and be rolled out to the production cluster.
 
-It is paramount to state in the user interface and the documentation that the information presented for the minion is in read-only mode.
+It is paramount to state in the documentation that the information presented for the minion is in read-only mode. In the initial iteration, Uyuni/SUSE Manager must point out in the UI that executing actions (package install, upgrade, reboot) might break the cluster if the action are run on a node of the cluster.
 If a user reboots the node, installs a patch or installs a package related to Kubernetes (`kubernetes-kubeadm kubernetes-kubelet kubernetes-client cri-o cni-plugins`) the Kubernetes may break.
 
 NOTE: both of the above actions will not cluster-coordinated, so it is entirely possible that a user assigns different channels, install packages or reboots nodes in a subset of nodes belonging to the same cluster.
@@ -87,7 +87,6 @@ In the documentation, [we can link to the CaaS Platform documentation to explain
 ### Management node
 
 As part of the support for the CaaS Platform version 4, SUSE Manager can elect (via the Add-On System Type) a node as "Management Node" for the cluster. This node must run SUSE Linux Enterprise Server and have `skuba` (a tool packaged by CaaS Platform) to deploy and manage the systems comprising the cluster.
-Alternatively, we can choose to run `skuba` on the SUSE Manager server, we should add it to the packaging pattern of SUSE Manager server. The package is Go-vendored, no other dependency is required.
 
 `skuba` is not packaged for OpenSUSE at the time of writing: Uyuni support will be implemented but enabled later, as soon as the package is released for OpenSUSE.
 
@@ -98,6 +97,10 @@ If a user does not read the documentation, a Kubernetes cluster can be broken by
 
 # Alternatives
 [alternatives]: #alternatives
+We can choose to run `skuba` on the SUSE Manager server, we should add it to the packaging pattern of SUSE Manager server. The package is Go-vendored, no other dependency is required.
+The problem of this approach is that the CaaS Platform admin needs shell access to the Uyuni/SUSE Manager server in order to access and run `skuba`.
+However, shell access to the Uyuni/SUSE Manager server could also be used for other (malicious) things beyond cluster management. And it breaks separation of concerns.
+For the reasons above, this approach was not followed.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
