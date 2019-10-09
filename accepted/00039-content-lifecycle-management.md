@@ -209,10 +209,14 @@ The proposal is to keep only selected subset of the *Snapshot* versions per each
 
 These numbers can be configurable via a SUSE Manager global option (alternatively, this could be overriden on a *Project* level).
 
+An alternative proposals:
+- allow users flagging *Environment*s with `important` flag, which would mean 3 snapshots (instead of 1) would be tracked for those, or
+- make the number of kept *Snapshot*s configurable per *Environment*.
+
 Some kind of "garbage collection" has to be run on *Project* operations to remove old *Snapshot* versions. The algorithm makes sure that the existing *Snapshot*s conform to the conditions above. It should be run on *build*, *promote* and *restore* actions.
 
 ### Limitations
-The *Snapshot* only contains pointers to other entities (software channels, packages, errata, ...). When a referenced entity is removed by the user, the *restore* function will not work as expected.
+The *Snapshot* only contains pointers to other entities (software channels, packages, errata, ...). When a referenced entity is removed by the user, the *restore* function will not work as expected. As a minimal effort to prevent this, Web UI for channel deletion could display a warning if a channel is used in some *Snapshot*.
 
 ## Removing an Environment
 
