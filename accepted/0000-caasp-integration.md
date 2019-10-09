@@ -47,17 +47,19 @@ NOTE: both of the above actions will not cluster-coordinated, so it is entirely 
 ## Update the current Kubernetes integration
 
 Under Virtual Host Manager, there is an already Kubernetes integration that supports CaaS Platform version 3.
-The current implementation breaks with CaaS Platform version 4: the Salt runner needs to take into account that CaaS Platform version 4 switched from Docker to CRI-O.
-Uyuni/SUSE Manager must check if the underlying container engine is running Docker (and use the existing Kubernetes integration) or CRI-O (and adapt the current implementation to support CRI-O).
+When Uyuni/SUSE Manager interfaces with the Kubernetes engine, [a Salt runner queries the running containers on the cluster](https://bugzilla.suse.com/show_bug.cgi?id=1149741#c0).
+The current implementation breaks with CaaS Platform version 4 and must be fixed to work seamlessly with CaaS Platform version 3 and 4.
 The Kubernetes implementation that this RFC is targeting is the one in CaaS Platform version 4: 1.16. Other Kubernetes distributions will not be targeted, at least initially.
 
-Into the Virtual Host Manager, when a Kubernetes cluster is selected, the properties and the names of the nodes are shown, together with CPU Arch, CPU Sockets and RAM of the node.
+The current implementation shows, when a Kubernetes cluster is selected into the Virtual Host Manager, the properties and the names of the nodes together with CPU Arch, CPU Sockets and RAM of each node.
 
-Assuming that cluster bootstrap has already been done, after the user has imported the `kubeconfig`, obtained from CaaS Platform, the process would be:
-
-- When a user defines a new cluster, we introduce a new workflow to bootstrap (using Systems > Bootstrapping) each node of the cluster to Uyuni/SUSE Manager
-- When every cluster node is registered, a system group with the same name of the cluster is created and all registered systems are moved into this system group
-- Each node presented the Nodes information is a link to the system overview page of that node
+The new workflow is:
+1. The user provision the cluster nodes using AutoYaST in Uyuni/SUSE Manager (following the documentation, see "AutoYaST Deployment documentation" in this RFC) or using Terraform (outside the scope of the RFC and Uyuni/SUSE Manager)
+2. User logs into Uyuni/SUSE Manager, defines a new Kubernetes cluster under Virtual Host Manager
+3. The user imports the cluster `kubeconfig`
+4. Uyuni/SUSE Manager will register (read: bootstrap using Systems > Bootstrapping) each node of the cluster to Uyuni/SUSE Manager
+5. When every cluster node is registered, a system group with the same name of the cluster is created and all registered systems are moved into this system group
+6. Each node presented the Nodes information is a link to the system overview page of that node
 
 ## Documentation
 
