@@ -204,7 +204,7 @@ Keeping all versions of *Snapshot*s throughout the *Project* existence would be 
 * integrity issues (it is likely that some entities referenced from very old *Snapshot*s will be deleted).
 
 The proposal is to keep only selected subset of the *Snapshot* versions per each *Environment*:
-* for the last *Environment*  in the *Path* (typically a "production" environment), keep 3 *Snapshot*s,
+* for the "production" *Environment* (= last *Environment*  in the *Path*), keep 3 *Snapshot*s,
 * for other *Environment*s, keep 1 *Snapshot*.
 
 These numbers can be configurable via a SUSE Manager global option (alternatively, this could be overriden on a *Project* level).
@@ -213,7 +213,58 @@ An alternative proposals:
 - allow users flagging *Environment*s with `important` flag, which would mean 3 snapshots (instead of 1) would be tracked for those, or
 - make the number of kept *Snapshot*s configurable per *Environment*.
 
-Some kind of "garbage collection" has to be run on *Project* operations to remove old *Snapshot* versions. The algorithm makes sure that the existing *Snapshot*s conform to the conditions above. It should be run on *build*, *promote* and *restore* actions.
+#### Garbage collection
+Some kind of "garbage collection" has to be run on *Project* operations to remove old *Snapshot* versions. The algorithm makes sure that the existing *Snapshot*s conform to the conditions above (it makes sure that for each *Environment* the wanted number of *Snapshot*s is kept and rest is removed). It should be run on *build*, *promote* and *restore* actions. For this, we need to track the *Snapshot*s used by each *Environment* (M-N relationship).
+
+##### Example scenario
+```
+# Environments: DEV, TEST, PROD
+
+# Initial situation (stored Snapshot versions are in parentheses):
+DEV(9,8) - TEST(8,7) - PROD(4, 3, 2, 1)
+- 1 Snapshot in past for the "non-production" Environments
+- 3 Snapshots for the "production" Environment (PROD)
+
+# Build
+-> DEV(10,9) - TEST(8,7) - PROD(4, 3, 2, 1)
+- Build project & create Snapshot 10 based on the build
+- GC (Garbage Collection): DON'T remove Snapshot 8 (used by TEST)
+
+# Promote DEV -> TEST
+DEV(10,9) -> TEST(10,8) - PROD(4, 3, 2, 1)
+- GC: Remove Snapshot 7 (number of Snapshots for TEST exceeded)
+
+# Promote TEST -> PROD
+DEV(10,9) - TEST(10,8) -> PROD(10, 4, 3, 2)
+- GC: Remove Snapshot 1 (number of Snapshots for PROD exceeded)
+
+# Restore TEST to Snapshot version 8
+DEV(10,9) - TEST(8) - PROD(10, 4, 3, 2)
+- Consequence: TEST now doesn't point to Snapshot 10 anymore
+
+# Promote TEST -> PROD
+DEV(10,9) - TEST(8) -> PROD(8, 10, 4, 3)
+- GC: Remove Snapshot 2
+
+# Restore DEV
+DEV(9) - TEST(8) - PROD(8, 10, 4, 3)
+
+# Restore PROD to 10
+DEV(9) - TEST(8) - PROD(10, 4, 3)
+
+# Build #2
+-> DEV(11,9) - TEST(7) - PROD(10, 4, 3)
+- The Snapshot of current Build is 11, not 10!
+```
+We need to make sure the *build* operation doesn't produce colliding version numbers (see the Build #2 in the example). Otherwise, we could get 2 builds with same version and different content. The new version of the *Snapshot* should be determined as a maximal *Snapshot* version incremented by 1.
+
+This scenario also shows that the stored *Snapshot* versions in *Environment*s do not necessarily need to be in ascending order (the *promote* operation can "break" this property). Instead of that, they track the *Snapshot*s as they were used throughout the *Environment* history.
+
+##### Suggested algorithm for Garbage Collection
+- on each *build*/*promote*/*restore*
+- for each *Environment* in *Project*, collect *Snapshots* to be kept (e.g. 3 past *Snapshot*s for production *Environment*s, 1 past *Snapshot* for other *Environment*s) into a flat set
+- from the set of all *Project* *Environment*s remove all *Snapshot*s collected in the previous step
+- remove all *Snapshot*s in this set
 
 ### Limitations
 The *Snapshot* only contains pointers to other entities (software channels, packages, errata, ...). When a referenced entity is removed by the user, the *restore* function will not work as expected. As a minimal effort to prevent this, Web UI for channel deletion could display a warning if a channel is used in some *Snapshot*.
