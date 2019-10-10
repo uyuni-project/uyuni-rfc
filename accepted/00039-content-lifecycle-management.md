@@ -220,40 +220,41 @@ Some kind of "garbage collection" has to be run on *Project* operations to remov
 ```
 # Environments: DEV, TEST, PROD
 
-# Initial situation (stored Snapshot versions are in parentheses):
-DEV(9,8) - TEST(8,7) - PROD(4, 3, 2, 1)
+# Initial situation
+Current versions in brackets, stored Snapshot in parentheses (the current version always corresponds to the first Snapshot).
+DEV[9](9,8) - TEST[8](8,7) - PROD[4](4, 3, 2, 1)
 - 1 Snapshot in past for the "non-production" Environments
 - 3 Snapshots for the "production" Environment (PROD)
 
 # Build
--> DEV(10,9) - TEST(8,7) - PROD(4, 3, 2, 1)
+-> DEV[10](10,9) - TEST[8](8,7) - PROD[4](4, 3, 2, 1)
 - Build project & create Snapshot 10 based on the build
 - GC (Garbage Collection): DON'T remove Snapshot 8 (used by TEST)
 
 # Promote DEV -> TEST
-DEV(10,9) -> TEST(10,8) - PROD(4, 3, 2, 1)
+DEV[10](10,9) -> TEST[10](10,8) - PROD[4](4, 3, 2, 1)
 - GC: Remove Snapshot 7 (number of Snapshots for TEST exceeded)
 
 # Promote TEST -> PROD
-DEV(10,9) - TEST(10,8) -> PROD(10, 4, 3, 2)
+DEV[10](10,9) - TEST[10](10,8) -> PROD[10](10, 4, 3, 2)
 - GC: Remove Snapshot 1 (number of Snapshots for PROD exceeded)
 
 # Restore TEST to Snapshot version 8
-DEV(10,9) - TEST(8) - PROD(10, 4, 3, 2)
+DEV[10](10,9) - TEST[8](8) - PROD[10](10, 4, 3, 2)
 - Consequence: TEST now doesn't point to Snapshot 10 anymore
 
 # Promote TEST -> PROD
-DEV(10,9) - TEST(8) -> PROD(8, 10, 4, 3)
+DEV[10](10,9) - TEST[8](8) -> PROD[8](8, 10, 4, 3)
 - GC: Remove Snapshot 2
 
 # Restore DEV
-DEV(9) - TEST(8) - PROD(8, 10, 4, 3)
+DEV[9](9) - TEST[8](8) - PROD[8](8, 10, 4, 3)
 
 # Restore PROD to 10
-DEV(9) - TEST(8) - PROD(10, 4, 3)
+DEV[9](9) - TEST[8](8) - PROD[10](10, 4, 3)
 
 # Build #2
--> DEV(11,9) - TEST(7) - PROD(10, 4, 3)
+-> DEV[11](11,9) - TEST[8](8) - PROD[10](10, 4, 3)
 - The Snapshot of current Build is 11, not 10!
 ```
 We need to make sure the *build* operation doesn't produce colliding version numbers (see the Build #2 in the example). Otherwise, we could get 2 builds with same version and different content. The new version of the *Snapshot* should be determined as a maximal *Snapshot* version incremented by 1.
