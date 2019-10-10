@@ -186,7 +186,20 @@ The most important entity is the *Snapshot*. It has a version and it contains al
 * others (after we implement support for them): activation key, configuration channels, ...
 
 ### Create Content Snapshot (backup)
-*Snapshot* is created after a successful *Project* *build*. It is populated with the references to channels and their packages/errata based on the *build*. Note that the software channels references point to the **source** channels of a project, not to the built ones.
+*Snapshot* is created after a successful *Project* *build*. It is populated with the references to channels and their packages/errata based on the *build*. Note that the software channels references point to the **source** channels of a project, not to the built ones (see the following example for more detail).
+
+#### Example
+
+Project (`prj1` label) source channels:
+`sle-15-sp1-pool(packages: kernel, systemd, cron), sle-15-sp1-update(packages: kernel, systemd)`
+
+Channels in the 1st environment (`dev` label):
+`prj1-dev-sle-15-sp1-pool(packages: kernel, systemd), prj1-dev-sle-15-sp1-update(packages: kernel, systemd)` (the `cron` packages was filtered out with a filter)
+
+Create *Snapshot* of the `dev` *Environment*, it contains:
+- references to **source** channels: `sle-15-sp1-pool` and `sle-15-sp1-update`,
+- references to packages contained in the 1st *Environment*: `kernel` and `systemd`.
+
 
 ### Restore Content Snapshot
 Restoring a *Snapshot* to a *Environment*.
