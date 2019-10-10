@@ -367,6 +367,8 @@ Using System Groups as Environments:
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
+* Q: Decide on how many *Snapshot*s per *Environment* do we want. See
+  the [Version Management](#version-management) section for more detail.
 
 # Resolved questions
 [resolved]: #resolved-questions
