@@ -28,11 +28,17 @@ From the requirements:
 [design]: #detailed-design
 
 ### Basic funtionality
-The Hub is a Server, so as far as it and its minions (Servers) are concerned, the XMLRPC API work as of today.
+The Hub is a Server, so as far as it and its minions (Servers) are concerned, the Hub XMLRPC API work as of today.
 Content management APIs will work as of today. Inter-Server Synchronization (ISS) will be used to push managed content from Hub to Servers.
 
+### New service and endpoint
+A new XMLRPC API endpoint will be created, implemented by a new service called the "XMLRPC Gateway API" (simply called "Gateway" from now on in this document). Technology-wise:
+  * Implementation will be in Python based on top of Tornado and [tornado-xmlrpc](https://pypi.org/project/tornado-xmlrpc/) library
+  * all I/O should be handled asynchronously via Tornado. Calls to several Servers should happen in parallel, with a maximum timeout value for unreachable/not responding Servers
+  * there will be no backing database. All new methods will delegate to existing XMLRPC APIs (either the Hub's or individual Servers')
+
 ### Topology exposure functionality
-New API endpoints to be created to expose how Servers, clients and Hubs are connected, in particular methods will be needed to:
+Gateway methods will be created to expose how Servers, clients and Hubs are connected, in particular methods will be needed to:
   * Get a list of `serverIds`
   * Get a list of clients registered to a Server given its `serverId`
   * Get a list of all clients, with the `serverIds` they belong to
@@ -43,18 +49,19 @@ New API endpoints to be created to expose how Servers, clients and Hubs are conn
 Idea is to expose existing Server XMLRPC endpoints/methods as they are on the Hub. The Hub will simply route calls to the right Server(s) and relay back results, rather than reimplementing any functionality. Areas are detailed below.
 
 * Authorization and authentication
-  * Hub API will be secured via `sessionKey` tokens like Server's API
-  * Consuming a Server's API requires a valid `sessionKey` token
+  * Gateway API will be secured via `hubSessionKey` tokens analoguously to Server's API
+    * Actually, Gateway will delegate authentication to the Hub API
+  * Consuming a Server's API from the Gateway continues to require a valid Server `sessionKey` token
   * There are three ways to attach Server sessions to the Hub session
     * Manual mode: programmer "attaches" Server sessions explicitly to his Hub session. Attachment lasts until logout
       * `hub.login(username, password)` → `hubSessionKey`
       * `hub.attachToServer(hubSessionKey, serverId, username, password)` → `serverSessionKey`
       * `hub.serverMethod(serverSessionKey, parameters)` → `output`
       * N+1 pairs of credentials will be needed (one for the Hub, one per each of the N Servers)
-     * Authentication relay mode: as an additional convenience option, which can be activated with a flag, Hub-User credentials can be re-used to authenticate against Servers. So if a certain username/password is uniformly configured on the Hub and across several Servers, Hub gateway API usage becomes simpler: only one log in is needed, with its Hub-User credentials
+     * Authentication relay mode: as an additional convenience option, which can be activated with a flag, Hub-User credentials can be re-used to authenticate against Servers. So if a certain username/password is uniformly configured on the Hub and across several Servers, Gateway usage becomes simpler: only one log in is needed, with its Hub-User credentials
      * Automatic connect mode: as an additional convenience option, which can be activated with a flag, the Hub gateway API can automatically select the list of Servers a Hub-User works with, based on the list of Servers that same Hub-User has permissions on
        - note: that this only makes sense if users are OK with the idea of using Server sysadmin users to act on Clients
-       - If they prefer to manage Clients via users that have no permissions to manage Servers, they can create a Hub-Org with no Servers. Any Hub-User in this Hub-Org will be able to connect to the Hub gateway API, and possibly have permissions on Clients (if Servers have Server-Users with same name and passwords)
+       - If they prefer to manage Clients via users that have no permissions to manage Servers, they can create a Hub-Org with no Servers. Any Hub-User in this Hub-Org will be able to connect to the Gateway, and possibly have permissions on Clients (if Servers have Server-Users with same name and passwords)
 
 * Multicasting: call an XMLRPC method on _N_ Servers at once
   * method name stays the same
@@ -65,12 +72,8 @@ Idea is to expose existing Server XMLRPC endpoints/methods as they are on the Hu
     * special elements would be needed to signal Exceptions
 
 * Availability
-  * if a Server is down at the time a Hub API call targeting it is made, call should fail after a configurable timeout. If multiple Servers are targeted, only that call fails and others continue
+  * if a Server is down at the time a Gateway call targeting it is made, call should fail after a configurable timeout. If multiple Servers are targeted, only that call fails and others continue
 
-* Tech
-  * Implementation will be in Python based on top of Tornado and [tornado-xmlrpc](https://pypi.org/project/tornado-xmlrpc/) library
-  * all I/O should be handled asynchronously via Tornado. Calls to several Servers should happen in parallel, with a maximum timeout value for unreachable/not responding Servers
-  * database for topology data to be shared with the Reporting component (subject of a separate RFC)
 
 ## Impact on existing components and users
 
@@ -104,7 +107,7 @@ We are not adding any Hub-centered functionality basically, this is a little mor
 # Next steps
 [Next steps]: #next-steps
 
-* Multicasting: Client-addressed relay (CAR): programmer wants to call a method which is specific to a client, regardless of what Server it is registered to
+* Client-addressed relay (CAR): programmer wants to call a method which is specific to a client, regardless of what Server it is registered to
   * method names, return values would be identical
   * parameters would have to change, in that the numerical `systemId` is typically not unique. `minion_id`, FQDN or some other unique identifier would have to be used
     * eg. `system.listNotes(sessionKey, systemId)` → `hub.system.listNotes(hubSessionKey, FQDN)`
