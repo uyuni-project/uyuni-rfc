@@ -43,7 +43,9 @@ Gateway methods will be created to expose how Servers, clients and Hubs are conn
   * Get a list of `serverIds`
   * Get a list of clients registered to a Server given its `serverId`
   * Get a list of all clients, with the `serverIds` they belong to
-  * Get the `serverId` for a given client (based on `minion_id`, FQDN or other unique identifier. Normal client IDs will not work, as they will overlap between Servers)
+  * Get `serverId`s for a given client (based on `minion_id`, FQDN or other identifier)
+    - note: normal client IDs will not work, as they will surely overlap between Servers
+    - note: normally only one result is expected, but there could be cases in which `minion_id`s are actually duplicated across Servers
 
 ### Gateway functionality
 
@@ -112,6 +114,7 @@ We are not adding any Hub-centered functionality basically, this is a little mor
   * method names, return values would be identical
   * parameters would have to change, in that the numerical `systemId` is typically not unique. `minion_id`, FQDN or some other unique identifier would have to be used
     * eg. `system.listNotes(sessionKey, systemId)` → `hub.system.listNotes(hubSessionKey, FQDN)`
+    * note that `minion_id`s and FQDNs give no uniqueness guarantee per se. Server-prefixing might be necessary in absence of guarantees by users
   * there will be new Exception cases if there's more than one client with that `minion_id`/FQDN/ecc
 
 * Topology exposure functionality: also expose Proxies
