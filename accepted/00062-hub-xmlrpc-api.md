@@ -119,6 +119,8 @@ We are not adding any Hub-centered functionality basically, this is a little mor
 
 * Topology exposure functionality: also expose Proxies
 
+* Multicasting convenience feature: avoid repeat parameters if they are identical for all targeted Servers
+
 * More Multicasting options:
   * Additional idea 1: Group-addressed relay (GAR): similar to client-addressed relay, but based on groups (not spanning Servers)
   * Additional idea 2: Server-addressed relay (SAR): programmer wants to call a method on a certain Server. Hub receives the call, it relays it to the right Server and brings back results once done
