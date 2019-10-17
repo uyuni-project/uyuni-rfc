@@ -86,12 +86,13 @@ All code would be new in a new component, so no change to existing components is
 # Drawbacks
 [drawbacks]: #drawbacks
 
-We are not adding any Hub-centered functionality basically, this is a little more than a router.
+ - we are not adding any Hub-centered functionality basically, this is a little more than a router
+ - if Servers are at different versions, some API endpoints might not be available in all Servers or might work differently. This is expected to be rare but possible, and in that case the error (eg. missing method) will be propagated to the calling program
+   - note that API stability is guaranteed between major versions, and very broadly implemented between minor versions as well
 
 ## Limitations
 
 - implementation of API methods currently not implemented on the Server, eg. downstream [#2361](https://github.com/SUSE/spacewalk/issues/2361) [#2362](https://github.com/SUSE/spacewalk/issues/2362), is explicitly not covered by this RFC
-
 
 # Alternatives
 [alternatives]: #alternatives
