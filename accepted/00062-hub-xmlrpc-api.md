@@ -36,6 +36,7 @@ A new XMLRPC API endpoint will be created, implemented by a new service called t
   * Implementation will be in Python based on top of Tornado and [tornado-xmlrpc](https://pypi.org/project/tornado-xmlrpc/) library
   * all I/O should be handled asynchronously via Tornado. Calls to several Servers should happen in parallel, with a maximum timeout value for unreachable/not responding Servers
   * there will be no backing database. All new methods will delegate to existing XMLRPC APIs (either the Hub's or individual Servers')
+    - some kind of storage might be needed for performance/caching purposes, that is left as an implementation detail
 
 ### Topology exposure functionality
 Gateway methods will be created to expose how Servers, clients and Hubs are connected, in particular methods will be needed to:
