@@ -186,7 +186,7 @@ The most important entity is the *Snapshot*. It has a version and it contains al
 * others (after we implement support for them): activation key, configuration channels, ...
 
 ### Create Content Snapshot (backup)
-*Snapshot* is created after a successful *Project* *build*. It is populated with the references to channels and their packages/errata based on the *build*. Note that the software channels references point to the **source** channels of a project, not to the built ones (see the following example for more detail).
+*Snapshot* is created after a successful *Project* *build*. It is populated with the references to channels and their packages/errata based on the *build*. Note that the software channels references in the snapshot point to the **source** channels of a project, not to the built ones (see the following example for more detail).
 
 #### Example
 
@@ -220,11 +220,7 @@ The proposal is to keep only selected subset of the *Snapshot* versions per each
 * for the "production" *Environment* (= last *Environment*  in the *Path*), keep 3 *Snapshot*s,
 * for other *Environment*s, keep 1 *Snapshot*.
 
-These numbers can be configurable via a SUSE Manager global option (alternatively, this could be overriden on a *Project* level).
-
-An alternative proposals:
-- allow users flagging *Environment*s with `important` flag, which would mean 3 snapshots (instead of 1) would be tracked for those, or
-- make the number of kept *Snapshot*s configurable per *Environment*.
+These numbers can be configurable via a SUSE Manager global option.
 
 #### Garbage collection
 Some kind of "garbage collection" has to be run on *Project* operations to remove old *Snapshot* versions. The algorithm makes sure that the existing *Snapshot*s conform to the conditions above (it makes sure that for each *Environment* the wanted number of *Snapshot*s is kept and rest is removed). It should be run on *build*, *promote* and *restore* actions. For this, we need to track the *Snapshot*s used by each *Environment* (M-N relationship).
@@ -281,7 +277,7 @@ This scenario also shows that the stored *Snapshot* versions in *Environment*s d
 - remove all *Snapshot*s in this set
 
 ### Limitations
-The *Snapshot* only contains pointers to other entities (software channels, packages, errata, ...). When a referenced entity is removed by the user, the *restore* function will not work as expected. As a minimal effort to prevent this, Web UI for channel deletion could display a warning if a channel is used in some *Snapshot*.
+The *Snapshot* only contains pointers to other entities (software channels, packages, errata, ...). When a referenced entity is removed by the user, the *restore* function would not work as expected. To prevent this, we should **forbid** deleting channels that are used in *Snapshot*s.
 
 ## Removing an Environment
 
@@ -380,11 +376,14 @@ Using System Groups as Environments:
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
-* Q: Decide on how many *Snapshot*s per *Environment* do we want. See
-  the [Version Management](#version-management) section for more detail.
 
 # Resolved questions
 [resolved]: #resolved-questions
+
+* Q: Decide on how many *Snapshot*s per *Environment* do we want.
+  * Should the number be configurable per *Environment*?
+  * Should some *Environment*s have some kind of `important` flag indicating more stored snapshots?
+  * A: No. See the [Version Management](#version-management) section for the answer.
 
 * Q: Naming of *Content Profile*s, more options:
   * *Usage Group*s, *Application Profile*s, *Environment Profile*s,
