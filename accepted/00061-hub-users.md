@@ -91,10 +91,11 @@ The Hub _gateway_ XMLRPC API ([RFC here](accepted/00062-hub-xmlrpc-api.md)) give
 - Access to the gateway API itself requires Hub-User credentials. Access to individual Server APIs to manage clients requires Server-User credentials
   - in worst case, N+1 pairs of credentials will be needed (one for the Hub, one per N Servers)
   - as a special convenience option, the Hub gateway API can use Hub-User credentials to authenticate against Servers. So if a certain username/password was uniformly configured across several Servers (this is easy to implement with the states above), Hub gateway API usage becomes simpler: only one log in is needed, with its Hub-User credentials. After that a list of Servers to work with will have to be specified. This authentication mode can be optionally activated via a parameter (eg. `relayAuthentication = True`) on the `login` method
+    - note: this only makes sense if it is deemed appropriate to use the same credentials of Server sysadmin users (Hub-Users) to also act on Clients (Server-Users). This might not always be the case
+    - note: if Server sysadmin credentials must be separate from Client sysadmin credentials are required to be separate, it is still possible to use this option by creating a Hub-Org with no Servers. Any Hub-User in this Hub-Org will be able to connect to the Hub gateway API, and have permissions on Clients (assuming Servers have Server-Users with same name and passwords, again possibly configured via the above states). Org trusts will be needed to be set up if those users also need to perform content management
   - as an additional special convenience option, the Hub gateway API can automatically select the list of Servers a Hub-User works with, based on the list of Servers that same Hub-User has permissions on. Once again this can be optionally activated via a parameter (eg. `autoConnect = True`)
-    - in this case only a single login with a pair of Hub-User credentials is needed, and then calls can be made directly
-    - Note that this only makes sense if the customer is OK with the idea of using Server sysadmin users to act on Clients
-    - If they prefer to manage Clients via users that have no permissions to manage Servers, they can create a Hub-Org with no Servers. Any Hub-User in this Hub-Org will be able to connect to the Hub gateway API, and possibly have permissions on Clients (if Servers have Server-Users with same name and passwords, again possibly configured via the above states). `autoConnect` won't be possible in those cases, at least initially
+    - note: in this case only a single login with a pair of Hub-User credentials is needed, and then calls can be made directly
+    - note: this only makes sense if it is deemed appropriate to use the same credentials of Server sysadmin users to also act on Clients. This might not always be the case
 
 # Drawbacks
 [drawbacks]: #drawbacks
