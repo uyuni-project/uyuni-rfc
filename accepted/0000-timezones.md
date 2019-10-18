@@ -14,7 +14,7 @@ If we don’t have some rules on how to display and handle dates, this can becom
 
 The goal of this RFC is to define those rules and serve as a reference for the future.
 
-These rules should define a consistent way of display dates on the UI and make this information as clear as possible for the user.
+These rules should define a consistent and standard way to display dates in every interface of the product and make this information as clear as possible for the user.
 
 The user should be able to easily understand in which timezone a date is displayed and aware if there is any difference from the timezone
 he is accessing from.
@@ -76,7 +76,7 @@ instead of manually calculating the diff between the user preference and browser
 The user should always be aware in which timezone his account is configured and from where he is accessing from.
 
 To create context to the user regarding timezones, 2 clocks should be added to the top. One with the user configured timezone and
-the other one with the browser timezone. 
+the other one with the browser timezone. If both timezones are the same, only one clock should be visible.
 
 ![timezones](images/timezones.png)
 
