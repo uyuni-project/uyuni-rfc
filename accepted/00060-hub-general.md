@@ -21,7 +21,7 @@ We want to define a new Uyuni-based solution to provide a reasonable subset of U
 [Requirements]: #Requirements
 
 ### Functional requirements (by importance)
-  * Hub implements visibility over the whole infrastructure (Hub → Servers → Proxies → clients)
+  * Hub provides visibility over the whole infrastructure (Servers, Proxies, clients...)
   * Hub manages Servers in terms of upgrades
   * Hub implements API endpoints to act on Servers
     * Main expected use cases:
@@ -39,18 +39,18 @@ We want to define a new Uyuni-based solution to provide a reasonable subset of U
     * Same order of importance defined above
     * Synchronization has to be atomic
     * Synchronization has to be doable via a storage media instead of a network for certain network-constrained environments (defense, China)
-    * Nice-to-have: avoid the download of content from the Hub if it is faster to retrieve it from SCC
+    * Nice-to-have: avoid the download of content from the Hub if it is faster to retrieve it from other locations (SCC, SMT...)
     * Nice-to-have: on-demand downloading from the Hub should be considered (Proxy/Squid model)
-  * [Uyuni for Retail extension](https://github.com/uyuni-project/retail) is updated not to require a Proxy
+  * [Uyuni for Retail extension](https://github.com/uyuni-project/retail) is updated so that either Uyuni Servers or some third-party components can provide services currently made available by the Retail Branch Server
   * Administration of Servers is simplified. In order of importance:
     * automatic application of schema upgrades
     * automatic creation of bootstrap repos
-    * Servers do not need to connect to SCC or any external repo
+    * Servers do not need to connect to SCC or any external repo (provided they are connected to the Hub)
     * Server/Hub GUI alert when updates are available for the Server/Hub itself
     * installation of Servers is automated via Salt
     * in principle any Server configuration can also be done via Salt (eg. creation of pillar stores, users, groups...)
     * default DB backup via Taskomatic
-  * Hub implements UIs to act on Servers
+  * Hub implements UIs to act on clients
   * Optionally centralized definition of users and permissions
 
 ### Non-functional requirements
@@ -60,7 +60,7 @@ We want to define a new Uyuni-based solution to provide a reasonable subset of U
     * typical numbers:
       * 3 to 20 Servers with a few thousand clients each ("large data center scenario")
       * a few thousand Servers with 10-20 clients each ("large retailer scenario")
-  * Compatibility: we do not expect non-SUSE OSs soon, but design should accommodate them
+  * Compatibility: all OSs currently supported by Uyuni (may not be all supported in first version)
   * Maintainability: any new component should be designed in a modern way, with containerization/scalability/HA in mind
   * Performance: Server functionality can stripped down in order to achieve smaller hardware footprint
 
@@ -95,8 +95,8 @@ Those are part of the long-term vision but were not given priority over other re
 
 - Hub will be a Server with extra components/functionality
 - Several (standard) Servers will be connected to the Hub (registered to it as minions). Hub will manage those Servers via standard functionality
-- Existing content management functionality will be used as-is in the Hub. Only the Hub will be connected to SCC/SMT/RMT, and not Servers
-- ISS will be overhauled to move managed content from Hub to Servers (channels, Salt states, images...)
+- Existing content management functionality will be used as-is in the Hub. By default only the Hub will be connected to SCC/SMT/RMT, and not Servers
+- ISS will be overhauled to move more types of managed content from Hub to Servers (channels, Salt states, images...)
 - Hub will store data from Servers for reporting. A data collection mechanism to transfer data from Servers to Hub will be implemented
 - Hub will have a new API component to allow access to APIs of Servers (XMLRPC and Salt)
 - the Uyuni for Retail extension will get Proxy-less capability
