@@ -31,7 +31,7 @@ This RFC was inspired by best practices, Customer feedback and Katello.
 
 * *Content Snapshot* (*Snapshot*): Data containing a version and a description of a *Content Build* (e.g. channels, packages, errata, activation keys). Can be used for re-creating a *Content Build* later in the future (used for the "restore" functionality).
 
-* *Filter*: A filter to deny or allow different kind of *Content*.
+* *Filter*: 2 types of filters (allow and deny) to filter different kind of *Content*. The purpose of the "allow" filters is to override "deny" filters: content filtered out by a "deny" filter can be brought back using an "allow" filter.
 
 * *Environment*: AKA *Stage* or *Landscape* (`DEV`, `TEST`, `PRODUCTION`). Contains a version of a *Content Build*.
 
@@ -181,7 +181,7 @@ Support limited *Content* version tracking and restoring (or rolling back).
 
 Note: for Software Channels, the restore functionality does not roll back installed packages. It only affects contents of the channels.
 
-The most important entity is the *Snapshot*. It has a version and it contains all the information needed for re-creating a *Build* in particular state in a future:
+The most important entity is the *Snapshot*. It has a version and it contains all the information needed for re-creating a *Build* in particular state in the future:
 * software channels reference (also the pointer which channel is the base (or "leader) in the *Build*
 * packages per channel reference
 * errata per channel
