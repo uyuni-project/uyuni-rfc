@@ -25,7 +25,7 @@ This RFC was inspired by best practices, Customer feedback and Katello.
 
 * *Content Project*: A Project to attach Sources and Filters. It defines the Environments and the Lifecycle. The Content Project keeps a history of changes.
 
-* *Content*: Data for Systems like: Channels, Repositories with RPMs and Patches, Config Channels, Salt states and formulas. (Container images may or may not be seen as content. VM images are not content as nobody would use it. They are built from content but not built based on top of another image.)
+* *Content*: Data for Systems like: Channels, Repositories with RPMs and Patches, Config Channels, Salt states and formulas.
 
 * *Content Build (CB)*: A snapshot of *Content* - optionally filtered - in an *Environment*.
 
@@ -295,6 +295,21 @@ When we remove all of them when we remove an *Environment* we need to remove the
 Another option would be to keep them as "standalone" components and keep the systems assigned.
 (Needs to be defined)
 
+# Possible enhancements for the future
+
+## Import/Export Project/Environment
+We should also provide an import/export functionality for *Content
+Project*s, so that they can be applied in other SUMA installations,
+but this is going to happen within another RFC.
+
+## New content support
+
+* Formulas support (requirements: Formulas as part of Configuration Management in SUMA)
+* KIWI templates (a.k.a "all you need to re-create VMs that match certain *Environment*")
+* Bare metal machines templates
+  * AutoYaST profiles
+  * "Distribution"
+* Containers support
 
 # Implementation Step 1 - content definition
 
