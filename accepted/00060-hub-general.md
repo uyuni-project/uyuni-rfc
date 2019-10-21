@@ -47,8 +47,8 @@ We want to define a new Uyuni-based solution to provide a reasonable subset of U
     * automatic creation of bootstrap repos
     * Servers do not need to connect to SCC or any external repo (provided they are connected to the Hub)
     * Server/Hub GUI alert when updates are available for the Server/Hub itself
-    * installation of Servers is automated via Salt
-    * in principle any Server configuration can also be done via Salt (eg. creation of pillar stores, users, groups...)
+    * configuration of Servers is automated via Salt
+    * in principle any Server "object" can also be created via Salt (eg. pillar stores, users, groups...)
     * default DB backup via Taskomatic
   * Hub implements UIs to act on clients
   * Optionally centralized definition of users and permissions
