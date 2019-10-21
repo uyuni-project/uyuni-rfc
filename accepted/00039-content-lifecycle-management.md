@@ -179,6 +179,8 @@ Adding a timer is optional.
 
 Support limited *Content* version tracking and restoring (or rolling back).
 
+Note: for Software Channels, the restore functionality does not roll back installed packages. It only affects contents of the channels.
+
 The most important entity is the *Snapshot*. It has a version and it contains all the information needed for re-creating a *Build* in particular state in a future:
 * software channels reference (also the pointer which channel is the base (or "leader) in the *Build*
 * packages per channel reference
