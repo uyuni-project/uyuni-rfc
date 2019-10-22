@@ -197,7 +197,7 @@ With the proposal in this RFC, it is possible to implement protection from case 
 
 pl/SQL could still be used, as a last resort, to apply different commands to different ISS Slave versions, but that would be hardly maintainable, so it would only be suggested to handle critical situations temporarily.
 
-General recommendation would be to upgrade an ISS Master, then upgrade ISS Slaves before attempting any new Inter-Server Synchronization.
+General recommendation would be to upgrade an ISS Master, then upgrade ISS Slaves before attempting any new Inter-Server Synchronization. Another RFC will detail how Hub could make such upgrades easier.
 
 
 # Alternatives
