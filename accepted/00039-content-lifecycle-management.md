@@ -118,7 +118,7 @@ We should make it easy for an user to manage activation keys and groups for a *C
 ## Releases vs. Staging
 
 Some customers prefer to do "Releases". They prepare *Content* and re-assign all Clients to the new Channels and do not move the *Content* along the *Lifecycle*.
-*Content Builds*s can be used for this as well. While using *Filters* and assigning Sources in a *Content Project* you can create a "Release"
+*Content Build*s can be used for this as well. While using *Filters* and assigning Sources in a *Content Project* you can create a "Release"
 just by *building* the *Content Build* with just one *Environment*.
 
 To create the next *Release* it would be helpful to be able to "copy" the *Content Project*. This would copy all attached *Sources* and *Filters* under a new name
