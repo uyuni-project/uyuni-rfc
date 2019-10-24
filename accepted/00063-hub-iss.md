@@ -219,6 +219,14 @@ General recommendation would be to upgrade an ISS Master, then upgrade ISS Slave
   - pro: potentially more robust when ISS Master and ISS Slave are not on the same version
   - con: more complex to implement and maintain
 
+- use an existing content management project: Pulp or Artifactory
+  - pro: lots of extra functionality
+  - con: much more complex
+    - the current ISS implementation is roughly 10K LOC (excluding dependencies)
+    - the proposed ISS implementation is expected to be much simpler, could be 2K-5K LOC
+    - Pulp is around 152K LOC (~30x bigger best case)
+    - Artifactory is around 523K LOC (~100x bigger best case)
+
 # Next steps
 [Next steps]: #next-steps
 
