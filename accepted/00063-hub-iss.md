@@ -148,7 +148,7 @@ Both file and database data need to be transferred somehow from the ISS Master t
 
 Current ISS implementation offers:
   - storage-based transfer (a directory with well-defined structure is created to host files and data in XML form) and
-  - API-based transfer: an XMLRPC request is made from ISS Slave to Server, and the same deta set is sent over XMLRPC (http), streamed
+  - API-based transfer: an XMLRPC request is made from ISS Slave to Server, and the same data set is sent over XMLRPC (http), streamed
 
 The new ISS implementation will eventually support both a storage-based transfer and an API-based transfer (not necessarily XMLRPC based). Details on the API-based transfer are not covered by this RFC, see "Limitations" below.
 
