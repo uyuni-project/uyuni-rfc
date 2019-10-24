@@ -122,7 +122,7 @@ At this point it is believed/assumed that:
 
 #### Second core idea: SQL script is generated via introspection
 
-The SQL script would be produced by a program that looks at the ISS Master's schema and, given a small set of starting tables (eg. `rhnchannel`) and starting row ids (eg. `channel_id = 103`), figures out:
+The SQL script would be produced by a program that looks at the ISS Master's schema and, given a small set of starting tables (eg. `rhnchannel`) and starting rows given by a criterion (eg. `channel_id = 103` or `modified_date > '2019-01-01'`), figures out:
 
 - the graph of dependent/dependency tables (from the starting set)
 - for each table:
