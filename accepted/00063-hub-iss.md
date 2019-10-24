@@ -227,8 +227,9 @@ General recommendation would be to upgrade an ISS Master, then upgrade ISS Slave
 - drop the current ISS implementation
   - full backwards compatibility of all commandline flags is left as an implementation detail, it's probably achievable
   - dropping the old ISS implementation could save about ~9k LOC, as measured by `cloc backend/server/importlib/*Import* backend/satellite_exporter/ backend/satellite_tools/exporter/ backend/satellite_tools/*sat*ync*`
-- integrate with the Content Lifecycle Management functionality: automatically sync after content is finalized
 - support syncing repo metadata, in order for them not to necessarily be regenerated on the ISS Slave
+- allow downloading of files from locations other than the ISS Master - SCC, a closer Proxy, third-party repos...
+- integrate with the Content Lifecycle Management functionality: automatically sync after content is finalized
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
