@@ -184,6 +184,8 @@ When that happens, there is a chance of regressions for ISS users, which represe
 # Drawbacks
 [drawbacks]: #drawbacks
 
+This will only work with PostgreSQL, but that is not expected to be a problem given it's the only supported database backend at this point.
+
 Syncing content between different versions of Uyuni on the ISS Master and on the ISS Slave may not work, if the database schema changes in non-compatible ways.
 
 This risk is fundamentally unavoidable at a conceptual level, although different mitigations can be put in place and the current implementation actually allows for a broader set of mitigations than the proposal in this RFC can allow.
