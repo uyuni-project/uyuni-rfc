@@ -68,7 +68,7 @@ An example of such implementation is provided in `attachments/00000-modular_repo
 ### UI
 The UI consists of a new type of CLM filter called "module". The filter provides inputs for a module name and a stream name.
 Each filter selects a stream for a single module. The stream input can be left empty to select the default stream.
-Since a filter is independent of the source repositories in a CLM project, it is not possible to display a list of modules/streams on the filter form and the inputs can only be simple text inputs.
+Since a CLM filter is not related to any channels, it is not possible to display a list of modules/streams on the filter form and the inputs can only be simple text inputs.
 The module information for a modular repository is displayed under an additional "Modules" tab on the "Channel Details" page.
 A modular repository is indicated with an icon next to the name of the repository in the CLM sources list. A click on the icon navigates to the "Modules" tab of the channel details.
 
@@ -167,6 +167,7 @@ The next step to supporting modular repositories would be to implement modularit
 ### Interactive inputs for filters
 To provide better user experience, the filter inputs can be turned into responsive dropdowns showing a list of module/stream names with realtime feedback.
 However, since the module list can only be retrieved from the project sources and the current implementation of CLM filters are independent of the sources, this is not currently achievable.
+One possible enhancement could be adding some supplementary auto-complete feature in cases where some sources are added to the CLM project.
 
 ### Selective version filtering
 If required, it is possible to selectively filter a specific version of any module by introducing additional types of module filters.
