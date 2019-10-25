@@ -24,6 +24,7 @@ From the requirements:
 
 > * Managed content can be selectively synced from Hub to Servers
 >   * In order of importance:
+>    - Packaged software
 >    - Configuration Management data (states, pillars...)
 >    - OS Images
 >    - Container Images
