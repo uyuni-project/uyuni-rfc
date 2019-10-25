@@ -61,9 +61,7 @@ The Java backend is responsible for filtering out unselected module streams and 
 A Python API parses and interprets the module metadata, resolves modular dependencies and translates specified modules and streams to an actual package list.
 The API utilizes the Python port of [libmodulemd](https://github.com/fedora-modularity/libmodulemd), which is used for structural parsing of `modules.yaml` files.
 
-*TODO: Add the file*
-
-An example of such implementation is provided in `attachments/00000-modular_repos_api.py`.
+An example of such implementation is provided in [attachments/00000-modular-repos-api.py](attachments/00000-modular-repos-api.py).
 
 ### UI
 The UI consists of a new type of CLM filter called "module". The filter provides inputs for a module name and a stream name.
