@@ -100,9 +100,16 @@ treated as "Uyuni local users" and be ignored therefore.
 
 ## Clashed UIDs
 
+Any UID that exists in the Uyuni server but has different
+authentication method than PAM or is mentioned as "frozen users"
+should be marked as conflicting and therefore ignored.
+
 Conflicting UIDs should be not processed, but reported to the log file
 as erroneous. However this should not prevent to process the rest
 of the existing users.
+
+However, any UID that has PAM authentication mode configured or is not
+mentioned as "frozen user" should be managed by LDAP.
 
 ## Usage
 
