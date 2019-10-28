@@ -5,8 +5,8 @@
 # Summary
 [summary]: #summary
 
-The `mgr-ldapsync` is a tool that performs synchronisation of the
-users between Uyuni server and LDAP.
+The `mgr-ldapsync` is a tool that configures and manages users in Uyuni
+from a directory service.
 
 # Motivation
 [motivation]: #motivation
