@@ -121,6 +121,20 @@ will be shown.
 The output should be stored either to a configured log file or to the
 STDOUT, if requested.
 
+# Uyuni UI Enhancements
+
+Considering that this tool a new way of creating/modifying users
+beside the UI and API in an automated way, there should be an API
+endpoint that allows to set a flag in User Management that gives
+admins the clear indication that the certain user is managed externally.
+
+Main reason is the role mapping that is included. An admin currently
+easily can change the user settings in the UI and will be wondering
+why his changes get reset to the original settings. Therefore, Uyuni
+UI should mark external users either with special icon or color etc
+and the page of such user should have disabled "Update" button and an
+explanation for such user is managed elsewhere externally.
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
