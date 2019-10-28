@@ -5,7 +5,6 @@ __author__ = "Can Bulut Bayburt <cbbayburt@suse.com>"
 import gi
 gi.require_version('Modulemd', '2.0')
 from gi.repository import Modulemd
-from rpmUtils.miscutils import splitFilename
 
 enabledStreams = {}
 
@@ -86,7 +85,8 @@ def getAllContexts(name, stream):
     return allContexts
 
 def isEnabled(name):
-    return name in enabledStreams
+    # 'platform' is always enabled
+    return name == 'platform' or name in enabledStreams
 
 def pickStream(name, stream):
     """Recursively enable a stream and its dependencies with their
@@ -136,10 +136,21 @@ def getRpmBlacklist():
 
     return list(allRpms.difference(enabledRpms))
 
+def getRpmName(rpmString):
+    """Strip the package name from an RPM string"""
+    try:
+        woarch = rpmString.rsplit('.', 1)[0]
+        worel = woarch.rsplit('-', 1)[0]
+        wover = worel.rsplit('-', 1)[0]
+    except Exception as e:
+        print('%s ** %s' % (e, line))
+        raise e
+    return wover
+
 def getArtifactWithName(artifacts, name):
     """Find an item in a list of RPM strings with a specific package name"""
     for artifact in artifacts:
-        (n,v,r,e,a) = splitFilename(artifact)
+        n = getRpmName(artifact)
         if name == n:
             return artifact
     return None
@@ -152,7 +163,7 @@ def getApiProvides():
         for rpm in stream.get_rpm_api():
             artifact = getArtifactWithName(streamArtifacts, rpm)
             if artifact:
-                if not apiProvides[rpm]:
+                if rpm not in apiProvides:
                     apiProvides[rpm] = set([artifact])
                 else:
                     apiProvides[rpm].add(artifact)
@@ -180,6 +191,14 @@ def getPackagesForModules(metadataPaths, selectedStreams):
 
     Map keys are either package names that a module publicly publishes,
     or '_other_' for RPMs which are not part of any published RPM level API.
+
+    Args:
+        metadataPaths ([str]): A list of absolute paths to 'modules.yaml' files
+        selectedStreams ([(str, str)]): A list of tuples of module name, stream name pairs
+
+    Returns:
+        dict: A map of package names to RPM artifact strings. A special '_other_' key
+            contains artifacts which are not part of a module's public RPM level API.
     """
 
     # Load and merge metadata from sources
@@ -196,8 +215,17 @@ def getPackagesForModules(metadataPaths, selectedStreams):
             print(e)
             print("Skipping {}:{}".format(name, stream))
 
+    return getApiProvides()
+
 def getAllPackages(metadataPaths):
-    """Get all modular rpms in the repository"""
+    """Get all modular rpms in the repository
+
+    Args:
+        metadataPaths ([str]): A list of absolute paths to 'modules.yaml' files
+
+    Returns:
+        list: A complete list of every RPM artifact that is shipped by any of the modules
+    """
 
     global index
     index = createModuleIndex(metadataPaths)
