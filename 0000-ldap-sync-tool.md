@@ -18,9 +18,8 @@ tool should transparently synchronise users from certain groups and/or
 roles in LDAP and reflect that in Uyuni server, overriding local
 changes.
 
-Often LDAP configuration at infrastructures is unpredictable. This
-tool should bring certain boundaries and over up most common LDAP
-setups for users and their roles management.
+Due to the nature of LDAP flexibility, the synchronisation tool should
+be flexible enough to reflect a range of setups.
 
 # Detailed design
 [design]: #detailed-design
