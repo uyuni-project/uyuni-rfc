@@ -12,7 +12,7 @@ from a directory service.
 [motivation]: #motivation
 
 Uyuni server can authenticate users from LDAP via PAM. For this, users
-needs to be added to Uyuni with the flag "PAM authentication" and thus
+need to be added to Uyuni with the flag "PAM authentication" and thus
 their credentials will be verified via LDAP directory. Synchronisation
 tool should transparently synchronise users from certain groups and/or
 roles in LDAP and reflect that in Uyuni server, overriding local
