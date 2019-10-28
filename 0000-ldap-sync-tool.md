@@ -70,6 +70,36 @@ member is valid LDAP object and is not clashing with the local user in
 the Uyuni server, it should be synchronised. Similarly roles LDAP
 objects are configured as same as `groups` but via `roles`.
 
+## Attribute Remapping
+
+In some certain cases may be necessary not to use standard
+attribute IDs for certain governs IDs. For example
+`organizationalPerson` (ID 2.5.6.7) should contain a child
+`inetOrgPerson` (ID 2.16.840.1.113730.3.2.2) which _may_ contain an
+attribute `uid` and usually does. But it also might not have any. On
+top of that, own classes might be written with own attributes, and
+they might be the only attributes to be used.
+
+The `mgr-ldapsync` tool is using `uid` attribute as User ID. However,
+this may be re-mapped in the section `maps`. For example, `allusers`
+contains a DN, where all user accounts are residing. This DN should be
+mentioned in `maps` section, which will for each object class in that
+DN set remap given attribute to what is required. The example below
+shows how to tell `mgr-ldapsync` the `uid` and `mail` attributes out
+of custom made ones:
+
+
+```yaml
+directory:
+  allusers: ou=people,dc=example,dc=com
+  maps:
+    ou=people,dc=example,dc=com:
+      speciaUidAttr: uid
+      specialMailAttr: mail
+```
+
+Section `maps` supposed to cover also DN from roles and groups.
+
 ## Frozen Users
 
 Frozen user is a local user in Uyuni, which has verified `org_admin`
