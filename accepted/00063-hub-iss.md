@@ -171,7 +171,7 @@ The first implementation of this RFC will:
   - output of the ISS Master tool will be a directory with files and a SQL script
   - the ISS Slave tool will mainly copy files to correct locations and execute the SQL script
   - triggering of the ISS Slave tool might happen via Salt, this is left as an implementation detail
-  - transfer proper could be done via `rsync`, which provides transparent compression and delta encoding
+  - transfer proper could be done via `rsync` or `rclone`, which provide transparent compression and delta encoding
 - all new code will be typed Python 3, connecting to Postgres via psycopg2 and no dependencies to the old Python stack
 - inspection of the schema can be implemented via `SELECT` queries on Postgres's internal tables
   - current and new implementations would thus be completely independent, so could coexist for an initial period of time, as the new implementation matures
