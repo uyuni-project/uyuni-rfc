@@ -13,7 +13,7 @@ With the Hub architecture, there will be multiple Servers that receive content m
 
 This RFC describes an overhaul of the ISS implementation in order to cover more use cases (in particular, synchronization of content different than channel data) and with better performance to attain higher scalability.
 
-See the [Hub general RFC](accepted/00060-hub-general.md) for an introduction to the Hub project.
+See the [Hub general RFC](00060-hub-general.md) for an introduction to the Hub project.
 
 # Motivation
 [motivation]: #motivation
