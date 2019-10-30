@@ -121,6 +121,7 @@ All code would be new in new modules and formulas, so no change to existing comp
 
 # Next steps
 [Next steps]: #next-steps
+ - add state modules to remove users/orgs/etc. (eg. `uyuni.user.absent`)
  - add an execution module to call a generic XMLRPC call, to make it possible to cover (potentially) any other area outside of this RFC
  - add Form support to Formulas
  - lift Limitations by adding new functionality to introduce UIs/APIs to centrally manage Users, Orgs, SystemGroups, permissions
