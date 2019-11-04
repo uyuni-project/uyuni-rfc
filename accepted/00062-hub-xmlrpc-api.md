@@ -129,6 +129,8 @@ Alternatives that were considered come from:
 | apicast              | 56k    | Lua              |                                                   |
 | expressgateway       | 33k    | Javascript       |                                                   |
 
+Note: Lua projects are actually Nginx plugins.
+
 ## Features
 * Authorization and authentication
   * Alternative idea 1: a configuration file on the Hub contains a list of credentials and `serverIds`. Hub would automatically maintain a pool of Server `sessionKey`s from those credentials
