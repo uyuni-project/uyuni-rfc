@@ -75,7 +75,8 @@ Idea is to expose existing Server XMLRPC endpoints/methods as they are on the Hu
     * special elements would be needed to signal Exceptions
 
 * Availability
-  * if a Server is down at the time a Gateway call targeting it is made, call should fail after a configurable timeout. If multiple Servers are targeted, only that call fails and others continue
+  * if a Server is down at the time a Gateway call targeting it is made, call should fail after a configurable timeout. If multiple Servers are targeted, only that call fails and others continue.
+  * the timeout should have a default value configured via a file or environment variable, overridable on a per-call basis (eg. extra parameter)
 
 
 ## Impact on existing components and users
