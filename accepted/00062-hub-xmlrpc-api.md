@@ -96,6 +96,37 @@ All code would be new in a new component, so no change to existing components is
 
 # Alternatives
 [alternatives]: #alternatives
+## Build on an existing API gateway
+
+Several open source project exist that offer API gateway functionality on any kind of network API (often in practice limited to http protocols). Those projects typically offer a range of functionalities such as configurable retry patterns, additional security checks, logging, monitoring, rate limiting, circuit breaking, caching and in some cases API aggregations and manipulation of requests and responses. In several cases, such engines provide plugin mechanisms or anyway lend themselves to implementation of ad-hoc modules that could fit in the requirements from this RFC. Summarizing:
+ - pros: potentially many features would be provided by such tools. Only automatic retrying is required at this point, but others might also become relevant in future
+ - cons: code bases are typically much bigger than the expected size of this project (1K - 2K LOC), and the type of request modifications required will still need they have to be implemented as plugins/extensions, which might lead to an approximately-similar coding effort
+
+Alternatives that were considered come from:
+ - GitHub projects with at least 1000 stars
+ - [the CNCF category](https://landscape.cncf.io/category=api-gateway&format=card-mode&grouping=category)
+ - a list provided as comment to the original version of this RFC
+ 
+| Name                 | LOC    | Main languages   | Notes                                             |
+|----------------------|--------|------------------|---------------------------------------------------|
+| gravitee             | 500k   | Java, TypeScript | Supports MongoDB, Redis, ElasticSearch...         |
+| tyk                  | 100k   | Go               | No request modification support, security only    |
+| wso2                 | 5.636M | Java             | 28 main git repos                                 |
+| apiman               | 225k   | Java, TypeScript |                                                   |
+| krakend              | 63k    | Go               | 41 git repos                                      |
+| kong                 | 156k   | Lua              |                                                   |
+| ocelot               | 55k    | C#               |                                                   |
+| gateway              | 46k    | Go               |                                                   |
+| spring-cloud-gateway | 39k    | Java             |                                                   |
+| janus                | 20k    | Go               | No request modification support, maintenance mode |
+| gloo                 | 202k   | Go               |                                                   |
+| goku                 | 183k   | Go               |                                                   |
+| api-umbrella         | 105k   | ruby             |                                                   |
+| apisix               | 18k    | Lua              |                                                   |
+| apicast              | 56k    | Lua              |                                                   |
+| expressgateway       | 33k    | Javascript       |                                                   |
+
+## Features
 * Authorization and authentication
   * Alternative idea 1: a configuration file on the Hub contains a list of credentials and `serverIds`. Hub would automatically maintain a pool of Server `sessionKey`s from those credentials
     * `hub.login(username, password)` → `hubSessionKey`
