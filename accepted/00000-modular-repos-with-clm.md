@@ -13,7 +13,7 @@ Design additional CLM "module" filters to let the user pick desired modules and 
 [motivation]: #motivation
 
 RHEL/CentOS 8 inherits a new concept of [modularity and modular repositories](https://docs.fedoraproject.org/en-US/modularity/).
-Modularity allows different major versions (streams) to coexist in a single repository.
+Modularity allows different major versions of the same software (streams) to coexist in a single repository. A module is a group of packages usually representing an application.
 Users enable/disable streams so that there is only a single stream of a module is visible to the package manager at once.
 
 Modular repositories are defined in a new type of metadata called `modulemd` in a file named `modules.yaml`. This metadata has to be interpreted properly to manage these repositories.
@@ -58,9 +58,9 @@ This section summarizes the different components involved in the design.
 The Java backend is responsible for filtering out unselected module streams and building the repository with the desired packages through CLM.
 
 ### API
-A Python API parses and interprets the module metadata, resolves modular dependencies and translates specified modules and streams to an actual package list.
-The API is implemented as a standalone Python process utilizing the Python port of [libmodulemd](https://github.com/fedora-modularity/libmodulemd), which is used for structural parsing of `modules.yaml` files. The communication with the backend will be through STDIN (CLI args) and STDOUT in JSON string.
+A standalone Python executable that parses and interprets the module metadata, resolves modular dependencies and translates specified modules and streams to an actual package list. The API access is via STDIN (CLI args) and STDOUT in JSON string.
 
+It utilizes the Python port of [libmodulemd](https://github.com/fedora-modularity/libmodulemd), which is used for structural parsing of `modules.yaml` files.
 An example of such implementation is provided in [attachments/00000-modular-repos-api.py](attachments/00000-modular-repos-api.py).
 
 ### UI
