@@ -172,7 +172,7 @@ The first implementation of this RFC will:
   - the ISS Slave tool will mainly copy files to correct locations and execute the SQL script
   - triggering of the ISS Slave tool might happen via Salt, this is left as an implementation detail
   - transfer proper could be done via `rsync` or `rclone`, which provide transparent compression and delta encoding
-- all new code will be typed Python 3, connecting to Postgres via psycopg2 and no dependencies to the old Python stack
+- all new code will be either typed Python 3, connecting to Postgres via psycopg2 and no dependencies to the old Python stack, or Go. Choice is deferred at implementation time
 - inspection of the schema can be implemented via `SELECT` queries on Postgres's internal tables
   - current and new implementations would thus be completely independent, so could coexist for an initial period of time, as the new implementation matures
 
