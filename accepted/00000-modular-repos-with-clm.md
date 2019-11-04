@@ -59,7 +59,7 @@ The Java backend is responsible for filtering out unselected module streams and 
 
 ### API
 A Python API parses and interprets the module metadata, resolves modular dependencies and translates specified modules and streams to an actual package list.
-The API utilizes the Python port of [libmodulemd](https://github.com/fedora-modularity/libmodulemd), which is used for structural parsing of `modules.yaml` files.
+The API is implemented as a standalone Python process utilizing the Python port of [libmodulemd](https://github.com/fedora-modularity/libmodulemd), which is used for structural parsing of `modules.yaml` files. The communication with the backend will be through STDIN (CLI args) and STDOUT in JSON string.
 
 An example of such implementation is provided in [attachments/00000-modular-repos-api.py](attachments/00000-modular-repos-api.py).
 
@@ -79,17 +79,20 @@ At the project setup, the backend checks if any of the sources are modular repos
 This check is done by doing a `getChannel().getModule()` call on the source object.
 For every modular source, a proper indicator is displayed as described in the UI component section.
 
-Currently, every CLM filter displays a field to choose one of two hard-coded rules: `allow` or `deny`. For module filters, this field must be hidden.
+Currently, every CLM filter displays a field to choose one of two hard-coded rules: `allow` or `deny`. Since the module filtering logic works in an implicit "deny all" fashion (See build/promote section), this field must be hidden for module filters.
 Each added module filter stores the value of a chosen module/stream in `name` or `name:stream` format.
 
-*There is no API communication required during the project setup phase.*
+Whenever a change is made in any of the filters, a call to the same API endpoint is made to check the validity of the current selections to provide real-time feedback when the current combination is not a valid one. The API's error reporting mechanism is used to determine the failure and provide meaningful messages to the user in the UI.
 
 ### Build/promote
 At build time, all the module filter values are read in the form of `name:stream` tuples or only `name` in case the default stream is chosen.
+The remaining modules where a selection has not been made are set to disabled (except the case that no module filters are attached at all, see below).
 With a list of name/stream tuples, the API is called to resolve the modular dependencies and the appropriate contexts (see next section).
 If successful, the API returns a list of full RPM names belonging to all the enabled streams.
 Additionally, the backend retrieves a full list of all the modular RPMs and subtracts the enabled ones from this list. The resulting list is translated into corresponding `Package` objects.
 This list is then filtered out in a way similar to the package filters.
+
+In case there is no module filters attached to a project, all the module filtering is bypassed and the module metadata is cloned to the target. As a result, the target repository is a 1-to-1 copy with modularity (the other types of filtering are still applied). This allows the user to be able to use CLM while keeping the modularity of the repository.
 
 ### Modular dependency and context resolution
 Module metadata includes information about "modular dependencies" where a module is dependent on another module.
@@ -172,8 +175,4 @@ If required, it is possible to selectively filter a specific version of any modu
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
-
- - How to communicate between the Python API and the Java backend
- - What should be the behavior for the unselected modules? Should the modules be disabled unless there is a filter targeting them? Should they be enabled with default streams in the best effort?
- - What should be the behavior if no module filter is added to a project? Should the resulting repository be "flattened" or should it be modular?
 
