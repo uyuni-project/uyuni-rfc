@@ -173,6 +173,9 @@ One possible enhancement could be adding some supplementary auto-complete featur
 ### Selective version filtering
 If required, it is possible to selectively filter a specific version of any module by introducing additional types of module filters.
 
+### The API to fix package operations for modular repositories
+As stated earlier, the main problem with package operations is to determine correct updates for any installed package in a modular repository. The API implemented in this feature can be extended and utilized to determine if an update candidate is in the same stream as the installed package and if not, the candidate can be ignored (subject to more research).
+
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
