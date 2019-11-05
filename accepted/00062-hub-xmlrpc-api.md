@@ -102,7 +102,7 @@ All code would be new in a new component, so no change to existing components is
 [alternatives]: #alternatives
 ## Build on an existing API gateway
 
-Several open source project exist that offer API gateway functionality on any kind of network API (often in practice limited to http protocols). Those projects typically offer a range of functionalities such as configurable retry patterns, additional security checks, logging, monitoring, rate limiting, circuit breaking, caching and in some cases API aggregations and manipulation of requests and responses. In several cases, such engines provide plugin mechanisms or anyway lend themselves to implementation of ad-hoc modules that could fit in the requirements from this RFC. Summarizing:
+Several open source projects exist that offer API gateway functionality on any kind of network API (often, in practice, http-based protocols). Those projects typically offer a range of functionalities such as configurable retry patterns, additional security features, logging, monitoring, rate limiting, circuit breaking, caching and in some cases API aggregations and manipulation of requests and responses. In several cases, such engines provide plugin mechanisms or anyway lend themselves to implementation of ad-hoc modules that could fit in the requirements from this RFC. Summarizing:
  - pros: potentially many features would be provided by such tools. Only automatic retrying is required at this point, but others might also become relevant in future
  - cons: code bases are typically much bigger than the expected size of this project (1K - 2K LOC), and the type of request modifications required will still need they have to be implemented as plugins/extensions, which might lead to an approximately-similar coding effort
 
@@ -111,25 +111,24 @@ Alternatives that were considered come from:
  - [the CNCF category](https://landscape.cncf.io/category=api-gateway&format=card-mode&grouping=category)
  - a list provided as comment to the original version of this RFC
  
-| Name                 | LOC    | Main languages   | Notes                                             |
-|----------------------|--------|------------------|---------------------------------------------------|
-| gravitee             | 500k   | Java, TypeScript | Supports MongoDB, Redis, ElasticSearch...         |
-| tyk                  | 100k   | Go               | No request modification support, security only    |
-| wso2                 | 5.636M | Java             | 28 main git repos                                 |
-| apiman               | 225k   | Java, TypeScript |                                                   |
-| krakend              | 63k    | Go               | 41 git repos                                      |
-| kong                 | 156k   | Lua              |                                                   |
-| ocelot               | 55k    | C#               |                                                   |
-| gateway              | 46k    | Go               |                                                   |
-| spring-cloud-gateway | 39k    | Java             |                                                   |
-| janus                | 20k    | Go               | No request modification support, maintenance mode |
-| gloo                 | 202k   | Go               |                                                   |
-| goku                 | 183k   | Go               |                                                   |
-| api-umbrella         | 105k   | ruby             |                                                   |
-| apisix               | 18k    | Lua              |                                                   |
-| apicast              | 56k    | Lua              |                                                   |
-| expressgateway       | 33k    | Javascript       |                                                   |
-
+| Name                                                                                        | LOC    | Main languages   | Notes                                             |
+|---------------------------------------------------------------------------------------------|--------|------------------|---------------------------------------------------|
+| [gravitee](https://gravitee.io/products/apim/)                                              | 500k   | Java, TypeScript | Supports MongoDB, Redis, ElasticSearch...         |
+| [tyk](https://tyk.io/features/features/)                                                    | 100k   | Go               | No request modification support, security only    |
+| [wso2](https://wso2.com/api-management/features/)                                           | 5.636M | Java             | 28 main git repos                                 |
+| [apiman](http://www.apiman.io/latest/)                                                      | 225k   | Java, TypeScript |                                                   |
+| [krakend](https://www.krakend.io/features/)                                                 | 63k    | Go               | 41 git repos                                      |
+| [kong](https://konghq.com/kong/)                                                            | 156k   | Lua              |                                                   |
+| [ocelot](https://ocelot.readthedocs.io/en/latest/introduction/gettingstarted.html)          | 55k    | C#               |                                                   |
+| [gateway](https://github.com/fagongzi/gateway#features)                                     | 46k    | Go               |                                                   |
+| [spring-cloud-gateway](https://github.com/spring-cloud/spring-cloud-gateway#features)       | 39k    | Java             |                                                   |
+| [janus](https://github.com/hellofresh/janus#key-features)                                   | 20k    | Go               | No request modification support, maintenance mode |
+| [gloo](https://docs.solo.io/gloo/latest/introduction/whygloo/)                              | 202k   | Go               |                                                   |
+| [goku](https://github.com/eolinker/goku-api-gateway/blob/master/README.md#product-features) | 183k   | Go               |                                                   |
+| [api-umbrella](https://apiumbrella.io/)                                                     | 105k   | ruby             |                                                   |
+| [apisix](https://github.com/apache/incubator-apisix#features)                               | 18k    | Lua              |                                                   |
+| [apicast](https://github.com/3scale/apicast#features)                                       | 56k    | Lua              |                                                   |
+| [expressgateway](https://github.com/expressgateway/express-gateway#main-features)           | 33k    | Javascript       |                                                   |
 Note: Lua projects are actually Nginx plugins.
 
 ## Features
