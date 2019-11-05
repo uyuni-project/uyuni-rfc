@@ -33,11 +33,11 @@ Content management APIs will work as of today. Inter-Server Synchronization (ISS
 
 ### New service and endpoint
 A new XMLRPC API endpoint will be created, implemented by a new service called the "XMLRPC Gateway API" (simply called "Gateway" from now on in this document). Technology-wise:
-  * Implementation will be based on asynchronous I/O. The exact technology choice is delegated to the implementation phase and could be:
+  * Implementation will be based on asynchronous I/O. Calls to several Servers should happen concurrently  
+  * The exact technology choice is delegated to the implementation phase and could be:
     * typed Python, based on Tornado and [tornado-xmlrpc](https://pypi.org/project/tornado-xmlrpc/). Rationale: learning Tornado, which is also used in core Salt
     * typed Python, based on the native [asyncio library](https://docs.python.org/3.6/library/asyncio.html) (new to 3.4, similar in intent to Tornado). Rationale: learning latest Python technologies
     * in Go, using goroutines. Rationale: learning Go
-  * all I/O should be handled asynchronously via Tornado. Calls to several Servers should happen in parallel, with a maximum timeout value for unreachable/not responding Servers
   * there will be no backing database. All new methods will delegate to existing XMLRPC APIs (either the Hub's or individual Servers')
     - some kind of storage might be needed for performance/caching purposes, that is left as an implementation detail
 
