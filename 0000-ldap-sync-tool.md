@@ -206,13 +206,26 @@ changes to the existing code might be very large.
 It could be possible to reuse existing Spacewalk runner in Salt,
 wrapping it into a state module and implement all that as a Salt
 Formula. While such approach would give more flexibility to the user,
-it will also have a number of drawbacks, such as additional formula
-debugging difficulties overhead; user-introduced bugs that might sync
-LDAP wrong with severe consequences; fragility of the very solution:
-it is still an editable Formula.
+it will also have a number of drawbacks, such as:
 
-Salt, however, may call `uyuni-ldap-sync` and/or setup configuration
-for it (PAM, the `uyuni-ldap-sync` configuration etc).
+- Additional formula debugging difficulties overhead
+
+- User-introduced bugs that might sync LDAP wrong with severe
+  consequences 
+
+- Fragility of the very solution, since it is still an editable
+  Formula
+
+- No daemon mode. Every time LDAP database update, changes supposed to
+  be just propagated transparently. For that, the job in Salt should
+  be scheduled, and thus calling Salt locally would be too much of overhead
+
+Salt, however, could periodically call `uyuni-ldap-sync` and/or setup
+configuration for it (PAM, the `uyuni-ldap-sync` configuration etc).
+
+With daemon mode implemented, Salt supposed to only setup the
+`uyuni-ldap-sync` once and delegate the rest to the
+`uyuni-ldap-sync`.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
