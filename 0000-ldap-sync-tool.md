@@ -164,6 +164,23 @@ UI should mark external users either with special icon or color etc
 and the page of such user should have disabled "Update" button and an
 explanation for such user is managed elsewhere externally.
 
+# Reference Implementation
+
+This is already implemented in the prototype which is available at 
+[uyuni-ldap-sync repository](https://github.com/isbm/uyuni-ldap-sync).
+
+Current prototype has two releases:
+1. [v0.1](https://github.com/isbm/uyuni-ldap-sync/releases/tag/v0.1) just reimplements
+[existing script in Uyuni](https://github.com/uyuni-project/uyuni/blob/master/utils/sw-ldap-user-sync).
+2. [v0.2](https://github.com/isbm/uyuni-ldap-sync/releases/tag/v0.2) implements the current RFC and adds Active Directory support
+
+Moving from prototype status to a production release, the following
+would be still required:
+
+- Automatic (transparent) PAM authentication setup
+- Add unit tests
+- Possible refactorings
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
