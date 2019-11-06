@@ -189,9 +189,24 @@ N/A
 # Alternatives
 [alternatives]: #alternatives
 
+## Native Implementation
+
 Alternative design would be to extend user management in the very
 Uyuni server, making it LDAP-aware natively. However, the amount of
 changes to the existing code might be very large.
+
+## Salt-based Implementation
+
+It could be possible to reuse existing Spacewalk runner in Salt,
+wrapping it into a state module and implement all that as a Salt
+Formula. While such approach would give more flexibility to the user,
+it will also have a number of drawbacks, such as additional formula
+debugging difficulties overhead; user-introduced bugs that might sync
+LDAP wrong with severe consequences; fragility of the very solution:
+it is still an editable Formula.
+
+Salt, however, may call `uyuni-ldap-sync` and/or setup configuration
+for it (PAM, the `uyuni-ldap-sync` configuration etc).
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
