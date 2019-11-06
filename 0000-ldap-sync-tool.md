@@ -177,9 +177,15 @@ Current prototype has two releases:
 Moving from prototype status to a production release, the following
 would be still required:
 
-- Automatic (transparent) PAM authentication setup
 - Add unit tests
 - Possible refactorings
+
+## Additional Features
+
+Features that might come with the next release:
+
+- Automatic (transparent) PAM authentication setup/un-setup
+- Daemon mode
 
 # Drawbacks
 [drawbacks]: #drawbacks
