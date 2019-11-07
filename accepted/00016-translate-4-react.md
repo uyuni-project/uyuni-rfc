@@ -68,6 +68,22 @@ Once that this file is downloaded by the browser, it is mapped in *javascript* a
 
 A complete demo is available in the folder */text/attachments/translate-4-react-demo/*.
 
+### Adding a translated language into the current structure
+
+In case of adding a new language, we would need to implement the following steps:
+
+**Old pages**:
+
+* Translate the file `StringResource_en_US.xml` for the desired language.
+
+**New React Pages**:
+In the new pages developed by React all the texts are already wrapped by the function `t()`.
+
+* Generate a JSON file for the wanted language `{"key": "translation"}`, where the key is the string in English. 90% of the keys could be automatically generated but in some places, they are being injected by the server, so these ones have to be added manually
+* Review wrong usages of the function `t()`: for instance t(`Items ${itemsVar}`) should be refactored to t("Items {0}", itemsVar) , there are some occurences of this misuse format
+* Review if there are places where wrapping texts with the function `t()` was forgotten. This could be achieved changing the function `t()` to: `function t() { return "translated" }` and review all pages.
+* Add warnings or javascript lint rules to avoid missing translations in the future
+
 
 # Drawbacks
 
