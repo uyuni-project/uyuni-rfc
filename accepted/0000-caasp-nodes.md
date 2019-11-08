@@ -65,11 +65,11 @@ In general, patch and package upgrade/removal are safe operations for a CaaS Pla
 
 Package upgrade/removal and patch apply is not a problem if issued from Uyuni/SUSE Manager, unless the involved packages of the action are one of the following:
 
-- kubernetes-kubeadm
-- kubernetes-kubelet
-- kubernetes-client
-- cri-o
-- cni-plugins
+- `kubernetes-kubeadm`
+- `kubernetes-kubelet`
+- `kubernetes-client`
+- `cri-o`
+- `cni-plugins`
 
 NOTE: [installing NEW (not already installed) packages is allowed](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_existing_cluster).
 
@@ -249,9 +249,16 @@ In the future, we can team up with cluster providers and ask to `skuba` and othe
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
+* Deciding which action locking mechanism to take: Salt minion blackout or Uyuni/SUSE Manager action locking
+  - Minion blackout (without contributing the `caasp.*` module) is the easiest and quick way to implement, but it can be received as mechanic and poor from the customer. It does not require radical core changes, though.
+  - Uyuni/SUSE Manager action locking requires core changes but, from the user perspective, it is the most streamlined one: the workflow is not heavily changed while still guaranteeing protection from the forbidden actions.
+<hr />
+
+
 <sup>1</sup> `skuba-update` is a `systemd` timer that is already running on CaaSP cluster nodes and _automatically_ [manages the patching of all the packages installed in the nodes](https://github.com/SUSE/skuba/blob/master/skuba-update/skuba_update/skuba_update.py#L301-L305).
 It relies on the patches that are in the system repositories that, in turn, comes from Uyuni/SUSE Manager (if the system is registered).
 Uyuni/SUSE Manager does not need to interact with `skuba-update` in any way.
+
 <sup>2</sup>While it is not possible to install a non-installed package on the target system from the UI, is it possible to upgrade an already installed package by requesting an installation of it from the API. Example:
 ```
 ec2-user@ip-172-31-8-0:~> rpm -qa | grep -i bzip2
