@@ -59,7 +59,7 @@ NOTE: It is outside of this RFC to discuss automatic registration methods of the
 
 [`skuba-update`](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_base_os_updates) systemd timer will take care of [patching](https://github.com/SUSE/skuba/blob/master/skuba-update/skuba_update/skuba_update.py#L301-L305) all installed packages locally to every node of the cluster and optionally reboot the node if `zypper` signals that a reboot is required.
 
-Uyuni/SUSE Manager does not offer the possibility to reboot a registered CaaS Platform node.
+Uyuni/SUSE Manager should not offer the possibility to reboot a registered CaaS Platform node.
 
 In general, patch and package upgrade/removal are safe operations for a CaaS Platform cluster: on the next trigger of `skuba-update`, if there are packages that required a reboot, `skuba-update` will orchestrate the reboot.
 
