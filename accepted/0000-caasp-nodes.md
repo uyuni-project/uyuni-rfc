@@ -242,6 +242,9 @@ The user can craft a Salt state that executes one of the forbidden operations an
 <!-- - What other designs/options have been considered?
 - What is the impact of not doing this? -->
 
+Another option would be to modify Salt blackout to allow individual states to be applied with `state.apply` and upstream the feature.
+In this way, we carefully allow each of Uyuni/SUSE Manager states that are not associated with "forbidden actions" and we blackout the minion for the other operations.
+
 ## Future work
 
 In the future, we can team up with cluster providers and ask to `skuba` and other [cluster provider managers](https://trello.com/c/2X01ypO4/10-cluster-awarenesss-workshop-suse-manager-caasp-ha-cap-ses#comment-5dc1bc4567c6031ae57bcb04) to implement all these forbidden actions that require special handling. In that case, Uyuni/SUSE Manager can remove all the specific features described in this RFC and offload the task to the cluster provider manager.
