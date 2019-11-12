@@ -1,6 +1,6 @@
 - Feature Name: Modular Repositories with CLM
 - Start Date: 2019-10-23
-- RFC PR: (leave this empty)
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/22
 
 # Summary
 [summary]: #summary
@@ -61,7 +61,7 @@ The Java backend is responsible for filtering out unselected module streams and 
 A standalone Python executable that parses and interprets the module metadata, resolves modular dependencies and translates specified modules and streams to an actual package list. The API access is via STDIN (CLI args) and STDOUT in JSON string.
 
 It utilizes the Python port of [libmodulemd](https://github.com/fedora-modularity/libmodulemd), which is used for structural parsing of `modules.yaml` files.
-An example of such implementation is provided in [attachments/00000-modular-repos-api.py](attachments/00000-modular-repos-api.py).
+An example of such implementation is provided in [attachments/00064-modular-repos-api.py](attachments/00064-modular-repos-api.py).
 
 ### UI
 The UI consists of a new type of CLM filter called "appstream". The filter provides inputs for a module name and a stream name.
