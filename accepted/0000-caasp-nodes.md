@@ -63,7 +63,7 @@ Uyuni/SUSE Manager should not offer the possibility to reboot a registered CaaS 
 
 In general, patch and package upgrade/removal are safe operations for a CaaS Platform cluster: on the next trigger of `skuba-update`, if there are packages that required a reboot, `skuba-update` will orchestrate the reboot.
 
-Package upgrade/removal and patch apply is not a problem if issued from Uyuni/SUSE Manager, unless the involved packages of the action are one of the following:
+As an exception to the above rule, the following packages should never be upgraded or removed via Uyuni/SUSE Manager:
 
 - `kubernetes-kubeadm`
 - `kubernetes-kubelet`
