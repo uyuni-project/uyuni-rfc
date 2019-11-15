@@ -174,8 +174,8 @@ Why Salt first? To be compliant with plain Salt and to protect the CaaS Platform
 The idea is that, by default, every node that is a `caasp_node` system type is not allowed to perform some Salt commands.
 
 This can be achieved in two ways:
-* [Minion blackout](https://docs.saltstack.com/en/latest/topics/blackout/) works by blocking every command targeting the minion, except for a whitelist of functions allowed during the blackout. It can be useful to individually allow `modules.state.apply`.
-* [Module whitelisting](https://docs.saltstack.com/en/latest/ref/configuration/minion.html#whitelist-modules): work by blocking all the Salt modules except the ones whitelisted. It can be useful to globally allow a module, e.g. `modules.state`.
+* [Minion blackout](https://docs.saltstack.com/en/latest/topics/blackout/) works by blocking every command targeting the minion, except for a whitelist of functions allowed during the blackout. It can be useful to individually allow `modules.state.apply`. When changing blackout state, a `saltutil.refresh_pillar` has to be issued on the minion.
+* [Module whitelisting](https://docs.saltstack.com/en/latest/ref/configuration/minion.html#whitelist-modules): work by blocking all the Salt modules except the ones whitelisted. It can be useful to globally allow a module, e.g. `modules.state`. When changing whitelist configuration, a `salt-minion` daemon restart has to be issued on the minion.
 
 The allowed list of commands must contain:
 
