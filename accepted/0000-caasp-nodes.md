@@ -94,7 +94,7 @@ To be on the safe side, Uyuni/SUSE Manager must not offer the possibility to iss
 
 NOTE: [installing NEW (not already installed and not conflicting with already installed) packages is allowed](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_existing_cluster).
 
-### Implementation details
+### Description of current implementation
 
 Let's now describe how Uyuni/SUSE Manager implements each of the aforementioned actions for a Salt client.
 
