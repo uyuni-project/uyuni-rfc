@@ -38,19 +38,16 @@ This section should cover architecture aspects and the rationale behind disrupti
 In this RFC, we will use:
 
 * CaaS Platform node: any node that comprises the cluster, either a control plane node or a worker node
-* Bootstrap/registration in the Uyuni/SUSE Manager context: registering a node to Uyuni/SUSE Manager via [the documented methods](https://opensource.suse.com/doc-susemanager/suse-manager/client-configuration/registration-overview.html).
-At the time of writing, registering a CaaS Platform node to Uyuni/SUSE Manager has to be manually performed by the user with:
-  * Bootstrap script
-  * UI: Systems > Bootstrapping
-  * `bootstrap` XMLRPC call
-  * Not usual but still possible and hackier: mass bootstrap via salt-ssh and a user-generated roster file
+* Bootstrap/registration in the Uyuni/SUSE Manager context: registering a node to Uyuni/SUSE Manager via [the documented methods<sup>4</sup>](https://opensource.suse.com/doc-susemanager/suse-manager/client-configuration/registration-overview.html).
+At the time of writing, registering a CaaS Platform node to Uyuni/SUSE Manager has to be manually performed by the user.
 
 ## Assumptions
 
 We assume that:
+* The user has already created an activation key and associated it with the onboarding. The CaaS Platform nodes are registered correctly and with the proper CaaS Platform channel(s) assigned. The
 * The user is registering the CaaS Platform nodes as Salt clients
 * The registration of every CaaS Platform node to Uyuni/SUSE Manager is already completed by the user using the aforementioned methods
-* The user has already created an activation key and associated it with the onboarding. The CaaS Platform nodes are registered correctly and with the proper CaaS Platform channel(s) assigned. The activation key is needed to have `skuba-update` automatically patch the cluster with the latest patches available<sup>1</sup>.
+activation key is needed to have `skuba-update` automatically patch the cluster with the latest patches available<sup>1</sup>.
 
 NOTE: It is outside of this RFC to discuss automatic registration methods of the CaaS Platform nodes.
 
@@ -222,14 +219,21 @@ minion_blackout_whitelist:
 - state.apply:
   - packages.pkginstall
   - packages.profileupdate
+  - channels.disablelocalrepos
+  - channels
+  - hardware.profileupdate
+  - ...
 - test.ping
 - pillar.get
+- mgractionchains.resume
  ```
 
 This patch will allow us to cherry-pick the actions (and hence the corresponding Salt states) that Uyuni/SUSE Manager is allowed to run on CaaS Platform nodes.
 The minion will always be in the blackout and the Salt formula to disable the blackout will only be used for troubleshooting.
 
 The patch can be upstreamed to Salt.
+
+Note that an user can also issue any forbidden package upgrade by calling `state.apply packages.pkginstall`. But `packages.pkginstall` is an Uyuni/SUSE Manager internal state file, it should not be used by users.
 
 NOTE: every action issued by the user that is a forbidden action will still be scheduled and subsequently fail when picked up by Salt.
 
@@ -252,7 +256,7 @@ The idea is that Uyuni/SUSE Manager must restrict the following features:
 - Issue any power management action via Cobbler:
   - If the targeted minion is a `caasp_node` system type:
     - The "Power Management" page must be hidden (`/systems/details/kickstart/PowerManagement.do`, `/systems/ssm/provisioning/PowerManagementOperations`)) and the corresponding action must not be scheduled
-    - Cobbler must fail when scheduling a power management action [TODO: how?]
+    - Cobbler must fail when scheduling a power management action [to achieve this result, the IPMI module can be disabled at the Uyuni/SUSE Manager level upon bootstrap of CaaS Platform nodes]
 - Perform an SP migration:
  - If the targeted minion is a `caasp_node` system type:
     - The SP migration page must be hidden (`/systems/details/SPMigration.do`) and the corresponding action must not be scheduled
@@ -304,16 +308,26 @@ This solutions needs:
 - Modifications in Uyuni/SUSE Manager [SaltServerActionService](https://github.com/uyuni-project/uyuni/blob/master/java/code/src/com/suse/manager/webui/services/SaltServerActionService.java): if the targeted minion is a `caasp_node` system type, switch the corresponding Salt operation to use the `caasp.*` Salt module
 - Implementation (and upstream) of a Salt module that lives under the `caasp.*` namespace
 
+## Package locking at `zypper` level
+
+Package locking of the forbidden packages is not really an option: in that case, `skuba-update` is not able to patch the forbidden packages.
+
 ## Future work
+
+### Cluster provider manager
 
 In the future, we can team up with cluster providers and ask to `skuba` and other [cluster provider managers](https://trello.com/c/2X01ypO4/10-cluster-awarenesss-workshop-suse-manager-caasp-ha-cap-ses#comment-5dc1bc4567c6031ae57bcb04) to implement all these forbidden actions that require special handling.
 For example, `skuba-update` can expose a `patch` action: in that case, Uyuni/SUSE Manager can remove all the specific features described in this RFC and offload the task to the cluster provider manager.
+
+### Disallowing packages at Salt level
+
+It still has to be researched but if possible with plain Salt and eventually Jinja to block the actions related to the forbidden packages inside the Salt state files. The list of packages would be hardcoded in Uyuni/SUSE Manager, with the limitations already discussed<sup>3</sup>.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
 - Docker/Kiwi build hosts: is it not tested by CaaS Platform QA to have Docker or Kiwi installed on a CaaS Platform node. It is a non-desirable situation. For the time being, let's consider it as a forbidden action.
-- Search for TODO: block Cobbler command-line power management actions for CaaS Platform nodes.
+- There are potential other actions that can be issued and deal with forbidden actions or forbidden packages: in this RFC we are targeting the most obvious actions to forbid and in future work we can close any holes that might have been left out.
 <hr />
 
 
@@ -324,3 +338,9 @@ Uyuni/SUSE Manager does not need to interact with `skuba-update` in any way.
 <sup>2</sup> The kernel package is a good example of such a case. The first goal of `skuba-update` is to patch the underlying Kubernetes system with information about rebooting. The benefit for the user is to see that kind of information directly with `kubectl get nodes`.
 
 <sup>3</sup> At the time of writing, there is not a programmatic way to list all forbidden packages from `skuba-update`. This requirement would be ideal to avoid a release whenever the list of forbidden packages changes. The capability of having the list of forbidden packages programmatically will not be implemented in `skuba-update` in the future, as the list is hard to keep up (from the CaaS Platform perspective).
+
+<sup>4</sup> As a not complete list:
+* Bootstrap script
+* UI: Systems > Bootstrapping
+* `bootstrap` XMLRPC call
+* Not usual but still possible and hackier: mass bootstrap via salt-ssh and a user-generated roster file
