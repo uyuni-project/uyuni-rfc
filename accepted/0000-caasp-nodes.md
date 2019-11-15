@@ -78,7 +78,7 @@ Special handling needs to be taken with the packages that are included in the `S
 - `kubernetes-kubeadm`
 - `kubernetes-kubelet`
 - `patterns-base-basesystem`
-- `patterns-caasp-Node-1.15`
+- `patterns-caasp-Node-x.y`<sup>5</sup>
 - `skuba-update`
 - `supportutils-plugin-suse-caasp`
 
@@ -149,7 +149,7 @@ NOTE: It is also implied that the [forbidden operations on a CaaS Platform node 
 
 ### Identifying a CaaS Platform node
 
-To identify a CaaS Platform node it is enough to check if the `patterns-caasp-Node` pattern is installed. In the future, we might think to add a check for all CaaS Platform workloads to be installed as well.
+To identify a CaaS Platform node it is enough to check if the `patterns-caasp-Node-.*`<sup>5</sup> pattern is installed. In the future, we might think to add a check for all CaaS Platform workloads to be installed as well.
 
 Internally to Uyuni/SUSE Manager, storing that a node is a CaaS Platform node can be fulfilled by adding a new system entitlement (e.g. `caasp_node`) to the node.
 
@@ -344,3 +344,5 @@ Uyuni/SUSE Manager does not need to interact with `skuba-update` in any way.
 * UI: Systems > Bootstrapping
 * `bootstrap` XMLRPC call
 * Not usual but still possible and hackier: mass bootstrap via salt-ssh and a user-generated roster file
+
+<sup>5</sup> The pattern is a moving target: `patterns-caasp-Node-x.y` -> `patterns-caasp-Node-x.y-x.(y+1)` -> `patterns-caasp-Node-x.y+1`
