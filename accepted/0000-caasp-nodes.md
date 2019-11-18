@@ -23,7 +23,9 @@ Registering a CaaS Platform node to Uyuni/SUSE Manager brings the following nota
 - The user can perform configuration management operations using Salt from Uyuni/SUSE Manager
 - The user can assign a different set of channels (with channel staging and/or CLM filters) to different clusters and manually control from Uyuni/SUSE Manager which version of CaaS Platform gets automatically installed in its CaaSP clusters<sup>1</sup>.
 
-However, if the user does some specific actions on any node of the cluster via Uyuni/SUSE Manager, the cluster may result temporarily or permanently unusable or broken.
+However, if the user does some specific actions on any node of the cluster via Uyuni/SUSE Manager or via plain Salt, the cluster may result temporarily or permanently unusable or broken.
+NOTE: the term "action" in this RFC refers to any Salt command issued on a minion or any action issued on a system by Uyuni/SUSE Manager.
+
 This RFC describes how Uyuni/SUSE Manager can prevent the user to perform these kinds of actions on the CaaS Platform nodes.
 
 # Detailed design
