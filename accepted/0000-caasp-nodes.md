@@ -24,6 +24,8 @@ Registering a CaaS Platform node to Uyuni/SUSE Manager brings the following nota
 - The user can assign a different set of channels (with channel staging and/or CLM filters) to different clusters and manually control from Uyuni/SUSE Manager which version of CaaS Platform gets automatically installed in its CaaSP clusters<sup>1</sup>.
 
 However, if the user does some specific operations on any node of the cluster via Uyuni/SUSE Manager or via plain Salt, the cluster may result temporarily or permanently unusable or broken.
+The whole idea behind this RFC is not to educate the final user in dealing with a CaaS Platform cluster, but rather to prevent any breakage in the operating cluster by issuing operations considered safe for usual systems.
+
 NOTE: the term "operation" in this RFC refers to any Salt command issued on a minion or any action issued on a system by Uyuni/SUSE Manager.
 
 This RFC describes how Uyuni/SUSE Manager can prevent the user to perform these kinds of actions on the CaaS Platform nodes.
@@ -47,9 +49,9 @@ At the time of writing, registering a CaaS Platform node to Uyuni/SUSE Manager h
 
 We assume that:
 * The user has already created an activation key and associated it with the onboarding. The CaaS Platform nodes are registered correctly and with the proper CaaS Platform channel(s) assigned. The
+activation key is needed to have `skuba-update` automatically patch the cluster with the latest patches available<sup>1</sup>.
 * The user is registering the CaaS Platform nodes as Salt clients
 * The registration of every CaaS Platform node to Uyuni/SUSE Manager is already completed by the user using the aforementioned methods
-activation key is needed to have `skuba-update` automatically patch the cluster with the latest patches available<sup>1</sup>.
 
 NOTE: It is outside of this RFC to discuss automatic registration methods of the CaaS Platform nodes.
 
@@ -210,7 +212,14 @@ The functionality would be used also for troubleshooting and installing troubles
 
 The risk of breaking the cluster by issuing any forbidden operation is still present while the blackout is disabled.
 
-NOTE: every operation issued by the user while the minion is in the blackout will still be scheduled and subsequently fail when picked up by Salt.
+NOTE: from the user perspective, every operation issued by the user while the minion is in the blackout will still be scheduled and subsequently fail when picked up by Salt. The error that the user will receive is the standard Salt blackout error:
+
+```
+ERROR executing \u0027state.apply\u0027: Minion in blackout mode. Set \u0027minion_blackout\u0027 to False in pillar or grains to resume operations. Only saltutil.refresh_pillar allowed in blackout mode."
+```
+
+and will be shown in the Uyuni/SUSE Manager failed action log ![Uyuni/SUSE Manager failed action because of Salt blackout](images/blackout.png).
+The error must be described in the documentation to educate the users with the new workflow described above.
 
 ### Step 2: allowed list of arguments
 
@@ -235,9 +244,9 @@ The minion will always be in the blackout and the Salt formula to disable the bl
 
 The patch can be upstreamed to Salt.
 
-Note that an user can also issue any forbidden package upgrade by calling `state.apply packages.pkginstall`. But `packages.pkginstall` is an Uyuni/SUSE Manager internal state file, it should not be used by users.
+Note that a user can also issue any forbidden package upgrade by calling `state.apply packages.pkginstall`. But `packages.pkginstall` is a Uyuni/SUSE Manager internal state file, it should not be used by users.
 
-NOTE: every operation issued by the user that is a forbidden operation will still be scheduled and subsequently fail when picked up by Salt.
+NOTE: every operation issued by the user that is a forbidden operation will still be scheduled and subsequently fail when picked up by Salt as in the previously described step.
 
 ### Step 3: forbid the operations at the Uyuni/SUSE Manager level
 
@@ -294,6 +303,17 @@ The user can craft a Salt state that executes one of the forbidden operations an
 <!-- - What other designs/options have been considered?
 - What is the impact of not doing this? -->
 
+## UI warnings
+
+Instead of preventing and limiting the user from issuing the forbidden operations, Uyuni/SUSE Manager can just document those forbidden operations and display warning messages in the UI before issuing those operations.
+The operation will still be completed (if the user completes the workflow), even if it is going to break the cluster.
+This approach has two notable disadvantages:
+
+- In the Uyuni/SUSE Manager API, the warnings cannot be issued
+- The warnings will not be displayed at the Salt level
+
+UI warnings do not guarantee a streamlined user experience, as different warnings are depending on the access method used to perform those operations.
+
 ## CaaS Platform module in Salt
 
 If Uyuni/SUSE Manage uses a different function name to invoke package operations on a CaaS Platform node rather than relying on `state.apply`, then minion blackout is a solution.
@@ -312,7 +332,7 @@ This solutions needs:
 
 ## Package locking at `zypper` level
 
-Package locking of the forbidden packages is not really an option: in that case, `skuba-update` is not able to patch the forbidden packages.
+Package locking of the forbidden packages is not an option: in that case, `skuba-update` is not able to patch the forbidden packages.
 
 ## Future work
 
@@ -329,7 +349,7 @@ It still has to be researched but if possible with plain Salt and eventually Jin
 [unresolved]: #unresolved-questions
 
 - Docker/Kiwi build hosts: is it not tested by CaaS Platform QA to have Docker or Kiwi installed on a CaaS Platform node. It is a non-desirable situation. For the time being, let's consider it as a forbidden operation.
-- There are potential other operations that can be issued and deal with forbidden operations or forbidden packages: in this RFC we are targeting the most obvious operations to forbid and in future work we can close any holes that might have been left out.
+- There are potential other operations that can be issued and deal with forbidden operations or forbidden packages: in this RFC we are targeting the most obvious operations to forbid and in future work, we can close any holes that might have been left out.
 <hr />
 
 
