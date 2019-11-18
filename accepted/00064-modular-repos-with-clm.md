@@ -58,13 +58,13 @@ This section summarizes the different components involved in the design.
 The Java backend is responsible for filtering out unselected module streams and building the repository with the desired packages through CLM.
 
 ### API
-A standalone Python executable that parses and interprets the module metadata, resolves modular dependencies and translates specified modules and streams to an actual package list. The API access is via STDIN (CLI args) and STDOUT in JSON string.
+A standalone Python executable that parses and interprets the module metadata, resolves modular dependencies and translates specified modules and streams to an actual package list. The API access is via CLI args and STDOUT in JSON string.
 
 It utilizes the Python port of [libmodulemd](https://github.com/fedora-modularity/libmodulemd), which is used for structural parsing of `modules.yaml` files.
 An example of such implementation is provided in [attachments/00064-modular-repos-api.py](attachments/00064-modular-repos-api.py).
 
 ### UI
-The UI consists of a new type of CLM filter called "appstream". The filter provides inputs for a module name and a stream name.
+The UI introduces a new type of CLM filter called "appstream". The filter provides inputs for a module name and a stream name.
 Each filter selects a stream for a single module. The stream input can be left empty to select the default stream.
 Since a CLM filter is not related to any channels, it is not possible to display a list of modules/streams depending on the project sources. To aid the user in selecting the modules in the filter form, a separate popup window is used. This popup includes a select box of all the channels in SUSE Manager. When the user picks one, the list of all available modules for the selected channel are listed in the next select box. Finally, when a module is chosen, a third select box lists the available streams for the selected module (optional, can be empty for default). Once all the fields are selected and the "Done" button is clicked, the selected values are pasted into the corresponding fields in the filter form.
 Attached appstream filters are listed in a separate section of the Filters pane named "AppStreams", along with "Deny" and "Allow" sections.
