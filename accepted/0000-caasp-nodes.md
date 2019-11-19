@@ -66,7 +66,6 @@ In the case that a patch that requires reboot has been installed by Uyuni/SUSE M
 
 For the reasons above, Uyuni/SUSE Manager must not offer the possibility to issue the following operations on a registered CaaS Platform node:
 
-* Reboot a system
 * Apply a patch
 * Mark a system to automatically install patches
 * Issue any power management operation via Cobbler
@@ -98,10 +97,6 @@ NOTE: [installing NEW (not already installed and not conflicting with already in
 ### Description of current implementation
 
 Let's now describe how Uyuni/SUSE Manager implements each of the aforementioned operations for a Salt client.
-
-#### System reboot
-
-A reboot is triggered by calling the Salt module `system.reboot` on the target minion.
 
 #### Patch apply
 
@@ -161,7 +156,6 @@ Internally to Uyuni/SUSE Manager, storing that a node is a CaaS Platform node ca
 
 Given all the considerations above, the following operations must not be scheduled by Uyuni/SUSE Manager for a CaaS Platform node:
 
-* Reboot a system
 * Apply a patch
 * Mark a system to automatically install patches
 * Issue any power management operation via Cobbler
@@ -252,10 +246,6 @@ NOTE: every operation issued by the user that is a forbidden operation will stil
 
 The idea is that Uyuni/SUSE Manager must restrict the following features:
 
-- Reboot a system:
-  - If the targeted minion is a `caasp_node` system type, the operation for rebooting a system:
-    - Must be hidden from the UI and the corresponding operation must not be scheduled: code paths `/systems/details/RebootSystem`, `/systems/ssm/misc/RebootSystem`, `ActionChainManager#scheduleRebootAction`, `ActionChainManager#scheduleRebootActions`
-    - The corresponding operation must fail if scheduled via XMLRPC: `SystemHandler#scheduleReboot`
 - Patch apply:
   - If the targeted minion is a `caasp_node` system type, the operation for applying a patch:
     - Must be hidden from the UI and the corresponding operation must not be scheduled: `/systems/details/ErrataList.do`, `/systems/ssm/ListErrata`, `ErrataManager#applyErrata`
@@ -279,6 +269,10 @@ The idea is that Uyuni/SUSE Manager must restrict the following features:
   - If the targeted minion is a `caasp_node` system type, the operation for removing a package:
     - Must be hidden from the UI and the corresponding operation must not be scheduled: `/systems/details/packages/RemoveConfirm`, `/ystems/ssm/PackageRemove`, `ActionChainManager#schedulePackageRemoval`, `ActionChainManager#schedulePackageRemoval`
     - The corresponding operation must fail if scheduled via XMLRPC: `SystemHandler#schedulePackageRemove`
+
+Additionally, the reboot action must be changed:
+- If the targeted minion is a `caasp_node` system type, the operation for rebooting a system:
+    - `ActionChainManager#scheduleRebootAction`, `ActionChainManager#scheduleRebootActions`, and the XMLRPC action (`SystemHandler#scheduleReboot`) must _only_ `touch /var/run/reboot-required` (the rebooting is done by the `kured` service, which is deployed by Kubernetes on all the nodes of the cluster).
 
 While this approach changes the underlying Java core of Uyuni/SUSE Manager, notable advantages come in terms of:
 
