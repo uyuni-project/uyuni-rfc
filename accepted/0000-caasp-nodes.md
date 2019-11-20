@@ -5,7 +5,7 @@
 # Summary
 [summary]: #summary
 
-This RFC describes the special handling that Uyuni/SUSE Manager must implement to manage CaaS Platform nodes.
+This RFC describes the special handling that Salt _and_ Uyuni/SUSE Manager must implement to manage CaaS Platform nodes registered to Uyuni/SUSE Manager.
 
 # Motivation
 [motivation]: #motivation
@@ -19,16 +19,13 @@ Describe the problem you are trying to solve, and its constraints, without coupl
 Any node of a CaaS Platform cluster can be registered to Uyuni/SUSE Manager.
 Registering a CaaS Platform node to Uyuni/SUSE Manager brings the following notable advantages:
 
-- The user can see the patch level status of the CaaS Platform nodes (at the packages level, not at the container level - the latter is called "[container staging](https://confluence.suse.com/display/~dmacvicar/Container+Staging+Breakout)" and it is outside of the scope of this RFC)
+- The user can see the patch level status of the CaaS Platform nodes (at the packages level, not at the container level)
 - The user can perform configuration management operations using Salt from Uyuni/SUSE Manager
-- The user can assign a different set of channels (with channel staging and/or CLM filters) to different clusters and manually control from Uyuni/SUSE Manager which version of CaaS Platform gets automatically installed in its CaaSP clusters<sup>1</sup>.
+- The user can assign a different set of channels (with channel staging and/or CLM filters) to different clusters and manually control from Uyuni/SUSE Manager which version of CaaS Platform gets automatically installed in its CaaSP clusters.
 
-However, if the user does some specific operations on any node of the cluster via Uyuni/SUSE Manager or via plain Salt, the cluster may result temporarily or permanently unusable or broken.
-The whole idea behind this RFC is not to educate the final user in dealing with a CaaS Platform cluster, but rather to prevent any breakage in the operating cluster by issuing operations considered safe for usual systems.
+As soon as the node is registered to Uyuni/SUSE Manager, the user can issue Salt commands or Uyuni/SUSE Manager actions. Some of those operations may render the cluster temporarily or permanently unusable.
 
-NOTE: the term "operation" in this RFC refers to any Salt command issued on a minion or any action issued on a system by Uyuni/SUSE Manager.
-
-This RFC describes how Uyuni/SUSE Manager can prevent the user to perform these kinds of actions on the CaaS Platform nodes.
+This RFC will describe a way to protect the user from issuing those operations while still guaranteeing the benefits described above.
 
 # Detailed design
 [design]: #detailed-design
@@ -42,38 +39,51 @@ This section should cover architecture aspects and the rationale behind disrupti
 In this RFC, we will use:
 
 * CaaS Platform node: any node that comprises the cluster, either a control plane node or a worker node
-* Bootstrap/registration in the Uyuni/SUSE Manager context: registering a node to Uyuni/SUSE Manager via [the documented methods<sup>3</sup>](https://opensource.suse.com/doc-susemanager/suse-manager/client-configuration/registration-overview.html).
-At the time of writing, registering a CaaS Platform node to Uyuni/SUSE Manager has to be manually performed by the user.
+* Bootstrap/registration in the Uyuni/SUSE Manager context: registering a node to Uyuni/SUSE Manager via [the documented methods<sup>1</sup>](https://opensource.suse.com/doc-susemanager/suse-manager/client-configuration/registration-overview.html)
+* Operation: refers to any Salt command issued on a minion or any action issued on a system by Uyuni/SUSE Manager.
 
 ## Assumptions
 
 We assume that:
-* The user has already created an activation key and associated it with the onboarding. The
-activation key is needed to let CaaS Platform nodes consume the repositories managed by Uyuni/SUSE Manager. A nice side effect is that `skuba-update` will automatically patch the cluster with the latest patches available<sup>1</sup>.
-* The user is registering the CaaS Platform nodes as Salt clients. The CaaS Platform nodes are registered correctly and with the proper CaaS Platform channel(s) assigned.
-* The registration of every CaaS Platform node to Uyuni/SUSE Manager is already completed by the user using the aforementioned methods
-
-NOTE: It is outside of this RFC to discuss automatic registration methods of the CaaS Platform nodes.
+* The user has already created an activation key and associated it with the onboarding. The activation key is needed to let CaaS Platform nodes consume the repositories managed by Uyuni/SUSE Manager. A nice side effect is that `skuba-update` will automatically patch the cluster with the latest patches available.
+* The user is registering the CaaS Platform nodes as Salt clients. The registration of every CaaS Platform node to Uyuni/SUSE Manager is already completed by the user using the aforementioned methods
 
 ## Technical description of the problem
 
-### The forbidden operations
+This section will describe the forbidden operations (Salt commands and Uyuni/SUSE Manager actions) that need special care when issued targeting a CaaS Platform node registered to Uyuni/SUSE Manager.
 
-#### Patch and power management operations
+### The forbidden list
 
-[`skuba-update`](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_base_os_updates) systemd timer will take care of [patching](https://github.com/SUSE/skuba/blob/master/skuba-update/skuba_update/skuba_update.py#L301-L305) all installed packages locally to every node of the cluster and optionally reboot the node if `zypper` signals that a reboot is required.
-In the case that a patch that requires reboot has been installed by Uyuni/SUSE Manager before `skuba-update` applies it, then the node will not be tagged as pending a reboot.<sup>2</sup>.
+#### Patch operation
 
-For the reasons above, Uyuni/SUSE Manager must not offer the possibility to issue the following operations on a registered CaaS Platform node:
+[`skuba-update`](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_base_os_updates) is a `systemd` timer that is running locally on each CaaSP cluster node. Its objective is to _automatically_ [patch and notify to `kured` that a system is requiring a reboot](https://github.com/SUSE/skuba/blob/master/skuba-update/skuba_update/skuba_update.py#L301-L305).
+It relies on the patches that are in the system repositories, provided by Uyuni/SUSE Manager after the registration.
 
-* Apply a patch (if the patch is marked as interactive)
-* Mark a system to automatically install patches
-* Issue any power management operation via Cobbler
-* Perform an SP migration
+Salt _and_ Uyuni/SUSE Manager does not need to interact with `skuba-update` or `kured` in any way. Otherwise, a patched node requiring reboot will not be rebooted and will not be shown in `kubectl get nodes` result.
+
+To avoid the case where a user manually triggers the installation of a patch:
+
+* Salt must not `pkg.install` a patch against a CaaS Platform node registered to Uyuni/SUSE Manager (if the patch is marked as interactive)
+* Uyuni/SUSE Manager must not schedule the following actions related to patching and rebooting against a registered CaaS Platform node:
+
+    * Apply a patch (if the patch is marked as interactive)
+    * Mark a system to automatically install patches
+    * Perform an SP migration
+
+#### Reboot operation
+
+Rebooting a system must be issued by dealing with the [`kured`](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_base_os_updates) daemon. Otherwise, a temporary breakage in the deployed workloads will be experienced.
+
+To avoid the case where a user manually triggers a reboot:
+
+* Salt must not `system.reboot` a CaaS Platform node registered to Uyuni/SUSE Manager
+* Uyuni/SUSE Manager must not schedule the following actions related to rebooting against a registered CaaS Platform node:
+    * Reboot a node
+    * Issue any power management action via Cobbler
 
 #### Forbidden packages related operations
 
-Special handling needs to be taken with the packages that satisfy the `patterns-caasp-Node-x.y`<sup>4</sup> pattern. At the time of writing, the pattern was satisfied with the following packages:
+All CaaS Platform nodes satisfy the `patterns-caasp-Node-x.y`<sup>2</sup> pattern. At the time of writing, the pattern is satisfied with the following packages:
 
 - `caasp-config`
 - `cri-o`
@@ -84,47 +94,68 @@ Special handling needs to be taken with the packages that satisfy the `patterns-
 - `skuba-update`
 - `supportutils-plugin-suse-caasp`
 
-Another package that needs special handling is `kernel` one<sup>2</sup>.
+The pattern must not be broken **by Salt commands _or_ Uyuni/SUSE Manager actions** that are related to the following operations:
 
-To be on the safe side, Uyuni/SUSE Manager must not offer the possibility to issue the following operations on a registered CaaS Platform node:
+* Installing a package if it breaks or conflicts the `patterns-caasp-Node-x.y`
+* Removing a package if it breaks or conflicts or is one of the packages related with the `patterns-caasp-Node-x.y`
+* Upgrading a package if it breaks or conflicts or is one of the packages related with the `patterns-caasp-Node-x.y`
 
-* Upgrade a package if the package is associated with the `patterns-caasp-Node-x.y` or `kernel`
-* Remove a package if the package is associated with the `patterns-caasp-Node-x.y` or `kernel`
+A that is not included in the pattern but needs special case is `kernel`: an install or upgrade or patch requires a reboot. Each of the previous operations on a `kernel` package will result in the same problem described in the previous section. For this reason, `kernel` must be considered a forbidden package as well.
 
-NOTE: [installing NEW (not already installed and not conflicting with already installed) packages is allowed](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_existing_cluster).
+## Description of the current implementation
 
-### Description of the current implementation
+In the past section, we have defined forbidden list of items.
+Let's illustrate how the current implementation works related to the forbidden list. We will illustrate Salt first and Uyuni/SUSE Manager later.
 
-Let's now describe how Uyuni/SUSE Manager implements each of the aforementioned operations for a Salt client.
+### Salt
 
-#### Limitations
+The following sections will describe how plain Salt handles the forbidden list operations and the countermeasures to avoid breaking a CaaS Platform node.
 
-At the time of writing, Uyuni/SUSE Manager or Salt cannot forbid the package operations based on the target packages (there is no such kind of granularity).
-Additionally, Uyuni/SUSE Manager cannot prohibit to install a patch depending on its interactiveness.
+#### Patch operation
 
-As a future implementation, Uyuni/SUSE Manager _might_ consider adding another level of granularity: filter operations depending on the argument passed (e.g. forbid install of a package when the package is `kubernetes-kubeadm`).
+Salt does not offer the granularity to restrict `pkg.install` against a known set of packages or patch, nor offers the possibility of checking if a patch is marked as interactive
 
-NOTE: It is also implied that the [forbidden operations on a CaaS Platform node are also described in the Uyuni/SUSE Manager documentation](https://github.com/SUSE/doc-susemanager/pull/882/files).
+#### Reboot operation
 
-#### Patch apply
+Salt cannot deny the execution of `system.*` commands.
 
-A patch apply is scheduled using Salt `state.apply` with the [patch install state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/patchinstall.sls).
+#### Forbidden packages related operations
 
-#### Mark a system to automatically install patches
+Salt does not offer the granularity to restrict `pkg.install`, `pkg.upgrade`, `pkg.remove` against a known set of packages.
 
-Automatic patch installation is implemented at the Uyuni/SUSE Manager level by automatically apply a patch whenever it is available (this operation is assimilated as the previous one).
+### Uyuni/SUSE Manager
 
-#### Issue any power management operation via Cobbler
+Let's describe how Uyuni/SUSE Manager implements each of the items in the forbidden list at the time of writing.
 
-All the power management operations are scheduled via [Cobbler commands](https://cobbler.github.io/manuals/2.8.0/3/1/3_-_Systems.html).
+#### Patch operation
 
-#### Perform an SP migration
+##### Apply a patch (if the patch is marked as interactive)
 
-An SP migration is scheduled using Salt `state.apply` with the [distupgrade state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/distupgrade/init.sls).
+A patch apply is scheduled using Salt `state.apply` with the [patch install state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/patchinstall.sls). There is no way to check if a patch is marked as interactive nor restrict the execution of the state based on a set of known packages in the current implementation.
 
-#### Package upgrade
+##### Mark a system to automatically install patches
 
-A package upgrade is scheduled using Salt `state.apply` with the [pkginstall state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkginstall.sls).
+Automatic patch installation is implemented at the Uyuni/SUSE Manager level by automatically apply a patch whenever it is available. This action is equivalent to the previous one.
+
+##### Perform an SP migration
+
+An SP migration is scheduled using Salt `state.apply` with the [distupgrade state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/distupgrade/init.sls). There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+#### Reboot operation
+
+##### Reboot a node
+
+A reboot action is scheduled using Salt `system.reboot`. There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+##### Issue any power management action via Cobbler
+
+All the power management actions are scheduled via [Cobbler commands](https://cobbler.github.io/manuals/2.8.0/3/1/3_-_Systems.html). There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+#### Forbidden packages related operations
+
+##### Package install and upgrade
+
+A package install and upgrade is scheduled using Salt `state.apply` with the [pkginstall state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkginstall.sls).
 
 As a special case when issuing a package upgrade, a package installation from API is scheduled using Salt `state.apply` with the [pkginstall state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkginstall.sls).
 While it is not possible to install a non-installed package on the target system from the UI, is it possible to upgrade an already installed package by requesting an installation of it from the API. Example:
@@ -141,89 +172,84 @@ Start Time: 20191108T11:05:04
 Install these packages [y/N]:
 ```
 
-#### Package removal
+There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
 
-A package removal is scheduled using Salt `state.apply` with the [pkgremove state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkgremove.sls).
+##### Package removal
+
+A package removal is scheduled using Salt `state.apply` with the [pkgremove state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkgremove.sls). There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
 
 ## Design
 
-### Identifying a CaaS Platform node
+We will illustrate a way to avoid the forbidden list at a Salt level _and_ the Uyuni/SUSE Manager level.
 
-To identify a CaaS Platform node it is enough to check if the `patterns-caasp-Node-.*`<sup>4</sup> pattern is installed. In the future, Uyuni/SUSE Manager might consider identifying CaaS Platform nodes automatically on registration when a Kubernetes `kubeconfig` is being imported in Uyuni/SUSE Manager.
+### Documentation
 
-Internally to Uyuni/SUSE Manager, storing that a node is a CaaS Platform node can be fulfilled by adding a new system entitlement (e.g. `caasp_node`) to the node or by using a Salt grain.
+The forbidden list described in this RFC will be part of the [Uyuni/SUSE Manager documentation](https://github.com/SUSE/doc-susemanager/pull/882/files).
+
+### Identify a CaaS Platform node
+
+A CaaS Platform node will be identified upon registration. During this process:
+
+1. The node will return the package list to Uyuni/SUSE Manager
+2. Uyuni/SUSE Manager checks if the `patterns-caasp-Node-.*`<sup>2</sup> pattern is installed
+
+A pillar is generated to store, internally to Uyuni/SUSE Manager, that the minion is a CaaS Platform node.
 
 ### Operation locking
 
-Given all the considerations and limitations described above, the following operations must not be scheduled by Uyuni/SUSE Manager for a CaaS Platform node:
-
-* Apply a patch
-* Mark a system to automatically install patches
-* Issue any power management operation via Cobbler
-* Perform an SP migration
-* Upgrade a package
-* Remove a package
-* Install a package (via API only)
-
-The first step is to block these operations at the Salt level, and later at the Uyuni/SUSE Manager level.
-Why Salt first? To be compliant with plain Salt and to protect the CaaS Platform node from `modules.pkg.remove` issued by the user via the Salt command line.
+As discussed, we need to lock the system at the Salt level _and_ the Uyuni/SUSE Manager level.
+Salt is at the base of the operational stack: a locking mechanism will be implemented first at this level.
 
 ### Step 1: operations blocking at Salt level
 
-The idea is that, by default, every node that is a `caasp_node` system type is not allowed to perform some Salt commands.
+By default, every node that is a CaaS Platform node is not allowed to perform Salt commands.
+This is achieved by issuing a [minion blackout](https://docs.saltstack.com/en/latest/topics/blackout/) upon registration to Uyuni/SUSE Manager.
 
-This can be achieved in two ways:
-* [Minion blackout](https://docs.saltstack.com/en/latest/topics/blackout/) works by blocking every command targeting the minion, except for a whitelist of functions allowed during the blackout. It can be useful to individually allow `modules.state.apply`. When changing blackout state, a `saltutil.refresh_pillar` has to be issued on the minion.
-* [Module whitelisting](https://docs.saltstack.com/en/latest/ref/configuration/minion.html#whitelist-modules): work by blocking all the Salt modules except the ones whitelisted. It can be useful to globally allow a module, e.g. `modules.state`. When changing whitelist configuration, a `salt-minion` daemon restart has to be issued on the minion.
+Blackout works by blocking every command targeting the minion, except for a whitelist of functions allowed during the blackout. To enable or disable a blackout, a `saltutil.refresh_pillar` has to be issued on the minion.
 
-The allowed list of commands must contain:
+The allowed list of Salt commands can only contain:
 
 - `test.ping`
-- `state.apply` (for running `packages.profileupdate` required for "Update Package List" and see the patch level of the system)
-- other functions that Uyuni/SUSE Manager needs to achieve all other operations
 
-Given that the first interesting execution module for Uyuni/SUSE Manager is `state.apply`, we are considering minion blackout instead of module whitelisting. If the number of functions within a module will grow, a switch (or a complementary addition) to module whitelisting can be considered in the future.
-
-Whitelisting `state.apply` for getting the package list also allows the forbidden operations described above that make use of `state.apply`.
-
-In this iteration, Uyuni/SUSE Manager automatically set the blackout for a `caasp_node` minion upon registration by issuing the correct pillar. This means that a `caasp_node` will not be able to:
+This means that a CaaS Platform node will not be able to:
 
 - Check and display the patch level of the CaaS Platform node
 - Apply Salt states
-- Issue any other Salt operation
+- Issue any other Salt operation that is not in the forbidden list
 
-unless the blackout is temporarily disabled.
+until the blackout is disabled.
+Whitelisting `state.apply` for getting the package list needed for checking the patch level also allows the forbidden actions described above that make use of `state.apply`.
 
-The workflow for the user that needs to issue any operation on the CaaS Platform node from Uyuni/SUSE Manager is then modified to:
-
-1. Temporarily disable minion blackout from Uyuni/SUSE Manager using a Salt formula.
-2. The user then executes any operation that was intended for the CaaS Platform node.
-3. Finally, minion blackout is enabled again:
-    - Manually by the user
-    - Automatically, as a hook after every operation issued by the user
-    - Automatically, in a timely fashion (e.g. after 10 minutes)
-
-The functionality would be used also for troubleshooting and installing troubleshooting tools and issuing commands.
-
-The risk of breaking the cluster by issuing any forbidden operation is still present while the blackout is disabled.
-
-NOTE: from the user perspective, every operation issued by the user while the minion is in the blackout will still be scheduled and subsequently fail when picked up by Salt. The error that the user will receive is the standard Salt blackout error:
+If the user issues a Salt command during blackout, Salt will output the following error:
 
 ```
 ERROR executing \u0027state.apply\u0027: Minion in blackout mode. Set \u0027minion_blackout\u0027 to False in pillar or grains to resume operations. Only saltutil.refresh_pillar allowed in blackout mode."
 ```
 
-and will be shown in the Uyuni/SUSE Manager failed action log ![Uyuni/SUSE Manager failed action because of Salt blackout](images/blackout.png).
-The error must be described in the documentation to educate the users with the new workflow described above.
+At the Uyuni/SUSE Manager level, the action will still be scheduled but it will fail when picked up by salt, showing the failed action in the action log:
+
+![Uyuni/SUSE Manager failed action because of Salt blackout](images/blackout.png).
+
+#### Disable minion blackout
+
+A Salt formula that disables the blackout (changes the pillar and issues a pillar refresh) will be provided as part of the solution.
+This formula can be used when the user needs to issue any Salt command or Uyuni/SUSE Manager action and when troubleshooting as well.
+
+The workflow for the user that needs to issue any action on the CaaS Platform node from Uyuni/SUSE Manager is then modified to:
+
+1. Temporarily disable minion blackout from Uyuni/SUSE Manager using a Salt formula
+2. Execute the action on the CaaS Platform node via plain Salt or Uyuni/SUSE Manager
+3. Enable minion blackout via Salt formula
+
+The risk of breaking the cluster by issuing any forbidden operation is still present while the blackout is disabled.
 
 ### Step 2: selective blackout
 
-In the second iteration, [minion blackout will be modified to allow a list of arguments for the allowed function](https://github.com/saltstack/salt/blob/c157cb752a6843e58826588110bcd3c67ef8bc86/salt/minion.py#L1625-L1638). In our specific case, Salt blackout will allow individual states to be applied during the blackout:
+The idea is that the minion will always be in blackout mode but [minion blackout will be modified to allow a list of arguments for the functions](https://github.com/saltstack/salt/blob/c157cb752a6843e58826588110bcd3c67ef8bc86/salt/minion.py#L1625-L1638). In our specific case, Salt blackout will have the granularity of allowing certain arguments for functions:
 
 ```
 minion_blackout_whitelist:
 - state.apply:
-  - packages.pkginstall
   - packages.profileupdate
   - channels.disablelocalrepos
   - channels
@@ -234,71 +260,45 @@ minion_blackout_whitelist:
 - mgractionchains.resume
  ```
 
-This patch will allow us to cherry-pick the operations (and hence the corresponding Salt states) that Uyuni/SUSE Manager is allowed to run on CaaS Platform nodes.
-The minion will always be in the blackout and the Salt formula to disable the blackout will only be used for troubleshooting.
+In this way, we can allow certain Salt states specific to Uyuni/SUSE Manager actions that are not in the forbidden list and exclude the forbidden list operations.
+This solution does not offer the possibility to specify an allowed set of packages to allow the operations.
+
+From a Salt point of view, the solution will still be blocking `pkg.*` related commands.
+From the Uyuni/SUSE Manager point of view, allowing certain states enables to:
+
+- Check and display the patch level of the CaaS Platform node
+- Apply Salt states
+- Issue any other Salt operation that is not in the forbidden list
 
 The patch can be upstreamed to Salt.
 
-Note that a user can also issue any forbidden package upgrade by calling `state.apply packages.pkginstall`. But `packages.pkginstall` is a Uyuni/SUSE Manager internal state file, it should not be used by users.
+The workflow for the user is then unchanged from the "usual" operation (before this RFC): issue any action (that is not forbidden) on the CaaS Platform node. The Salt formula to disable the blackout can only be used for troubleshooting.
 
-NOTE: every operation issued by the user that is a forbidden operation will still be scheduled and subsequently fail when picked up by Salt as in the previously described step.
+If a user schedules a forbidden action (not allowed on the `minion_blackout_whitelist`) the error message will be the same as the one described in the previous section.
 
 ## Future work
 
-### Cluster provider manager
+### Reboot action
 
-In the future, we can team up with cluster providers and for `skuba` and other [cluster provider managers](https://trello.com/c/2X01ypO4/10-cluster-awarenesss-workshop-suse-manager-caasp-ha-cap-ses#comment-5dc1bc4567c6031ae57bcb04) to implement all these forbidden operations that require special handling.
-For example, `skuba-update` can expose a `patch` operation: in that case, Uyuni/SUSE Manager can remove all the specific features described in this RFC and offload the task to the cluster provider manager.
+When scheduling a system reboot action from Uyuni/SUSE Manager, if the targeted minion is a CaaS Platform node, the action should be changed.
+We can make use of `kured` by simply changing the action to just `touch /var/run/reboot-required`.
 
-### Disallowing forbidden operations
+The related action are in `ActionChainManager#scheduleRebootAction`, `ActionChainManager#scheduleRebootActions`, and the XMLRPC action `SystemHandler#scheduleReboot`.
 
-We describe two alternatives after the selective blackout is implemented.
+### Package locking at `zypper` level
 
-#### Disallowed forbidden packages at both levels
+Package locking of the forbidden packages is not an option: in that case, `skuba-update` is not able to patch the forbidden packages.
 
-The idea is that:
+While still maintaining minions in the blackout, the idea is to coordinate with the CaaS Platform team and:
 
-* We implement a forbidden package concept at Salt level: when the user tries issues an operation (e.g. `salt pkg.upgrade`) involving a forbidden package, the operation will fail.
-* At the Uyuni/SUSE Manager level, every [package-related operation](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/profileupdate.sls) (eventually issued with a `state.apply`) will be checking if the operation involves a forbidden package. In that case, the operation will not be scheduled.
+1. Package lock at the `zypper` level all the forbidden packages upon registration of a CaaS Platform node to Uyuni/SUSE Manager
+2. Modify `skuba-update` to release the package locks
+3. Unchanged `skuba-update` business
+4. `skuba-update` restores the package locks that were removed
 
-To gather the list of forbidden packages, Salt and Uyuni/SUSE Manager must query the dependencies of the `patterns-caasp-Node-x.y` at every package-related operation.
+In this way, all forbidden packages operations can be allowed at the Salt level _and_ the Uyuni/SUSE Manager level: every operation that deals with the forbidden package will fail.
 
-#### Forbid the operations at the Uyuni/SUSE Manager level
-
-The idea is that Uyuni/SUSE Manager must restrict the following features:
-
-- Patch apply:
-  - If the targeted minion is a `caasp_node` system type, the operation for applying a patch:
-    - Must be hidden from the UI and the corresponding operation must not be scheduled: `/systems/details/ErrataList.do`, `/systems/ssm/ListErrata`, `ErrataManager#applyErrata`
-    - The corresponding operation must fail if scheduled via XMLRPC: [`SystemHandler#scheduleApplyErrata`]
-- Mark a system to automatically install patches:
-  - If the targeted minion is a `caasp_node` system type:
-    - The checkbox for "Automatic application of relevant patches" must be hidden in the system details (`systems/details/Edit.do`, `/systems/ssm/misc`) and the corresponding property must not be set
-    - The API call to enable auto-updates must fail (`SystemHandler#setDetails`)
-- Issue any power management operation via Cobbler:
-  - If the targeted minion is a `caasp_node` system type:
-    - The "Power Management" page must be hidden (`/systems/details/kickstart/PowerManagement.do`, `/systems/ssm/provisioning/PowerManagementOperations`)) and the corresponding operation must not be scheduled
-    - Cobbler must fail when scheduling a power management operation [to achieve this result, the IPMI module can be disabled at the Uyuni/SUSE Manager level upon bootstrap of CaaS Platform nodes]
-- Perform an SP migration:
- - If the targeted minion is a `caasp_node` system type:
-    - The SP migration page must be hidden (`/systems/details/SPMigration.do`) and the corresponding operation must not be scheduled
-- Package upgrade:
-  - If the targeted minion is a `caasp_node` system type, the operation for upgrade a package:
-    - Must be hidden from the UI and the corresponding operation must not be scheduled: code paths `/systems/details/packages/UpgradableList`, `systems/ssm/PackageUpgrade`, `ActionChainManager#schedulePackageUpgrade`, `ActionChainManager#schedulePackageUpgrades`
-    - The corresponding operation must fail if scheduled via XMLRPC: [`SystemHandler#schedulePackageInstall`]
-- Package removal:
-  - If the targeted minion is a `caasp_node` system type, the operation for removing a package:
-    - Must be hidden from the UI and the corresponding operation must not be scheduled: `/systems/details/packages/RemoveConfirm`, `/systems/ssm/PackageRemove`, `ActionChainManager#schedulePackageRemoval`, `ActionChainManager#schedulePackageRemoval`
-    - The corresponding operation must fail if scheduled via XMLRPC: `SystemHandler#schedulePackageRemove`
-
-Additionally, the reboot action must be changed:
-- If the targeted minion is a `caasp_node` system type, the operation for rebooting a system:
-    - `ActionChainManager#scheduleRebootAction`, `ActionChainManager#scheduleRebootActions`, and the XMLRPC action (`SystemHandler#scheduleReboot`) must _only_ `touch /var/run/reboot-required` (the rebooting is done by the `kured` service, which is deployed by Kubernetes on all the nodes of the cluster).
-
-While this approach changes the underlying Java core of Uyuni/SUSE Manager, notable advantages come in terms of:
-
-* Usability: forbidden operations cannot be issued from the UI, compared to the previous iteration where those operations were scheduled and subsequently fail.
-* Performance: the forbidden operations will not be scheduled and picked up by Salt to fail as in the previous iteration, but rather will not be scheduled and not pollute the Salt bus with useless information.
+There has been a discussion with the CaaS Platform team and the package locks were ultimately rejected during CaaS Platform design because package locks should be owned by the user, not by the system.
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -310,7 +310,7 @@ While this approach changes the underlying Java core of Uyuni/SUSE Manager, nota
   * what other parts of the product will be affected?
   * will the solution be hard to maintain in the future? -->
 
-The user can craft a Salt state that executes one of the forbidden operations and break the cluster. This event is outside the scope of the RFC.
+The user can still break its cluster in any way - but with this RFC we are at least offering a way to protect the user and the cluster.
 
 # Alternatives
 [alternatives]: #alternatives
@@ -318,55 +318,115 @@ The user can craft a Salt state that executes one of the forbidden operations an
 <!-- - What other designs/options have been considered?
 - What is the impact of not doing this? -->
 
+### Disallow forbidden actions at both levels
+
+As an alternative to "Package locking at `zypper` level", we can consider adding another level of granularity: filter operations depending on the packages involved (e.g. forbid install of a package when the package is `kubernetes-kubeadm`).
+The idea is that:
+
+* At the Salt level: when the user tries to issue a command (e.g. `pkg.upgrade`) involving a forbidden package, the command will fail.
+* At the Uyuni/SUSE Manager level, every [package-related operation](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/) (eventually issued with a `state.apply`) will be checking if the operation involves a forbidden package. In that case, the action will not be scheduled.
+
+To gather the list of forbidden packages, Salt and Uyuni/SUSE Manager must query the `zypper` dependencies of the `patterns-caasp-Node-x.y` at every package-related operation.
+
+Compared to "Package locking at `zypper` level", this solution requires implementation at two different levels and hence considered less favorable.
+
+### Forbid the actions at the Uyuni/SUSE Manager level
+
+As an alternative to selective minion blackout, the idea is that Uyuni/SUSE Manager must not offer the possibility to schedule the forbidden actions in the UI and the API when targeting a CaaS Platform node. As a not complete list:
+
+- Patch apply:
+  - Must be hidden from the UI and the corresponding action must not be scheduled: `/systems/details/ErrataList.do`, `/systems/ssm/ListErrata`, `ErrataManager#applyErrata`
+  - The corresponding action must fail if scheduled via XMLRPC: [`SystemHandler#scheduleApplyErrata`]
+- Mark a system to automatically install patches:
+  - The checkbox for "Automatic application of relevant patches" must be hidden in the system details (`systems/details/Edit.do`, `/systems/ssm/misc`) and the corresponding property must not be set
+  - The API call to enable auto-updates must fail (`SystemHandler#setDetails`)
+- Issue any power management action via Cobbler:
+  - The "Power Management" page must be hidden (`/systems/details/kickstart/PowerManagement.do`, `/systems/ssm/provisioning/PowerManagementOperations`)) and the corresponding action must not be scheduled
+  - Cobbler must fail when scheduling a power management action [to achieve this result, the IPMI module can be disabled at the Uyuni/SUSE Manager level upon bootstrap of CaaS Platform nodes]
+- Perform an SP migration:
+  - The SP migration page must be hidden (`/systems/details/SPMigration.do`) and the corresponding action must not be scheduled
+- Package upgrade:
+  - Must be hidden from the UI and the corresponding action must not be scheduled: code paths `/systems/details/packages/UpgradableList`, `systems/ssm/PackageUpgrade`, `ActionChainManager#schedulePackageUpgrade`, `ActionChainManager#schedulePackageUpgrades`
+  - The corresponding action must fail if scheduled via XMLRPC: [`SystemHandler#schedulePackageInstall`]
+- Package removal:
+  - Must be hidden from the UI and the corresponding action must not be scheduled: `/systems/details/packages/RemoveConfirm`, `/systems/ssm/PackageRemove`, `ActionChainManager#schedulePackageRemoval`, `ActionChainManager#schedulePackageRemoval`
+  - The corresponding action must fail if scheduled via XMLRPC: `SystemHandler#schedulePackageRemove`
+
+The change described brings notable advantages:
+
+* Usability: forbidden action cannot be issued from the UI, compared to the previous iteration where those actions were scheduled and subsequently fail
+* Performance: the forbidden actions will not be scheduled and picked up by Salt to fail as in the previous iteration, but rather will not be scheduled and not pollute the Salt bus with useless information
+
+However, the solution is considered very invasive and, compared to minion blackout, less simple to implement and straightforward. Additionally, for every new forbidden action, a development must be introduced (compared to just selective allow the action). Additionally, this solution only covers Uyuni/SUSE Manager and not plain Salt. For these reasons, selective blackout was preferred.
+
 ## UI warnings
 
-Instead of preventing and limiting the user from issuing the forbidden operations, Uyuni/SUSE Manager can just document those forbidden operations and display warning messages in the UI before issuing those operations.
-The operation will still be completed (if the user completes the workflow), even if it is going to break the cluster.
+As an alternative to minion blackout, Uyuni/SUSE Manager can just display warning messages in the UI before issuing the forbidden actions.
+
+The action will still be completed (if the user completes the workflow), even if it is going to break the cluster.
+
 This approach has two notable disadvantages:
 
-- In the Uyuni/SUSE Manager API, the warnings cannot be issued
-- The warnings will not be displayed at the Salt level
+- The warnings cannot be issued in the Uyuni/SUSE Manager API
+- The UI will not be shown when issuing plain Salt commands
 
-UI warnings do not guarantee a streamlined user experience, as different warnings are depending on the access method used to perform those operations.
+UI warnings do not guarantee a streamlined user experience, as different warnings are depending on the access method used to perform those operations. For these reasons, minion blackout was preferred.
 
 ## CaaS Platform module in Salt
 
-If Uyuni/SUSE Manage uses a different function name to invoke package operations on a CaaS Platform node rather than relying on `state.apply`, then minion blackout is a solution.
+As an alternative to selective blackout, Uyuni/SUSE Manage should use a different function name to invoke package actions on a CaaS Platform node rather than relying on `state.apply`.
 In fact, as the Salt whitelisting algorithm filters by the function name, the white list would be:
 
 - `test.ping`
 - `caasp.info_installed`: returns the installed packages on the node
-- `caasp.pkginstall`: install a package on the node
-- other functions that Uyuni/SUSE Manager needs to achieve all other operations
+- other functions that Uyuni/SUSE Manager needs to achieve all other actions
 
 All other functions are in blackout mode.
 
-This solutions needs:
-- Modifications in Uyuni/SUSE Manager [SaltServerActionService](https://github.com/uyuni-project/uyuni/blob/master/java/code/src/com/suse/manager/webui/services/SaltServerActionService.java): if the targeted minion is a `caasp_node` system type, switch the corresponding Salt operation to use the `caasp.*` Salt module
+This solution needs:
+- Modifications in Uyuni/SUSE Manager [SaltServerActionService](https://github.com/uyuni-project/uyuni/blob/master/java/code/src/com/suse/manager/webui/services/SaltServerActionService.java): if the targeted minion is a CaaS Platform node, switch the corresponding Salt command to use the `caasp.*` Salt module
 - Implementation (and upstream) of a Salt module that lives under the `caasp.*` namespace
 
-## Package locking at `zypper` level
+Selective blackout is considered easier to implement and does not constitute a DRY anti-pattern: the `caasp.*` module will just contain a copy of package handling functions from other Salt modules. For this reason, selective blackout was preferred.
 
-Package locking of the forbidden packages is not an option: in that case, `skuba-update` is not able to patch the forbidden packages.
+## Salt modules whitelisting
+
+[Module whitelisting](https://docs.saltstack.com/en/latest/ref/configuration/minion.html#whitelist-modules) is an alternative to minion blackout. It works by blocking all the Salt modules except the ones whitelisted. It can be useful to globally allow a module, e.g. `modules.state`.
+Compared to minion blackout, it has a disadvantage of requiring a `salt-minion` restart when the configuration changes. For this reason, minion blackout was preferred.
+
+## Minion blackout restore
+
+As an alternative to minion blackout manual restore, an automatic way of restoring the minion blackout was considered as:
+
+- As a hook after every operation issued by the user
+- In a timely fashion (e.g. after 10 minutes)
+
+As these options are automatic and might interrupt the workflow of the user, we decided to stick with the manual and explicit way to restore a blackout.
+
+# Limitations
+
+The following items are considered outside of the scope of this RFC:
+
+* Educate the final user in dealing with a CaaS Platform cluster
+* The patch level of the workloads is called "[container staging](https://confluence.suse.com/display/~dmacvicar/Container+Staging+Breakout)"
+* The user can craft a Salt state that executes one of the forbidden operations and break the cluster
+* Automatic registration for CaaS Platform nodes: at the time of writing, registering a CaaS Platform node to Uyuni/SUSE Manager has to be manually performed by the user.
+* When selective blackout is implemented, a user can upgrade any forbidden package by calling `state.apply packages.pkginstall`. But `packages.pkginstall` is a Uyuni/SUSE Manager internal state file and it should not be used by users.
+* A CaaS Platform node running kGraft (kernel patches gets installed without a reboot).
+* There are potential other operations that can be issued: in this RFC we are targeting the most obvious operations to forbid.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
 - Docker/Kiwi build hosts: is it not tested by CaaS Platform QA to have Docker or Kiwi installed on a CaaS Platform node. It is a non-desirable situation. For the time being, let's consider it as a forbidden operation.
-- There are potential other operations that can be issued and deal with forbidden operations or forbidden packages: in this RFC we are targeting the most obvious operations to forbid and in future work, we can close any holes that might have been left out.
+- All the described locks are available if the registered system is a CaaS Platform node: what happens for plain Kubernetes cluster nodes that do not have the `patterns-caasp-Node` pattern installed?
+
 <hr />
 
-
-<sup>1</sup> `skuba-update` is a `systemd` timer that is already running on CaaSP cluster nodes and _automatically_ [manages the patching of all the packages installed in the nodes](https://github.com/SUSE/skuba/blob/master/skuba-update/skuba_update/skuba_update.py#L301-L305).
-It relies on the patches that are in the system repositories that, in turn, comes from Uyuni/SUSE Manager (if the system is registered).
-Uyuni/SUSE Manager does not need to interact with `skuba-update` in any way.
-
-<sup>2</sup> The kernel package is a good example of such a case. The first goal of `skuba-update` is to patch the underlying Kubernetes system with information about rebooting. The benefit for the user is to see that kind of information directly with `kubectl get nodes`.
-
-<sup>3</sup> As a not complete list:
+<sup>1</sup> As a not complete list:
 * Bootstrap script
 * UI: Systems > Bootstrapping
 * `bootstrap` XMLRPC call
 * Not usual but still possible and hackier: mass bootstrap via salt-ssh and a user-generated roster file
 
-<sup>4</sup> The pattern is a moving target: `patterns-caasp-Node-x.y` -> `patterns-caasp-Node-x.y-x.(y+1)` -> `patterns-caasp-Node-x.y+1`
+<sup>2</sup> The pattern is a moving target: `patterns-caasp-Node-x.y` -> `patterns-caasp-Node-x.y-x.(y+1)` -> `patterns-caasp-Node-x.y+1`
