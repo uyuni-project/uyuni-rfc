@@ -42,7 +42,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 In this RFC, we will use:
 
 * CaaS Platform node: any node that comprises the cluster, either a control plane node or a worker node
-* Bootstrap/registration in the Uyuni/SUSE Manager context: registering a node to Uyuni/SUSE Manager via [the documented methods<sup>4</sup>](https://opensource.suse.com/doc-susemanager/suse-manager/client-configuration/registration-overview.html).
+* Bootstrap/registration in the Uyuni/SUSE Manager context: registering a node to Uyuni/SUSE Manager via [the documented methods<sup>3</sup>](https://opensource.suse.com/doc-susemanager/suse-manager/client-configuration/registration-overview.html).
 At the time of writing, registering a CaaS Platform node to Uyuni/SUSE Manager has to be manually performed by the user.
 
 ## Assumptions
@@ -73,7 +73,7 @@ For the reasons above, Uyuni/SUSE Manager must not offer the possibility to issu
 
 #### Forbidden packages related operations
 
-Special handling needs to be taken with the packages that satisfy the `patterns-caasp-Node-x.y`<sup>5</sup> pattern. At the time of writing, the pattern was satisfied with the following packages:
+Special handling needs to be taken with the packages that satisfy the `patterns-caasp-Node-x.y`<sup>4</sup> pattern. At the time of writing, the pattern was satisfied with the following packages:
 
 - `caasp-config`
 - `cri-o`
@@ -149,7 +149,7 @@ A package removal is scheduled using Salt `state.apply` with the [pkgremove stat
 
 ### Identifying a CaaS Platform node
 
-To identify a CaaS Platform node it is enough to check if the `patterns-caasp-Node-.*`<sup>5</sup> pattern is installed. In the future, Uyuni/SUSE Manager might consider identifying CaaS Platform nodes automatically on registration when a Kubernetes `kubeconfig` is being imported in Uyuni/SUSE Manager.
+To identify a CaaS Platform node it is enough to check if the `patterns-caasp-Node-.*`<sup>4</sup> pattern is installed. In the future, Uyuni/SUSE Manager might consider identifying CaaS Platform nodes automatically on registration when a Kubernetes `kubeconfig` is being imported in Uyuni/SUSE Manager.
 
 Internally to Uyuni/SUSE Manager, storing that a node is a CaaS Platform node can be fulfilled by adding a new system entitlement (e.g. `caasp_node`) to the node or by using a Salt grain.
 
@@ -216,7 +216,7 @@ ERROR executing \u0027state.apply\u0027: Minion in blackout mode. Set \u0027mini
 and will be shown in the Uyuni/SUSE Manager failed action log ![Uyuni/SUSE Manager failed action because of Salt blackout](images/blackout.png).
 The error must be described in the documentation to educate the users with the new workflow described above.
 
-### Step 2: allowed list of arguments
+### Step 2: selective blackout
 
 In the second iteration, [minion blackout will be modified to allow a list of arguments for the allowed function](https://github.com/saltstack/salt/blob/c157cb752a6843e58826588110bcd3c67ef8bc86/salt/minion.py#L1625-L1638). In our specific case, Salt blackout will allow individual states to be applied during the blackout:
 
@@ -243,7 +243,27 @@ Note that a user can also issue any forbidden package upgrade by calling `state.
 
 NOTE: every operation issued by the user that is a forbidden operation will still be scheduled and subsequently fail when picked up by Salt as in the previously described step.
 
-### Step 3: forbid the operations at the Uyuni/SUSE Manager level
+## Future work
+
+### Cluster provider manager
+
+In the future, we can team up with cluster providers and for `skuba` and other [cluster provider managers](https://trello.com/c/2X01ypO4/10-cluster-awarenesss-workshop-suse-manager-caasp-ha-cap-ses#comment-5dc1bc4567c6031ae57bcb04) to implement all these forbidden operations that require special handling.
+For example, `skuba-update` can expose a `patch` operation: in that case, Uyuni/SUSE Manager can remove all the specific features described in this RFC and offload the task to the cluster provider manager.
+
+### Disallowing forbidden operations
+
+We describe two alternatives after the selective blackout is implemented.
+
+#### Disallowed forbidden packages at both levels
+
+The idea is that:
+
+* We implement a forbidden package concept at Salt level: when the user tries issues an operation (e.g. `salt pkg.upgrade`) involving a forbidden package, the operation will fail.
+* At the Uyuni/SUSE Manager level, every [package-related operation](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/profileupdate.sls) (eventually issued with a `state.apply`) will be checking if the operation involves a forbidden package. In that case, the operation will not be scheduled.
+
+To gather the list of forbidden packages, Salt and Uyuni/SUSE Manager must query the dependencies of the `patterns-caasp-Node-x.y` at every package-related operation.
+
+#### Forbid the operations at the Uyuni/SUSE Manager level
 
 The idea is that Uyuni/SUSE Manager must restrict the following features:
 
@@ -279,17 +299,6 @@ While this approach changes the underlying Java core of Uyuni/SUSE Manager, nota
 
 * Usability: forbidden operations cannot be issued from the UI, compared to the previous iteration where those operations were scheduled and subsequently fail.
 * Performance: the forbidden operations will not be scheduled and picked up by Salt to fail as in the previous iteration, but rather will not be scheduled and not pollute the Salt bus with useless information.
-
-## Future work
-
-### Cluster provider manager
-
-In the future, we can team up with cluster providers and for `skuba` and other [cluster provider managers](https://trello.com/c/2X01ypO4/10-cluster-awarenesss-workshop-suse-manager-caasp-ha-cap-ses#comment-5dc1bc4567c6031ae57bcb04) to implement all these forbidden operations that require special handling.
-For example, `skuba-update` can expose a `patch` operation: in that case, Uyuni/SUSE Manager can remove all the specific features described in this RFC and offload the task to the cluster provider manager.
-
-### Disallowing packages at Salt level
-
-It still has to be researched but if possible with plain Salt and eventually Jinja to block the operations related to the forbidden packages inside the Salt state files. The list of packages would be hardcoded in Uyuni/SUSE Manager, with the limitations already discussed<sup>3</sup>.
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -354,12 +363,10 @@ Uyuni/SUSE Manager does not need to interact with `skuba-update` in any way.
 
 <sup>2</sup> The kernel package is a good example of such a case. The first goal of `skuba-update` is to patch the underlying Kubernetes system with information about rebooting. The benefit for the user is to see that kind of information directly with `kubectl get nodes`.
 
-<sup>3</sup> At the time of writing, there is not a programmatic way to list all forbidden packages from `skuba-update`. This requirement would be ideal to avoid a release whenever the list of forbidden packages changes. The capability of having the list of forbidden packages programmatically will not be implemented in `skuba-update` in the future, as the list is hard to keep up (from the CaaS Platform perspective).
-
-<sup>4</sup> As a not complete list:
+<sup>3</sup> As a not complete list:
 * Bootstrap script
 * UI: Systems > Bootstrapping
 * `bootstrap` XMLRPC call
 * Not usual but still possible and hackier: mass bootstrap via salt-ssh and a user-generated roster file
 
-<sup>5</sup> The pattern is a moving target: `patterns-caasp-Node-x.y` -> `patterns-caasp-Node-x.y-x.(y+1)` -> `patterns-caasp-Node-x.y+1`
+<sup>4</sup> The pattern is a moving target: `patterns-caasp-Node-x.y` -> `patterns-caasp-Node-x.y-x.(y+1)` -> `patterns-caasp-Node-x.y+1`
