@@ -429,4 +429,8 @@ The following items are considered outside of the scope of this RFC:
 * `bootstrap` XMLRPC call
 * Not usual but still possible and hackier: mass bootstrap via salt-ssh and a user-generated roster file
 
-<sup>2</sup> The pattern is a moving target: `patterns-caasp-Node-x.y` -> `patterns-caasp-Node-x.y-x.(y+1)` -> `patterns-caasp-Node-x.y+1`
+<sup>2</sup> The pattern is a moving target: `patterns-caasp-Node-x.y` -> `patterns-caasp-Node-x.y-x.(y+1)` -> `patterns-caasp-Node-x.y+1`. The dependency mechanism implemented by the `patterns-caasp-Node-x.y` package:
+
+* Allows patch release updates
+* Prevents major version updates
+* Prevents minor version updates
