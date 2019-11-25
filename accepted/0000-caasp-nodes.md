@@ -312,6 +312,7 @@ There has been a discussion with the CaaS Platform team and the package locks we
   * will the solution be hard to maintain in the future? -->
 
 The user can still break its cluster in any way - but with this RFC we are at least offering a way to protect the user and the cluster.
+No messages will be displayed in the UI of Uyuni/SUSE Manager until the final fail of the forbidden action scheduled.
 
 # Alternatives
 [alternatives]: #alternatives
