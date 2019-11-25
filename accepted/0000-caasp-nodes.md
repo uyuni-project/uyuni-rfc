@@ -59,8 +59,7 @@ This section will describe the forbidden operations (Salt commands and Uyuni/SUS
 [`skuba-update`](https://documentation.suse.com/suse-caasp/4/single-html/caasp-admin/#_base_os_updates) is a `systemd` timer that is running locally on each CaaSP cluster node. Its objective is to _automatically_ [patch and notify to `kured` that a system is requiring a reboot](https://github.com/SUSE/skuba/blob/master/skuba-update/skuba_update/skuba_update.py#L301-L305).
 It relies on the patches that are in the system repositories, provided by Uyuni/SUSE Manager after the registration.
 
-Salt _and_ Uyuni/SUSE Manager does not need to interact with `skuba-update` or `kured` in any way. Otherwise, a patched node requiring reboot will not be rebooted and will not be shown in `kubectl get nodes` result.
-
+Salt _and_ Uyuni/SUSE Manager does not need to interact with patching in any way. Otherwise, a patched node requiring reboot will not be rebooted and will not be shown in `kubectl get nodes` result.
 To avoid the case where a user manually triggers the installation of a patch:
 
 * Salt must not `pkg.install` a patch against a CaaS Platform node registered to Uyuni/SUSE Manager (if the patch is marked as interactive)
