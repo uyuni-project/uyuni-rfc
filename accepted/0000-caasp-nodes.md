@@ -112,25 +112,25 @@ The following sections will describe how plain Salt handles the forbidden list o
 
 #### Patch operation
 
-Salt does not offer the granularity to restrict `pkg.install` against a known set of packages or patch, nor offers the possibility of checking if a patch is marked as interactive
+A patch operation is issued with `pkg.install`.
 
 #### Reboot operation
 
-Salt cannot deny the execution of `system.*` commands.
+A reboot operation is issued by using `system.reboot`.
 
 #### Forbidden packages related operations
 
-Salt does not offer the granularity to restrict `pkg.install`, `pkg.upgrade`, `pkg.remove` against a known set of packages.
+All packages related operation are available via `pkg.install`, `pkg.upgrade`, and `pkg.remove`.
 
 ### Uyuni/SUSE Manager
 
-Let's describe how Uyuni/SUSE Manager implements each of the items in the forbidden list at the time of writing.
+Let's describe how Uyuni/SUSE Manager implements each of the items in the forbidden list at the time of writing and possible ways to avoid issuing a forbidden action.
 
 #### Patch operation
 
 ##### Apply a patch (if the patch is marked as interactive)
 
-A patch apply is scheduled using Salt `state.apply` with the [patch install state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/patchinstall.sls). There is no way to check if a patch is marked as interactive nor restrict the execution of the state based on a set of known packages in the current implementation.
+A patch apply is scheduled using Salt `state.apply` with the [patch install state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/patchinstall.sls).
 
 ##### Mark a system to automatically install patches
 
@@ -138,17 +138,17 @@ Automatic patch installation is implemented at the Uyuni/SUSE Manager level by a
 
 ##### Perform an SP migration
 
-An SP migration is scheduled using Salt `state.apply` with the [distupgrade state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/distupgrade/init.sls). There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+An SP migration is scheduled using Salt `state.apply` with the [distupgrade state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/distupgrade/init.sls).
 
 #### Reboot operation
 
 ##### Reboot a node
 
-A reboot action is scheduled using Salt `system.reboot`. There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+A reboot action is scheduled using Salt `system.reboot`.
 
 ##### Issue any power management action via Cobbler
 
-All the power management actions are scheduled via [Cobbler commands](https://cobbler.github.io/manuals/2.8.0/3/1/3_-_Systems.html). There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+All the power management actions are scheduled via [Cobbler commands](https://cobbler.github.io/manuals/2.8.0/3/1/3_-_Systems.html)
 
 #### Forbidden packages related operations
 
@@ -171,11 +171,9 @@ Start Time: 20191108T11:05:04
 Install these packages [y/N]:
 ```
 
-There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
-
 ##### Package removal
 
-A package removal is scheduled using Salt `state.apply` with the [pkgremove state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkgremove.sls). There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
+A package removal is scheduled using Salt `state.apply` with the [pkgremove state](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkgremove.sls).
 
 ## Design
 
@@ -194,9 +192,57 @@ A CaaS Platform node will be identified upon registration. During this process:
 
 A pillar is generated to store, internally to Uyuni/SUSE Manager, that the minion is a CaaS Platform node.
 
+### Current implementation: possible countermeasures
+
+In reference to "Description of the current implementation", are there any possible countermeasures we can use to avoid incurring in the forbidden list either via plain Salt or via Uyuni/SUSE Manager?
+
+In this section we are going to describe which countermeasures are offered in the current implementation, in Salt first and Uyuni/SUSE Manager later.
+
+#### Salt
+
+##### Patch operation
+
+Salt does not offer the granularity to restrict `pkg.install` against a known set of packages or patch, nor offers the possibility of checking if a patch is marked as interactive.
+
+##### Reboot operation
+
+Salt cannot deny the execution of `system.*` commands.
+
+##### Forbidden packages related operations
+
+Salt does not offer the granularity to restrict `pkg.install`, `pkg.upgrade`, `pkg.remove` against a known set of packages.
+
+#### Uyuni/SUSE Manager
+
+##### Patch operation
+
+###### Apply a patch (if the patch is marked as interactive)
+
+There is no way to check if a patch is marked as interactive nor restrict the execution of the state based on a set of known packages in the current implementation.
+
+###### Perform an SP migration
+
+There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+##### Reboot a node
+
+There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+###### Issue any power management action via Cobbler
+
+There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+##### Package install and upgrade
+
+There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
+
+##### Package removal
+
+There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
+
 ### Operation locking
 
-As discussed, we need to lock the system at the Salt level _and_ the Uyuni/SUSE Manager level.
+As per the previous section, it is clear that we need to find a way to lock the system at the Salt level _and_ the Uyuni/SUSE Manager level.
 Salt is at the base of the operational stack: a locking mechanism will be implemented first at this level.
 
 ### Step 1: operations blocking at Salt level
