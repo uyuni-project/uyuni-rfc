@@ -210,6 +210,9 @@ The allowed list of Salt commands can only contain:
 
 - `test.ping`
 
+Why only `test.ping`?
+Whitelisting `state.apply` for getting the package list needed for checking the patch level also allows the forbidden actions described above that make use of `state.apply`.
+
 This means that a CaaS Platform node will not be able to:
 
 - Check and display the patch level of the CaaS Platform node
@@ -217,7 +220,6 @@ This means that a CaaS Platform node will not be able to:
 - Issue any other Salt operation that is not in the forbidden list
 
 until the blackout is disabled.
-Whitelisting `state.apply` for getting the package list needed for checking the patch level also allows the forbidden actions described above that make use of `state.apply`.
 
 If the user issues a Salt command during blackout, Salt will output the following error:
 
