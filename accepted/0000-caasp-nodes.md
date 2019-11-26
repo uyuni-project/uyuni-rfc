@@ -77,6 +77,7 @@ To avoid the case where a user manually triggers a reboot:
 
 * Salt must not `system.reboot` a CaaS Platform node registered to Uyuni/SUSE Manager
 * Uyuni/SUSE Manager must not schedule the following actions related to rebooting against a registered CaaS Platform node:
+
     * Reboot a node
     * Issue any power management action via Cobbler
 
@@ -99,7 +100,7 @@ The pattern must not be broken **by Salt commands _or_ Uyuni/SUSE Manager action
 * Removing a package if it breaks or conflicts or is one of the packages related with the `patterns-caasp-Node-x.y`
 * Upgrading a package if it breaks or conflicts or is one of the packages related with the `patterns-caasp-Node-x.y`
 
-A that is not included in the pattern but needs special case is `kernel`: an install or upgrade or patch requires a reboot. Each of the previous operations on a `kernel` package will result in the same problem described in the previous section. For this reason, `kernel` must be considered a forbidden package as well.
+A package that is not included in the pattern but needs special case is `kernel`: an install or upgrade or patch requires a reboot. Each of the previous operations on a `kernel` package will result in the same problem described in the previous section. For this reason, `kernel` must be considered a forbidden package as well.
 
 ## Description of the current implementation
 
