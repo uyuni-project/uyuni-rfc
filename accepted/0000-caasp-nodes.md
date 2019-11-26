@@ -205,12 +205,7 @@ This is achieved by issuing a [minion blackout](https://docs.saltstack.com/en/la
 
 Blackout works by blocking every command targeting the minion, except for a whitelist of functions allowed during the blackout. To enable or disable a blackout, a `saltutil.refresh_pillar` has to be issued on the minion.
 
-The allowed list of Salt commands can only contain:
-
-- `test.ping`
-
-Why only `test.ping`?
-Whitelisting `state.apply` for getting the package list needed for checking the patch level also allows the forbidden actions described above that make use of `state.apply`.
+The allowed list of Salt commands should at least contain `test.ping` and `test.echo`, but must not contain `state.apply`. Why? Whitelisting `state.apply` for getting the package list needed for checking the patch level also allows the forbidden actions described above that make use of `state.apply`.
 
 This means that a CaaS Platform node will not be able to:
 
