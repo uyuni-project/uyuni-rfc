@@ -104,7 +104,7 @@ A package that is not included in the pattern but needs special case is `kernel`
 
 ## Description of the current implementation
 
-In the past section, we have defined forbidden list of items.
+In the past section, we have defined the forbidden list of items.
 Let's illustrate how the current implementation works related to the forbidden list. We will illustrate Salt first and Uyuni/SUSE Manager later.
 
 ### Salt
@@ -121,7 +121,7 @@ A reboot operation is issued by using `system.reboot`.
 
 #### Forbidden packages related operations
 
-All packages related operation are available via `pkg.install`, `pkg.upgrade`, and `pkg.remove`.
+All packages related operations are available via `pkg.install`, `pkg.upgrade`, and `pkg.remove`.
 
 ### Uyuni/SUSE Manager
 
@@ -195,7 +195,7 @@ A pillar is generated to store, internally to Uyuni/SUSE Manager, that the minio
 
 ### Operation locking
 
-It is clear that we need to find a way to lock the system at the Salt level _and_ the Uyuni/SUSE Manager level.
+We need to find a way to lock the system at the Salt level _and_ the Uyuni/SUSE Manager level.
 Salt is at the base of the operational stack: a locking mechanism will be implemented first at this level.
 
 ### Step 1: operations blocking at Salt level
@@ -306,7 +306,7 @@ There has been a discussion with the CaaS Platform team and the package locks we
   * will the solution be hard to maintain in the future? -->
 
 The user can still break its cluster in any way - but with this RFC we are at least offering a way to protect the user and the cluster.
-No messages will be displayed in the UI of Uyuni/SUSE Manager until the final fail of the forbidden action scheduled.
+No messages will be displayed in the UI of Uyuni/SUSE Manager until the final failure of the forbidden action scheduled.
 
 # Alternatives
 [alternatives]: #alternatives
@@ -433,9 +433,9 @@ The following items are considered outside of the scope of this RFC:
 
 ### Appendix: current implementation and possible countermeasures
 
-In reference to "Description of the current implementation", are there any possible countermeasures we can use to avoid incurring in the forbidden list either via plain Salt or via Uyuni/SUSE Manager?
+About "Description of the current implementation", are there any possible countermeasures we can use to avoid incurring in the forbidden list either via plain Salt or via Uyuni/SUSE Manager?
 
-In this section we are going to illustrate that is not possible to apply any countermeasures using the current implementation, neither in plain nor in Uyuni/SUSE Manager.
+In this section, we are going to illustrate that is not possible to apply any countermeasures using the current implementation, neither in plain nor in Uyuni/SUSE Manager.
 
 #### Salt
 
