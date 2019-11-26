@@ -1,6 +1,6 @@
 - Feature Name: CaaSP nodes operation locking
 - Start Date: 2019-10-28
-- RFC PR: TBD-change filename
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/26
 
 # Summary
 [summary]: #summary
