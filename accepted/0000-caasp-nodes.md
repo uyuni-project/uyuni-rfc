@@ -192,57 +192,9 @@ A CaaS Platform node will be identified upon registration. During this process:
 
 A pillar is generated to store, internally to Uyuni/SUSE Manager, that the minion is a CaaS Platform node.
 
-### Current implementation: possible countermeasures
-
-In reference to "Description of the current implementation", are there any possible countermeasures we can use to avoid incurring in the forbidden list either via plain Salt or via Uyuni/SUSE Manager?
-
-In this section we are going to describe which countermeasures are offered in the current implementation, in Salt first and Uyuni/SUSE Manager later.
-
-#### Salt
-
-##### Patch operation
-
-Salt does not offer the granularity to restrict `pkg.install` against a known set of packages or patch, nor offers the possibility of checking if a patch is marked as interactive.
-
-##### Reboot operation
-
-Salt cannot deny the execution of `system.*` commands.
-
-##### Forbidden packages related operations
-
-Salt does not offer the granularity to restrict `pkg.install`, `pkg.upgrade`, `pkg.remove` against a known set of packages.
-
-#### Uyuni/SUSE Manager
-
-##### Patch operation
-
-###### Apply a patch (if the patch is marked as interactive)
-
-There is no way to check if a patch is marked as interactive nor restrict the execution of the state based on a set of known packages in the current implementation.
-
-###### Perform an SP migration
-
-There is no way to restrict the scheduling of this action based on the target system in the current implementation.
-
-##### Reboot a node
-
-There is no way to restrict the scheduling of this action based on the target system in the current implementation.
-
-###### Issue any power management action via Cobbler
-
-There is no way to restrict the scheduling of this action based on the target system in the current implementation.
-
-##### Package install and upgrade
-
-There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
-
-##### Package removal
-
-There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
-
 ### Operation locking
 
-As per the previous section, it is clear that we need to find a way to lock the system at the Salt level _and_ the Uyuni/SUSE Manager level.
+It is clear that we need to find a way to lock the system at the Salt level _and_ the Uyuni/SUSE Manager level.
 Salt is at the base of the operational stack: a locking mechanism will be implemented first at this level.
 
 ### Step 1: operations blocking at Salt level
@@ -482,3 +434,51 @@ The following items are considered outside of the scope of this RFC:
 * Allows patch release updates
 * Prevents major version updates
 * Prevents minor version updates
+
+### Appendix: current implementation and possible countermeasures
+
+In reference to "Description of the current implementation", are there any possible countermeasures we can use to avoid incurring in the forbidden list either via plain Salt or via Uyuni/SUSE Manager?
+
+In this section we are going to illustrate that is not possible to apply any countermeasures using the current implementation, neither in plain nor in Uyuni/SUSE Manager.
+
+#### Salt
+
+##### Patch operation
+
+Salt does not offer the granularity to restrict `pkg.install` against a known set of packages or patch, nor offers the possibility of checking if a patch is marked as interactive.
+
+##### Reboot operation
+
+Salt cannot deny the execution of `system.*` commands.
+
+##### Forbidden packages related operations
+
+Salt does not offer the granularity to restrict `pkg.install`, `pkg.upgrade`, `pkg.remove` against a known set of packages.
+
+#### Uyuni/SUSE Manager
+
+##### Patch operation
+
+###### Apply a patch (if the patch is marked as interactive)
+
+There is no way to check if a patch is marked as interactive nor restrict the execution of the state based on a set of known packages in the current implementation.
+
+###### Perform an SP migration
+
+There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+##### Reboot a node
+
+There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+###### Issue any power management action via Cobbler
+
+There is no way to restrict the scheduling of this action based on the target system in the current implementation.
+
+##### Package install and upgrade
+
+There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
+
+##### Package removal
+
+There is no way to restrict the scheduling of this action against a known set of packages or checking if a pattern will break after the action in the current implementation.
