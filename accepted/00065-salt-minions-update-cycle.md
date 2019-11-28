@@ -32,7 +32,7 @@ If Salt Minion could be no longer needed to be packaged from the client OS persp
 
 **Independent Maintenance Cycle**
 
-In order to efficiently update Salt Minion on any version of operating system, the update cycle of a Salt Minion needs to be independent from the maintenance update of the very operating system itself.
+In order to efficiently update Salt Minion on any version of operating system, the update cycle of a Salt Minion needs to be independent from the maintenance update of the very operating system itself. This can be achieved by keeping Salt Minion volatile and nearly state-less.
 
 Rationale: Allow components update as soon as it is needed for the software component, without waiting for the general maintenance update.
 
