@@ -74,6 +74,49 @@ This should result into running fully featured Salt Minion of latest version in 
 
 Consequently, this mechanism will allow to keep always aligned Salt Minions across the entire infrastructure consistent and identical.
 
+### SaltSSH 2.0
+
+Essentially the entire approach of Salt Minion deployment on a managed machines is borrowing from the original SaltSSH principle, merging both installed Salt Minion and SaltSSH, delivering fully empowered Salt Minion, supporting cross-architecture binary modules from 3rd party on variety of operating systems, their architectures and versions.
+
+In order to complete deployment sequence, a similar tool to SaltSSH needs to be developed from the beginning with the following basic functionality:
+
+1. Connect via SSH to the target machine and detect the following data:
+   - OS type
+   - OS version
+   - Package Manager type
+   - Newest version of Python
+   - Minimum requirements to provision Salt Minion on that machine
+
+2. Update the deployment configuration with the data from the step #1 above.
+3. Provision Python interpreter, if needed.
+4. Install "heavyweight" 3rd party dependencies, such as MCrypto, SSL etc. These modules do not depend on Salt Minion version releases or any changes at all. So their update is separeted from the Salt Minion itself.
+5. Create Virtual Environment for that Python interpreter, inheriting its `dist-packages`.
+6. Install all Salt-related dependencies from custom PyPi server.
+7. Install Salt Minion from the custom PyPi server.
+8. Set/verify all file permissions and make it ready to work with the init system, which is available on the operating system. This step actually may be performed with the Salt Minion itself, ran with the `--local` option over delivered state formula that actually doing this.
+
+All the above operations should be strictly remote, without having nothing copied to the target machine. Additionally:
+
+- If provisioned Salt Minion required to be used over ZMQ:
+  1. Setup Minion configuration against the Salt Master machine from which this tool is called.
+  2. Start Minion
+  3. Verify the cipher key and accept the Minion to the Salt Master
+
+- If provisioned Salt Minion is required to be used over SSH:
+  1. Install script runtime that is using the same Salt Minion in "passive mode" with `--local` option.
+  2. Provide a temporary directory where `state.tgz` per PID are stored.
+
+The same tool would replace `salt-ssh` command entirely, as it would no longer need to copy `thin.tgz`, detect the environment etc, but only deliver `state.tgz` to already installed Salt Minion and simply reuse it.
+
+Further development may include:
+
+- Drop the [concept of SaltSSH Roster](https://docs.saltstack.com/en/latest/topics/ssh/roster.html) entirely, merging its purpose with ZMQ-based minions. That said, e.g. `salt \* ...` should include also SSH-managed minions, effectively dropping `salt-ssh` command as well.
+- Transparently switch the communication channel between ZMQ and SSH for a given Salt Minion, allowing start and accept Salt Minion as permanently running daemon over ZMQ or stop it and communicate only via SSH. All that should be "behind the scenes" of user used `salt \* ...` command interface.
+- Run asynochronous Salt calls over separate SSH connections from multiple processes. Currently SaltSSH does not support this.
+  _NOTE: This RFC document does not covering possible SSH-enabled Minion asynchronous mechanism._
+- Unregister and completely remove Salt Minion from the target machine.
+
+
 ## Fail-proof Updates
 
 Having running Salt Minion inside a virtual environment, allows to deliver fail-proof updates. The basic mechanism is to clone Python Virtual Environment from the current active Salt Minion and update the Salt Minion there.
