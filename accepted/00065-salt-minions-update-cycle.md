@@ -74,6 +74,20 @@ The outcome is to achieve running fully featured Salt Minion of latest available
 
 Consequently, this mechanism will allow to keep always aligned Salt Minions across the entire infrastructure consistent and identical.
 
+### Patch Management
+
+As it is shown on the _Figure 2_, patches are no longer tracked on the Managed System, but cloned from the Uyuni Server (which is PyPi service, in this case). This yields to the following rule:
+
+    Every patch published in PyPi server must be on the Managed System
+
+That way patches **(1)** are still tracked in the RPMs (at OBS). These RPMs are used to produce PyPi content from which Salt Minion is always bootstrapped or updated. Once PyPi content is updated, the Salt Master should issue a PIP update command **(2)** to the Minion and so the publihed patch will end up **(3)** on the target Minion.
+
+![Layout](images/00065-patches.png)
+
+_Figure 2_
+
+The "passive minion", which is operated by the SaltSSH replacement tool is also updated the similar way, transparently. The "Salt SSH 2.0" every time it is running, it should check the latest timestamp of PyPi server update and target Minion update, which is always saved on the Minion side. When calling Salt Minion via SSH, in case the state is older than PyPi content, the Minion should first be issued to upgrade, prior any further steps performing the actual state or a command.
+
 ### SaltSSH 2.0
 
 Essentially the entire approach of Salt Minion deployment on a managed machines is borrowing from the original SaltSSH principle, merging both installed Salt Minion and SaltSSH, delivering fully empowered Salt Minion, supporting cross-architecture binary modules from 3rd party on variety of operating systems, their architectures and versions.
