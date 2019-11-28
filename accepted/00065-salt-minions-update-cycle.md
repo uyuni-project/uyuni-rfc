@@ -70,7 +70,7 @@ Process update or installation flow as follows:
 
 3. The Salt Minion is also installed into a Python Virtual Container in order to segregate the modules outside of the main Python installation (whether it is system-wide Python or statically provided). Once an empty virtual environment (not shown on the _Figure 1_) is created for chosen Python interpreter, Salt Minion is bootstrapped via PIP against custom PyPi server, where all required Salt Minion dependencies reside.
 
-This should result into running fully featured Salt Minion of latest version in an isolated virtual environment on an OS-isolated Python interpreter, which is aligned with the current Uyuni Server. Once Uyuni Server is updated to another version, so is the PyPi container image is also upgraded. Thus, Uyuni Server should issue mass-upgrade to all Salt Minions that should PIP-upgrade themselves, bumping up to the latest available version.
+The outcome is to achieve running fully featured Salt Minion of latest available version in an isolated virtual environment on an OS-provided Python interpreter (static or provided with the OS packaging). Once Uyuni Server is updated to another version, so is the PyPi container image content is also upgraded (or the packages inside the PyPi are updated). This way Uyuni Server is issuing mass-upgrade command to the all Salt Minions, similarly how SaltSSH would re-generate `thin.tgz` archive.
 
 Consequently, this mechanism will allow to keep always aligned Salt Minions across the entire infrastructure consistent and identical.
 
