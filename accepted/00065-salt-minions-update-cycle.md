@@ -48,7 +48,14 @@ Each Salt Minion is not packaged anymore in OS-specific package manager (RPM, De
 
 Rationale: Track all the patches in only one place. As the code is isolated (see above), avoid unnecessary extra-packaging for isolated version of the Salt Minion.
 
-## Principle
+## Deployment Cycle
+
+### Overview
+
+Deployment of the Salt Minion consists of two parts:
+
+1. Setting up statically compiled Python environment. This include 3rd party modules and dependencies, such as MCrypto, SSL etc.
+2. Deploy Salt Minion and all its included modules.
 
 The principle is to run own minimal [PyPi](https://pypi.org/project/pypiserver/) local server on Uyuni cluster. In order to install a Salt Minion, a managed system should use PIP againstlocal PyPi server, as shown on Figure 1 below:
 
