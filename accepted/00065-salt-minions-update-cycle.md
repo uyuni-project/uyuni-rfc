@@ -141,13 +141,13 @@ If update is finished successfully, Salt Minion is restarted into a new environm
 
 If update failed, Salt Minion keeps running without changes, report is created and new Virtual Environment is purged immeditately.
 
-As shown on the _Figure 2_, the difference between RPM-based updates is that the software components are overwritten, instead of installed nearby. Therefore once Salt Minion is broken on upgrade for whatever reasons, it might be no longer possible to revert this with the faulty Salt Minion itself.
+As shown on the _Figure 3_, the difference between RPM-based updates is that the software components are overwritten, instead of installed nearby. Therefore once Salt Minion is broken on upgrade for whatever reasons, it might be no longer possible to revert this with the faulty Salt Minion itself.
 
 ![Layout](images/00065-ve.png)
 
-_Figure 2_
+_Figure 3_
 
-According to the _Figure 2_, if updated Salt Minion is successfully updated and is trusted enough, then the statuses of each virtual environment are shifted, and "Previous Salt Minion" is purged.
+According to the _Figure 3_, if updated Salt Minion is successfully updated and is trusted enough, then the statuses of each virtual environment are shifted, and "Previous Salt Minion" is purged.
 
 Naturally, the same way it is possible to update the entire Python version on production and roll-back to the previous Python version, in case things go wrong.
 
