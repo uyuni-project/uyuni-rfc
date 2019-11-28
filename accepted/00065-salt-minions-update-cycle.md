@@ -119,6 +119,8 @@ Further development may include:
 
 ## Fail-proof Updates
 
+Each Salt Minion is deployed into a newly created, fresh Python Virtual Environment. The reason of doing it is to reuse the same Python environment, separated from the Salt Minion procedure deployment. The reason to keep it fully separated is because Python environment may be fully static or a part of the operating system. In any of these cases Salt Minion provision should not affect the Python interpreter realm.
+
 Having running Salt Minion inside a virtual environment, allows to deliver fail-proof updates. The basic mechanism is to clone Python Virtual Environment from the current active Salt Minion and update the Salt Minion there.
 
 If update is finished successfully, Salt Minion is restarted into a new environment, which is set as default. Previos environment is kept, and is purged over one update cycle (one after current update). This way administrator always has an ability to roll-back to the previous known working version.
