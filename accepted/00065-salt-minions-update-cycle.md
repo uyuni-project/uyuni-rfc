@@ -22,6 +22,14 @@ This RFC has the following goals to resolve:
 
 ## Approach
 
+**Volatile Salt Minion**
+
+SaltSSH as of today is unable to work across different architectures that differs from the one where Salt Master is running. This limitation is due to the binary modules are included into pre-generated `thin.tgz` and they are coming from the hardware architecture on which they are installed at Salt Master side. That said, running SaltSSH from the x86 platform against e.g IBM System/390 or ARM will just fail to load binary included `.so` modules.
+
+However, SaltSSH is treating Salt Minion as volatile entity, and such approach can be successfully reused in a standard deployments, where Salt Minion can be fully installed into a separate optional environment e.g. in `/opt/salt<version>` with its own Python environment and also be directly removed with `rm -rf /opt/salt<version>` without breaking anything on the managed OS. Essentially, this makes Salt Minion state-less and can be removed and reinstalled at any time, regardless what kind of communication channel is used (ZMQ or SSH).
+
+If Salt Minion could be no longer needed to be packaged from the client OS perspective and is deployed from the Salt Master host, then the support routine is also shifting only to a Salt Master host.
+
 **Independent Maintenance Cycle**
 
 In order to efficiently update Salt Minion on any version of operating system, the update cycle of a Salt Minion needs to be independent from the maintenance update of the very operating system itself.
