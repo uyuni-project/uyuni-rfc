@@ -224,6 +224,18 @@ A *Snapshot* gains the *important* property if a corresponding version is promot
 
 A *Snapshot* is removed after a successful *build*/*promote* operation if the conditions for its existence don't hold true anymore (the number of kept important/unimportant *Snapshot* is exceeded).
 
+The algorithm to identify snapshots which should be removed should work like this.
+
+For unimportant snapshots:
+- make a list of all unimportant snapshots
+- remove the versions which are build in one of the environments
+- from the leftovers remove the all the snapshorts until we reach the configured number starting from the lowest version number.
+
+For important snapshots:
+- make a list of all important snapshots
+- remove the version which is build in the last environment
+- from the leftovers remove the all the snapshorts until we reach the configured number starting from the lowest version number.
+
 ### Limitations
 The *Snapshot* only contains pointers to other entities (software channels, packages, errata, ...). When a referenced entity is removed by the user, the *restore* function would not work as expected. To prevent this, we should **forbid** deleting channels that are used in *Snapshot*s.
 
