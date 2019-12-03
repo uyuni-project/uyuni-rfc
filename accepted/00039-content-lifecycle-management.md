@@ -5,7 +5,7 @@
 # Summary
 [summary]: #summary
 
-Define how content should be collected in a view and promoted via different environments/stages.
+Define how content should be collected in a view and promoted via various environments/stages.
 
 
 # Motivation
@@ -15,9 +15,9 @@ Customers typically do not use our Vendor Channels directly. They create clones,
 
 This can be implemented by using environments/stages like `DEV`, `QA`, `PRODUCTION` and content is just copied from one environment/stage to the next. There are systems assigned to these environments to develop and test newly added content before all production servers are updated.
 
-*Content* is not limited to Channels. It could also be "Configuration Channels" for states, "formulas" and more.
+*Content* is not limited to Software Channels. It could also involve Configuration Channels for States, Formulas and more.
 
-This RFC was inspired by best practices, Customer feedback and Katello.
+This RFC was inspired by best practices, customer feedback and Katello.
 
 
 # Glossary
@@ -25,11 +25,13 @@ This RFC was inspired by best practices, Customer feedback and Katello.
 
 * *Content Project*: A Project to attach Sources and Filters. It defines the Environments and the Lifecycle. The Content Project keeps a history of changes.
 
-* *Content*: Data for Systems like: Channels, Repositories with RPMs and Patches, Config Channels, Salt states and formulas. (Container images may or may not be seen as content. VM images are not content as nobody would use it. They are built from content but not built based on top of another image.)
+* *Content*: Data for Systems like: Channels, Repositories with RPMs and Patches, Config Channels, Salt states and Formulas.
 
 * *Content Build (CB)*: A snapshot of *Content* - optionally filtered - in an *Environment*.
 
-* *Filter*: A filter to denylist or allowlist different kind of *Content*.
+* *Content Snapshot* (*Snapshot*): Data containing a version and a description of a *Content Build* (e.g. channels, packages, errata, activation keys). Can be used for re-creating a *Content Build* later in the future (used for the "restore" functionality).
+
+* *Filter*: 2 types of filters (allow and deny) to filter various kind of *Content*. The purpose of the "allow" filters is to override "deny" filters: content filtered out by a "deny" filter can be brought back using an "allow" filter.
 
 * *Environment*: AKA *Stage* or *Landscape* (`DEV`, `TEST`, `PRODUCTION`). Contains a version of a *Content Build*.
 
@@ -37,8 +39,9 @@ This RFC was inspired by best practices, Customer feedback and Katello.
 
 * *Build*: *Building* generates a new *Content Build* version by cloning all attached Sources and applying the Filters. *Building* happens in order to lock the content in place.
 
-* *Promote*: *Content Build*s are copied along the *Lifecycle* to the different *Environments* defined in the *Content Project* (e.g. `DEV` to `TEST` to `PRODUCTION`). During *promotion* no filtering happens.
+* *Promote*: *Content Build*s are copied along the *Lifecycle* to the various *Environments* defined in the *Content Project* (e.g. `DEV` to `TEST` to `PRODUCTION`). During *promotion* no filtering happens.
 
+* *Restore*: Restore *Content* of given *Environment* to the state described by given *Content Snapshot*. Again, no filtering happens.
 
 # Detailed design
 [design]: #detailed-design
@@ -47,36 +50,37 @@ This RFC was inspired by best practices, Customer feedback and Katello.
 
 ![Workflow Diagram](images/ContentStagingWorkflow.png)
 
-Different kind of *Content* Sources can  be attached to a *Content Project*.
+Various kind of *Content* Sources can  be attached to a *Content Project*.
 
-Optionally *Filters* can be added to globally filter *Sources* content. *Filters* will be applied with an *AND* in the middle.
-Filters for Software Channels can be denylisting a package by name or version, or denylisting patches by date or type.
+Optionally *Filters* can be added to globally filter content from *Source*s. *Filters* will be chained with logical *AND*.
+Filters for Software Channels can filter out a package by name or version, or a patch by date or type.
 The implementation should be generic to add other filters in future versions.
 
-The *Content Project* also defines the *Lifecycle*. Minimal one Environment must be specified. It should be possible to add as much *Environments* as needed
-in a row.
+The *Content Project* also defines the *Lifecycle*. At least one *Environment* must be specified in the *Lifecycle*. It should be possible to add as many *Environments* as needed in a row.
 
 *Sources* to attach could be Software Channels, Configuration Channels, Formulas, etc.
-For Software Channels *one* base channel and all or some of its children can be added to the *Content Project*.
+For Software Channels, one base channel and all or some of its children can be added to the *Content Project*.
 
 Our *Best Practices Guide* says that custom channels (Channel created by the customer with 3rd Party software) should live in a separate tree,
 we must also allow to select other channels from different base channels. They need to be cloned during the *building process* under the new common
 base channel.
 
-To create a *Content Build* from a *Content Project* it needs to be *builded*. While *building* it generates clones of all the
+To create a *Content Build* from a *Content Project* it needs to be *built*. While *building* it generates clones of all the
 attached *Sources* and applies the *Filters* if there were any attached. The result is a versioned snapshot of the *Content Build* in the first *Environment* of the *Lifecycle*.
 
 It should be possible to add a description to the version of the *Content Build*.
-Showing a *History* of an *Environment* with descriptions of all promoted(?) *Content Builds* might be useful.
+Showing a *History* of an *Environment* with descriptions of all promoted *Content Builds* might be useful.
 Automatically added text snippets for the description while adding or removing a *Filter* help to know when a certain package or patch
 was excluded or included again.
 
-After the *Content Build* is builded, it can be *promoted* to the next *Environment* defined by the *Lifecycle*.
+After the *Content Build* is built, it can be *promoted* to the next *Environment* defined by the *Lifecycle*.
 Promote *Content Builds* is just copying it from one *Environment* to the next. It is not possible to change the content between the *Environment*s.
 *Filter*s are applied only when *building* the *Content Build* for the first *Environment*.
 
-As the *Content* in *Sources* changes and also *Filters* can be added and removed, new *building* compiles a new version of the *Content Build*.
-A new version **overwrites** the older version. Only the latest version of a *Content View* in an *Environment* materializes on disk and can be used.
+As the *Content* in *Sources* changes and also *Filters* can be added and removed, a new *build* compiles a new version of the *Content Build*.
+A new version **overwrites** the older version. Only the latest version of a *Content Build* in an *Environment* materializes on disk and can be used.
+
+The user still has option to restore an *Environment* to a previous state(s) using the *restore* functionality and *Content Snapshot*s (see the [Restore functionality](#restore-functionality) section).
 
 If an *Environment* does not have a successor it should be possible to append a new one to the end of the *Lifecycle*.
 In case there is a successor, adding an *Environment* would insert it in between the current *Environment* and the current successor.
@@ -114,7 +118,7 @@ We should make it easy for an user to manage activation keys and groups for a *C
 ## Releases vs. Staging
 
 Some customers prefer to do "Releases". They prepare *Content* and re-assign all Clients to the new Channels and do not move the *Content* along the *Lifecycle*.
-*Content Builds*s can be used for this as well. While using *Filters* and assigning Sources in a *Content Project* you can create a "Release"
+*Content Build*s can be used for this as well. While using *Filters* and assigning Sources in a *Content Project* you can create a "Release"
 just by *building* the *Content Build* with just one *Environment*.
 
 To create the next *Release* it would be helpful to be able to "copy" the *Content Project*. This would copy all attached *Sources* and *Filters* under a new name
@@ -155,7 +159,7 @@ this case.
 
 ## Behavior after a Service Pack migration
 
-During a SP migration the user selects an update target and after this a base channel. The base channel selection can be modified to select
+During an SP migration the user selects an update target and after this a base channel. The base channel selection can be modified to select
 an *Environment* instead of a base channel. If a system is not attached to an *Environment* we should show the existing UI.
 Doing this we should change also the group which identifies the *Environment*. With this we would directly get also new states and formulas
 from the new selected *Environment*.
@@ -171,18 +175,69 @@ similar to the schedule definition of a repository sync.
 Adding a timer is optional.
 
 
-## Support restore
+## Restore functionality
 
-As the current design does not allow a rollback of an *Environment* to previous versions of the *Content Build* the only chance to restore an *Environment* is to use the one from one stage above (restore).
+Support limited *Content* version tracking and restoring (rolling back).
 
-Example scenario:
-* 3 *Environment*s: `DEV`, `TEST`, `PRODUCTION`
-* Promoting *Content Build* from `DEV` to `TEST`
-* Testing the patches on systems in `TEST` fails, now we want to bring back the previous state:
+Note: for Software Channels, the restore functionality does not roll back installed packages. It only affects contents of the channels.
 
-The solution can be:
- * 'restore' from `PRODUCTION` to `TEST`
+The most important entity is the *Snapshot*. It has a version and it contains all the information needed for re-creating a *Build* in particular state in the future:
+* software channels reference (also the pointer which channel is the base (or "leader) in the *Build*
+* packages per channel reference
+* errata per channel
+* others (after we implement support for them): activation key, configuration channels, ...
 
+### Create Content Snapshot (backup)
+*Snapshot* is created after a successful *Project* *build*. It is populated with the references to channels and their packages/errata based on the *build*. Note that the software channels references in the snapshot point to the **source** channels of a project, not to the built ones.
+
+#### Example
+
+Project (`prj1` label) source channels:
+`sle-15-sp1-pool(packages: kernel, systemd, cron), sle-15-sp1-update(packages: kernel, systemd)`
+
+Channels in the 1st environment (`dev` label):
+`prj1-dev-sle-15-sp1-pool(packages: kernel, systemd), prj1-dev-sle-15-sp1-update(packages: kernel, systemd)` (the `cron` packages was filtered out with a filter)
+
+Create *Snapshot* of the `dev` *Environment*, it contains:
+- references to **source** channels: `sle-15-sp1-pool` and `sle-15-sp1-update`,
+- references to packages contained in the 1st *Environment*: `kernel` and `systemd`.
+
+
+### Restore Content Snapshot
+Restoring a *Snapshot* to a *Environment*.
+
+The data from the *Snapshot* is evaluated and the *Content* is re-created from it (e.g. the software channel tree is re-created in given environment and populated by packages and errata from the *Snapshot*).
+
+Technical note: For this, the adapted code for promoting *Environment*s could be used.
+
+
+### Version management
+Keeping all versions of *Snapshot*s throughout the *Project* existence would be impractical for 2 reasons:
+* DB pollution (growing table for *Snapshot*)
+* integrity issues (it is likely that some entities referenced from very old *Snapshot*s will be deleted).
+
+The proposal is to keep only selected subset of the *Snapshot*s. There are 2 kinds of snapshots: impotant ones and other (unimportant).
+
+By default, history of 3 important *Snapshot*s and 1 unimportant one is kept in addition to the materialized versions (these numbers can be overriden in Uyuni global settings). *Snapshot* of current state of *Environment*s are kept by default.
+
+A *Snapshot* gains the *important* property if a corresponding version is promoted to the last *Environment*.
+
+A *Snapshot* is removed after a successful *build*/*promote* operation if the conditions for its existence don't hold true anymore (the number of kept important/unimportant *Snapshot* is exceeded).
+
+The algorithm to identify snapshots which should be removed should work like this.
+
+For unimportant snapshots:
+- make a list of all unimportant snapshots
+- remove the versions which are build in one of the environments
+- from the leftovers remove the all the snapshorts until we reach the configured number starting from the lowest version number.
+
+For important snapshots:
+- make a list of all important snapshots
+- remove the version which is build in the last environment
+- from the leftovers remove the all the snapshorts until we reach the configured number starting from the lowest version number.
+
+### Limitations
+The *Snapshot* only contains pointers to other entities (software channels, packages, errata, ...). When a referenced entity is removed by the user, the *restore* function would not work as expected. To prevent this, we should **forbid** deleting channels that are used in *Snapshot*s.
 
 ## Removing an Environment
 
@@ -198,6 +253,21 @@ When we remove all of them when we remove an *Environment* we need to remove the
 Another option would be to keep them as "standalone" components and keep the systems assigned.
 (Needs to be defined)
 
+# Possible enhancements for the future
+
+## Import/Export Project/Environment
+We should also provide an import/export functionality for *Content
+Project*s, so that they can be applied in other SUMA installations,
+but this is going to happen within another RFC.
+
+## New content support
+
+* Formulas support (requirements: Formulas as part of Configuration Management in SUMA)
+* KIWI templates (a.k.a "all you need to re-create VMs that match certain *Environment*")
+* Bare metal machines templates
+  * AutoYaST profiles
+  * "Distribution"
+* Containers support
 
 # Implementation Step 1 - content definition
 
@@ -233,14 +303,6 @@ The *Content Project* wizard could be enhanced with template support.
 Enhance the managed *Content* with Configuration Channels. This will include also *Custom States* when they are implemented as Configuration Channels.
 
 Add more *Filter*s.
-
-
-# Drawbacks
-[drawbacks]: #drawbacks
-
-* No full history of content snapshots available. Only the current Environments exists.
-* No rollback to previous versions
-
 
 # Alternatives
 [alternatives]: #alternatives
@@ -292,6 +354,11 @@ Using System Groups as Environments:
 
 # Resolved questions
 [resolved]: #resolved-questions
+
+* Q: Decide on how many *Snapshot*s per *Environment* do we want.
+  * Should the number be configurable per *Environment*?
+  * Should some *Environment*s have some kind of `important` flag indicating more stored snapshots?
+  * A: No. See the [Version Management](#version-management) section for the answer.
 
 * Q: Naming of *Content Profile*s, more options:
   * *Usage Group*s, *Application Profile*s, *Environment Profile*s,
