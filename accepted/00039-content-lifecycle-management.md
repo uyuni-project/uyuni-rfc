@@ -218,7 +218,7 @@ Keeping all versions of *Snapshot*s throughout the *Project* existence would be 
 
 The proposal is to keep only selected subset of the *Snapshot*s. There are 2 kinds of snapshots: impotant ones and other (unimportant).
 
-By default, history of 3 important *Snapshot*s and 1 unimportant one is kept (these numbers can be overriden in Uyuni global settings). *Snapshot* of current state of *Environment*s are kept by default.
+By default, history of 3 important *Snapshot*s and 1 unimportant one is kept in addition to the materialized versions (these numbers can be overriden in Uyuni global settings). *Snapshot* of current state of *Environment*s are kept by default.
 
 A *Snapshot* gains the *important* property if a corresponding version is promoted to the last *Environment*.
 
