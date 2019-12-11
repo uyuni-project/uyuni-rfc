@@ -57,7 +57,7 @@ The additional result for the final user would be that each system listed reache
 The SSH details supplied by the user in the workflow will be used to bootstrap each reachable node of the cluster. We want to reuse as much code as possible: a call to `XmlRpcSystemHelper#bootstrap` will be issued for each node of the cluster. For the sake of simplicity and feature-wise, each node will be registered as a Salt minion and not as a salt-ssh minion.
 Scalability-wise:
 
-* From the field, it has been reported that a Kubernetes cluster should not be comprised of more than 100 clusters: managing 100 registrations at the same time should not constitute a performance problem for a healthy Uyuni/SUSE Manager.
+* From the field, it has been reported that a Kubernetes cluster should not be comprised of more than 100 nodes: managing 100 registrations at the same time should not constitute a performance problem for a healthy Uyuni/SUSE Manager.
 * Theoretically, a cluster [must not have more than 5000 nodes](https://cloud.google.com/solutions/scope-and-size-kubernetes-engine-clusters): the same considerations apply as per the above.
 
 # Drawbacks
