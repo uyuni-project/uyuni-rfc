@@ -72,7 +72,12 @@ In tomcat the situation is maybe a little bit more complicated since our busines
 
 
 
+## Minimal example
 
+This ia a minimal example extracting most of the interactions with salt into an interface. Its not complete
+as it lacks more refinement i.e getting rid of JsonElement in result or splitting it up into more topical interface i.e having libvirt interaction in its own interface. But it should give a general idea of how this rfc looks applied to our code.
+
+[salt-branch](https://github.com/uyuni-project/uyuni/compare/salt-interface?expand=1)
 
 # Drawbacks
 [drawbacks]: #drawbacks
