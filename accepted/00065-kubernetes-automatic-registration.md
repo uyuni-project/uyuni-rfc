@@ -1,6 +1,6 @@
 - Feature Name: automatic registration of Kubernetes nodes
 - Start Date: 2019-11-20
-- RFC PR: (leave this empty)
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/27
 
 # Summary
 [summary]: #summary
