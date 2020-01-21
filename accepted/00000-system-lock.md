@@ -1,0 +1,133 @@
+- Feature Name: minion_locking
+- Start Date: 2020-01-21
+- RFC PR: (leave this empty)
+
+# Summary
+[summary]: #summary
+
+The goal is to lock Salt minions i.e. don't allow certain actions to be executed on a Salt minion.
+
+# Motivation
+[motivation]: #motivation
+
+* Feature parity with traditional clients. System locking is available for traditional clients but no such functionality exists for Salt minions.
+* Prevent certain actions when a product is installed on a minion, e.g. when a minion is a CaaSP node some actions shouldn't be allowed.
+
+# Detailed design
+[design]: #detailed-design
+
+Traditional clients can be locked by the user. When locked, only certain action types are allowed. Actions that change the state of a system are blocked (package install, upgrade, apply highstate, etc) while read-only actions are allowed (hardware refresh, package profile refresh, etc).
+
+The same should be possible for Salt minions. However, in the case of Salt minions, additional flexibility is needed to allow blocking some actions depending on the the products installed on the minion. This is needed to accommodate CaaSP and maybe other clustering products in the future.
+
+To prevent the user from accidentally executing forbidden actions, the selective blocking must work both at the level of the Uyuni UI/XML-RPC API and at the level of the Salt command line.
+
+## Uyuni level selective action blocking
+
+For traditional clients the action types that are allowed when a system is locked are configured in the db. The configuration is global and applies to all clients indiscriminately.
+
+In the case of Salt minions, the same approach will be used. The action types that are allowed when a system is locked will be stored in the db.
+
+Additionally, in order to make the approach more flexible and to accommodate CaaSP a new object called a "locking profile" will be introduced. 
+
+The locking profile will contain a list of permitted actions. A profile can be reused across multiple minions. A minion will have only one locking profile assigned when locked. Specifying a locking profile will be optional when locking a minion. If not specified, the global locking configuration will apply.
+
+Current db schema:
+```
+        Table "rhnActionType"
+      Column      |          Type                                                                                         
+------------------+------------------------                                                                             
+ id               | numeric                
+ label            | character varying(48)  
+ name             | character varying(100) 
+ trigger_snapshot | character(1)                                                                                  
+ unlocked_only    | character(1)
+
+    Table "rhnserverlock"
+  Column   |           Type           
+-----------+--------------------------
+ server_id | numeric                  
+ locker_id | numeric                  
+ reason    | character varying(4000)  
+ created   | timestamp with time zone 
+
+```
+
+If column `unlocked_only` is `Y` the action type is blocked when the system is locked.
+
+Proposed enhancement with locking profiles:
+```
++         Table "rhnLockProfile"
+       Column      |          Type                                                                                         
+ ------------------+------------------------
+  id               | numeric
+  label            | character varying
+ 
++         Table "rhnLockProfileActionTypes"
+       Column      |          Type                                                                                         
+ ------------------+------------------------
+  profile_id       | numeric references rhnLockProfile(id)
+  action_type_id   | numeric references rhnActionType(id)
+  unlocked_only    | character(1)
+ 
+          Table "rhnServerLock"
+   Column    |           Type           
+ ------------+--------------------------
+  server_id  | numeric                  
+  locker_id  | numeric                  
+  reason     | character varying(4000)  
+  created    | timestamp with time zone 
++ profile_id | numeric nullable references rhnLockProfile(id)
+
+```
+The new column `rhnserverlock.profile_id` will reference the locking profile to be used. If it's `NULL` the global configuration from `rhnActionType.unlocked_only` will be used.
+
+## UI and XML-RPC API selective blocking
+
+If a system is locked the UI must check if a certain action is blocked and hide/disable the corresponding UI elements. E.g. if package remove is not allowed then the install button must be disabled in the tab Software -> List
+
+## Salt level selective action blocking
+
+Salt has a mechanism called blackout for preventing remote commands to be executed on a minion. It works by defining a special pillar called `minion_blackout` to signal to the minion that it must reject all remote executions. Exceptions can be configured using the `minion_blackout_whitelist` pillar. This accepts a list of Salt functions that are allowed during blackout.
+
+This mechanism however is not fine grained enough for Uyuni's use case. For example, there are multiple actions that use `state.appply` under the hood. Some actions can change the state of the system while others are read-only but they all use `state.apply`. If `minion_blackout_whitelist` is used to allow `state.apply` then all actions that use this function are allowed.
+
+The blackout mechanism must be enhanced to allow a more fine grained filtering. One approach would be to check the metadata that can be attached to a Salt call. 
+
+A metadata whitelist would be defined. If the Salt call contains metadata that matches the whitelisted metadata then the call would be allowed. 
+
+```yaml
+minion_blackout: True
+minion_blackout_metadata_whitelist:
+    minion-action-type:
+    - packages.refresh_list
+    - hardware.refresh_list
+```
+
+## Implementation phases
+
+The implementation can be split in several phases:
+
+1. Enhance Salt blackout to check metadata
+2. Feature parity with traditional clients - use global locking configuration that's currently defined in table `rhnActionTypes`
+3. Enhance db schema to add locking profiles 
+
+# Drawbacks
+[drawbacks]: #drawbacks
+
+Is not very fine grained. Some actions might be forbidden only in certain cases. E.g. in the case of CaaSP, package operations are allowed as long as they don't impact the CaaSP packages.
+
+Such cases need a different solution that could be complementary to system locking (maybe package locking ?).
+
+
+# Alternatives
+[alternatives]: #alternatives
+
+## Salt blackout
+
+This approach will be used for the initial version of CaaSP support. While simple this is not fine grained enough for Uyuni because it's only possible to whitelist Salt functions and Uyuni can use the same function (`state.apply`) for multiple actions.
+
+# Unresolved questions
+[unresolved]: #unresolved-questions
+
+What parts of the design are still TBD?
