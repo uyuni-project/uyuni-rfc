@@ -1,5 +1,5 @@
-- Feature Name: hub_service
-- Start Date: 2019-11-7
+- Feature Name: Uyuni Cluster Extension
+- Start Date: 2020-01-14
 - RFC PR:
 
 # Summary
