@@ -7,57 +7,54 @@
 
 ## Outline
 
-This RFC describes architecture overview for Uyuni Cluster extension, an external event-driven system which turns existing Uyuni Server into a cluster, suitable to scale it out for enterprise environment and/or retails in a matter of configuration and deployment type.
+This RFC is an architecture overview of Uyuni Cluster Extension. The Uyuni Cluster Extension is an external event-driven system which orchestrates an unlimited set of existing Uyuni Server into a single logical unit. The final result should be suitable to scale out for enterprise environment and/or retails in a matter of configuration and deployment type.
 
 ## Limitations
 
-This architecture is meant to take Uyuni Server to the next level of performance and scalability. Taking to the account age of existing solution, such move would also come with a price to at least temporarily disable certain features that are known for traditional Uyuni Server, when it is running in a cluster mode.
+This proposal is meant to take Uyuni Server to the next level of performance and scalability, which is unusual for the existing, traditional monolithic Uyuni Server solution. Therefore this comes with a price of possible stripping down some features, known for traditional Uyuni Server, once it is running in a cluster mode. No features should be removed from an Uyuni Server, if it is not running in a mode of being a Cluster Node.
 
 # Terminology
 
-- **Uyuni Node**. This is a standalone almost typical Uyuni Server (Uyuni Manager or Proxy) setup with registered Client Systems machines as usual with a difference that it is purely automatic and remotely controlled. This Uyuni Server is therefore connected to the cluster, which managing and querying it.
-- **Client System**. This is a typical managed system in the Data Center: any physical or virtual machine or device, managed by a specific **Uyuni Node**.
-- **Node Controller**. Microservice, preinstalled on each **Uyuni Node** that bridges it to the entire cluster via bus.
-- **Load Driver**. HA core microservice that keeps the topology of the entire cluster and orchestrates it.
-- **Metastore**. Part if the Load Driver. It is a distributed key/value store to keep all Cluster Nodes metadata _about_ them. It is supposed to be used to restore a particular Client System metadata, such as channel assignments, keys, history, actions etc.
-- **API Gateway**. Is an API Gateway, providing API to the entire cluster over REST or XML-RPC (should be deprecated) protocol and is 100% backward-compatible with a single-node traiditional Uyuni Server.
+- **Uyuni Node**. A standalone, typical Uyuni Server (Uyuni Manager or Proxy) running as a member node of a cluster. It possibly has less functionality as standalone setup. The functionality is identical to a traditional setup with registered Client Systems machines. Cluster Node meant to run purely automatic and being remotely controlled.
+- **Client System**. Any managed system in the Data Centre. Any supported physical or virtual machine or device that possibly can be managed by an **Uyuni Node**.
+- **Node Controller**. Microservice, preinstalled on each **Uyuni Node**. It acts as a proxy between Uyuni Server components and the cluster and bi-directionally bridges Uyuni Server to the entire cluster via messaging bus.
+- **Load Driver**. Cluster orchestration core. Highly available microservice, which keeps the topology of the entire cluster, orchestrates it and ensures the integrity of it.
+- **Metastore**. Data storage for the Load Driver. It is a distributed key/value store to keep all Cluster Nodes metadata _about_ them. It also keeps metadata about particular Client Systems, such as channel assignments, keys, history, actions etc.
+- **API Gateway**. Is a microservice, which provides API to the entire cluster over the REST or XML-RPC (should be deprecated) protocol and is 100% backward-compatible with an API, already available for a single traiditional Uyuni Server setup.
 
-## What It Is Not
+## What Uyuni Cluster Extension Is Not
 
-- Although it provides such feature in certain components, Cluster extension **is not HA (High Availability) system**. High Availability is **not** horisontal scalability, where scale of the appliance is based on the primary node and load is not distributed to the replica server, because it has only failover purpose.
-- **Cluster extension is not about Performance boost.** It is about scaling-out Uyuni Server, keeping it as a **single logical unit**.
+- Although while it provides high availability feature in certain ways, Cluster extension **is not HA (High Availability) feature**. High Availability is **not** about horisontal scalability (scaling out), where scale of the appliance is based on the primary node and load is not distributed to the replica server, because it has only purpose of failover.
+- **Cluster extension is not about Performance boost.** Although certain setup sometimes might help to speed up a performance abit for a specific Cluster Node by taking away load of it elsewhere, yet the solution is not about speeding up the performance, but scaling out traditional Uyuni Server and keeping it as a **single logical unit**.
 
 # Motivation
 [motivation]: #motivation
 
-According to the existing released architecture, the Uyuni Server as it is today, cannot scale-out. Adding a simple chain of Uyuni Servers wouldn't be a solution of this problem.
+According to the existing released architecture as of today, the Uyuni Server:
+- ...unable to scale-out with unlimited amount of client systems. Currently, a comfortable limit of registered systems are about 15.000 units with a push to 20.000 units maximum on a beefy hardware.
+- ...is not cloud native solution. It cannot be deployed on Kubernetes platform or shipped in a container.
+
+The primary goal of this proposal is to solve these unresolved problems.
 
 # Scaling-out Uyuni (definitions)
 
-Here is a minimal "raised bar", where any architecture design that doesn't meet these definitions cannot be considered as a solution for scaling-out Uyuni Server:
+The list of definitions that must be met if scaling out the Uyuni Server:
 
-- Uyuni Server should be used and feel like a single logical unit, preserving administrative, functional, geographic and load scalabilities. It should not feel like a chain of various Uyuni Servers, each one is managed manually and separately on its own.
-- 100% compatible API, so no existing 3rd party tools are broken.
+- Uyuni Cluster must be used and feel like a single logical unit, preserving administrative, functional, geographic and load scalabilities. It should not feel like a chain of various Uyuni Servers, each one is managed manually and separately on its own.
+- Must provide 100% backward-compatible API, ensuring no existing 3rd party tools are broken or need a major rewrite.
   > **NOTE:** if there is inevitable incompatibility (e.g. some of XML-RPC API are no longer synchronous), there should be a clear migration roadmap.
-- Adding new nodes to a cluster or removing them should be linear and thus fully automated. No manual work should ever be done.
-- Infinite linear growth. No "maximum expected number" limitations.
+- Once new nodes has been added to a cluster or removed from it, utilising their resources must be linear and fully automated. No extra manual work of re-registering Client Systems should ever be done other than the usual as of traditional setup of Uyuni Server.
+- Must grow linerly to the infinite, unlimited nodes. Must have no "maximum expected number" limitations in the specifications.
   > **NOTE:** in reality "linear" is not always fully linear, however it should be at least with a very small deviations.
-- Should not generate big amount of extra-work to manage the cluster, especially if it grows excessively large. All nodes should be fully automated.
-- Should meet SLA during failures or maintenance operations.
+- Should not generate big amount of extra-work to manage the cluster nodes other, than it is usually needed to administer cluster machines. This especially important if the cluster grows excessively large. All nodes should be fully automated and no extra manual work needs to be performed in order to run them in a sync.
+- Must meet RTO/RPO limits of an SLA during failures and/or maintenance operations.
 
-## Requirements excerpts
+## Requirements Summary
 
-One of the requirements:
-- Cluster extension should preserve compatibility for all operating systems supported by Uyuni.
-- Uyuni Cluster should be able to be deployed in a containers, e.g. in Kubernetes environment.
-- Should fit to large Data Centre as well as large Retailer scenarios in a matter of configuration.
-
-# Testability
-
-Testing cluster extension with at least two Uyuni Nodes should be as easy as testing at random one of its Uyuni Node with an extension to make sure any other random node is identically replicated. Most of the testing should be performed over API. Additionally, the UI of the cluster overview should be able to be tested with the currently existing tooling.
-
-No testing should be performed for 3rd party components of the cluster, such as a distributed storage or a messaging bus. These components are meant to be tested separately on their own and Uyuni Cluster supposed to just use released versions without any modifications to them.
-
+Some of [the general requirements](https://github.com/uyuni-project/uyuni-rfc/blob/master/accepted/00060-hub-general.md) as summarised:
+- Cluster extension **should preserve compatibility** for all operating systems supported by Uyuni.
+- Uyuni Cluster should be able to be **deployed in a containers**, e.g. in Kubernetes environment.
+- Should fit to large Data Centre as well as large Retailer scenarios in a **matter of configuration**.
 
 # DISCLAIMERS
 [disclaimers]: #disclaimers
@@ -466,9 +463,11 @@ Goal: Turn any machine to be cluster-aware, regardless of what configuration sys
 
 Goal: Implement core components of cluster orchestration.
 
-- Load Driver
+- Load Driver — essential core of the product, most complex part of the system.
 - Controller Node
-- API Gateway (working prototype was already demonstrated on SUMA Winter Summit 2020)
+- Metastore
+- API Gateway
+  >**NOTE:** Working prototype, which solves the essential blocker for multiple Uyuni Servers was already demonstrated on SUMA Winter Summit 2020.
 
 # Alternatives
 
