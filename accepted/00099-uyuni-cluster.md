@@ -102,9 +102,7 @@ _Figure 1_
 
 ### API Gateway
 
-Traditional Uyuni Server provides API over XML-RPC protocol. These APIs allows control Uyuni Server remotely. Uyuni Server also runs a Salt Master, which is involved to control remote Client Systems, assigned to that particular Uyuni Server.
-
-The job of the API Gateway node is to join all Cluster Node APIs into one 100% compatible "bouquet" to all of them and provide an FQDN for 3rd party tools connectivity to remotely control the entire cluster as one single logical unit.
+Traditional Uyuni Server provides API over XML-RPC protocol. These APIs allows control Uyuni Server remotely. Uyuni Server also runs a Salt Master, which is involved to control remote Client Systems, assigned to that particular Uyuni Server. Consequently, if there is a set of Uyuni Servers, each running a separate Salt Master, there will be a set of APIs that no known tooling will be able to work with. In order to make this happen, an API Gateway should handle this between the 3rd party consumer and the entire cluster. The job of the API Gateway node is to join all Cluster Node APIs into one 100% compatible "bouquet" to all of them and provide an FQDN for 3rd party tools connectivity to remotely control the entire cluster as one single logical unit.
 
 API Gateway should multiplex many inputs from many Cluster Nodes into one single-dimensional output and provide to the 3rd party components. It also should do the reverse: receive single input and demultiplex it back to many Cluster Nodes. In this way this provides 100% API backward compatibility **[1]** so peripheral components, such as `spacecmd` would just work as is without any modifications.
 
@@ -122,7 +120,7 @@ ______________
 
 ### Load Driver
 
-Load Driver is a core director of the Cluster. It is standalone, higly available and high load capable microservice. It runs on its own and communicates with the rest of the cluster via messaging bus **[1]**. Load Driver provides the following functionality:
+Load Driver is a core director component of the Cluster, an analogy as "control node" to SUSE Enterprise Storage or ZooKeeper to Apache Kafka architecture. It is standalone, higly available and highly performant against heavy loads, microservice. It runs on its own as a separate component, is able to be replicated for high availability, and communicates with the rest of the cluster via messaging bus **[1]**. Load Driver provides the following functionality:
 
 - Keeps topology of the entire Cluster
 - Keeps loading statistics of each Cluster Node
@@ -141,13 +139,13 @@ _Figure 3_
 
 ---------
 
-> [1] The messaging bus component can be any of typical MQ type. Recommended is scalable-out Apache Kafka with millions of messages per a second performance.
+> [1] The messaging bus component can be any of typical MQ type. Recommended for the task is scalable-out Apache Kafka with proven performance of two millions of written messages per a second. Additionaly, Apache Kafka can be horisontally scaled out alongside Uyuni Cluster, once it reaches a very large size.
 
 ### Metastore
 
 Last in the picture is the Metastore component. This component runs a distributed transactional key-value database and connects it to the rest of the Cluster over messaging bus. It has similar functionality as `etcd` in Kubernetes: to store all its data, like configuration, state, metadata etc. It also stores all the data about each Client System, so later Cluster is using this data to restore/remap that system elsewhere.
 
-For scalability reasons, primary choice for distributed data storage component is [TiKV database](https://tikv.org), a member of [CNCF](https://landscape.cncf.io).
+For scalability reasons, primary choice for distributed data storage component is [TiKV database](https://tikv.org), a member of [CNCF](https://landscape.cncf.io) which, reportedly, outscales and outperforms similar `etcd` database, used in Kubernetes clusters at the moment.
 
 ![Figure 4](images/uyuni-cluster-mtst.png)
 
@@ -256,8 +254,6 @@ The same "orphans process" is used to remap systems, once Cluster got a bigger s
 - Implement cluster-awareness daemon which controls the rest of the components (Salt and/or traditional client).
 
 
-Figure 2
-
 ### Cluster UI
 
 Cluster UI is a single-page app, summarising the entire overview of the Cluster in a whole and is accessible from the main FQDN entry of the Cluster, e.g. `https://mycluster.local/` but is available on _each cluster Node (!)_ as is. After a login on the main URL, user should be actually redirected to the elected Leader Node, e.g. `https://node42.mycluster.local/` but omitting traditional login screen (user was already authenticated), landing page on the single-page app in this case. In this way Leader Node is guaranteed elected before anything else had happened. This UI is a part of a standard Uyuni UI, but visible only in Cluster Node "mode".
@@ -346,9 +342,31 @@ The SLA would depend on a physical size of a cluster.
 
 Cluster Zones comes handy when different scenarios are considered, such as "Enterprise Data Centre" or "Retails".
 
-Essentially, "cluster zone" is just a logically segregated group of Cluster Nodes, where the common content data is not shared between the zones. The use within a large Enterprise Data Centre would mean one or few zones and many Cluster Nodes per a zone, while use withing a large Retail Stores would mean many zones and one or a few Cluster Nodes per a zone. The advantage of scaling out for Retail Stores is that cluster allows to add on demand more power per a retail Store, once it is required, and is not limited to just one Uyuni Server machine.
+### What Zones Are
 
-All the logic of zoning is covered by Load Driver, which is responsible for cluster topology. Load Driver should define segregation boundaries what Cluster Nodes belongs to what zone and how internal distributed storage is sharing what data.
+Essentially, "cluster zone" is just a logically segregated group of Cluster Nodes, where the common content data is not shared between the zones. The use within a large Enterprise Data Centre would mean one or few zones and many Cluster Nodes per a zone, while use withing a large Retail Stores would mean many zones and one or a few Cluster Nodes per a zone. Admin, having access to the root of the Zones tree should be able to access all zones. Or this can be restricted per a login to a specific zone or set of those. Once Zone is selected, only machines that matches that zone are visible. Similarly, when machines are onboarded to be a Client Systems, they are added to a defined cluster zones.
+
+All the logic of zoning is covered by Load Driver, which is responsible for cluster topology. Load Driver should define segregation boundaries what Cluster Nodes belongs to what zone and how internal distributed storage is sharing which data.
+
+![Figure 5](images/uyuni-cluster-zn.png)
+
+_Figure 5_
+
+### What Zones Are Not
+
+Cluster Zone should not be considered as an independent and a separate Uyuni Cluster Extension installation.
+
+## "Enterprise Data Centre" Mode
+
+Typically it is an installation with just one Zone, where all the Client Systems are allocated to it. In some cases it might be needed to add few of those to segregate groups of supported devices between departments (e.g. Network Routers, Databases, Webservers etc).
+
+## "Retails" Mode
+
+Not very different from the "Enterprise Data Centre" mode, for the "Retail" mode scenario, an admin, who has access to a "Zone X", will also login to the Cluster through the Load Driver component, and be redirected to one of Cluster Nodes, that are handling that specific zone. All queries and operations, API access and scope must be limited only to that zone. The only difference between "Retails" mode and "Data Centre" mode is that "Retails" might require thousands of zones with one or few Cluster Node inside.
+
+Still, the advantage of scaling out for Retail Stores is that cluster allows to add on demand more power per a retail Store, once it is required, and is not limited to just one Uyuni Server machine. That said, if one Retail Store would require 30.000+ machines, this immediately will **exceed maximum capability** of one Uyuni Server. However, adding few more Cluster Nodes as one logical unit would solve this transparently.
+
+To put it simpler, a zone is a retail store.
 
 ## Content Lifecycle Management (CLM)
 
