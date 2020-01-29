@@ -374,6 +374,61 @@ There is no a single way of resolving this. In some times a warning of faulty Cl
 
 In any case, Uyuni Cluster Extension makes automatic re-provisioning of a Cluster Node cheap (except the performance is expected to be reduced for a while). Unless traditional Uyuni Server alone has much cleaner internal codebase and more solid functionality, wiping everything and reinstalling from the beginning might be an ultimate way for now. Especially it makes sense if Cluster Node is deployed on Kubernetes platform. In this case rerunning container is the most reliable way.
 
+# Testing
+
+## Approach
+
+Clusters aren't simple. They do depend on variety models and each setup may affect one of those by distance, density, distribution etc. Therefore testing would require some amount work and should satisfy at least a common acceptance denominator.
+
+The main approach is to compare statictics of available variables and their sustainability.
+
+## Cluster-specific Components
+
+Without any load, Uyuni Cluster Extension already consists of several components that should be setup prior first Cluster Node is added to it. Each such component should have its own tests:
+
+- Unit Tests
+- Benchmark tests
+- Throughput/load tests
+- Integration tests
+
+## 3rd Party Components
+
+All tests on 3rd party components should be only integration tests. Such as if a distributed file system transfers data from one cluster node to another; if a distributed key/value store receives messages from certain components etc.
+
+However, no testing should be performed over mere 3rd party components of the cluster, such as a distributed storage or a messaging bus. These components are meant to be tested separately on their own during their releases. The Uyuni Cluster Extension supposed to just utilise already released versions without any modifications to them and assume they are tested on their own elsewhere separately.
+
+Therefore the following tests should not be performed on the 3rd party components alone, outside of the Cluster installation:
+
+- Unit Tests
+- Component own integration tests
+- Any other tests, related to the mere releasing of the component
+
+## Integrity Tests
+
+At least one Uyuni Node should be deployed for integrity testing and chosen as a Leader Node. Another node should be added and then checked if it was identically replicated. All the testing should be performed over Cluster-provided APIs.
+
+## Cluster UI Tests
+
+The UI of the cluster overview should be able to be tested with the currently existing and used tooling (Selenium etc).
+
+## Performance Tests
+
+There are at least two areas where performance should be tested:
+
+- Throughput of the Cluster components, such as Load Driver or Node Controller.
+- The Uyuni Server itself.
+
+The Cluster components are vital for the overall performance, and the right approach to ensure high availability and performance check is yet to be discussed with the QA experts. One of the way of doing it could be endpoint tests with fake cluster load over the networking. But since each cluster installation depends on multitude of other specifics, such as networking, routers, hardware etc., the results may be often different from setup to setup.
+
+The Uyuni Server performance tests on its own should run outside of the Uyuni Cluster Extension test suite.
+
+## Recovery and Distribution Tests
+
+A set of tests over a chosen Client System should record the stats. Then the Cluster Node should be destroyed. After its recovery, the same test should be ran against previously chosen Client System and the results should not differ from each other.
+
+## Appendix
+
+Testing section describes only where to begin with, as a minimum set of tests required. All tests should be incrementally developed, improved, and a new ways should be added with a time.
 
 # Development Summary
 
