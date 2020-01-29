@@ -78,20 +78,22 @@ General description of Cluster components and are their roles in it.
 ## What is Uyuni Cluster Extension?
 [what-is-uyuni-cluster-extension]: #what-is-uyuni-cluster-extension
 
-In a nutshell, Uyuni Cluster Extension in principle can be thought as a separate independent event-driven external system, which integrates and manages traditional monolithic Uyuni Servers as Cluster Nodes, organising them into a single logical unit, that performs and feels like such.
+In a nutshell, Uyuni Cluster Extension in principle can be thought as a separate independent event-driven external system, which integrates and manages traditional monolithic Uyuni Servers as Cluster Nodes, organising them into a single logical unit.
 
 ## Overview
 [overview]: #overview
 
-Conceptually, Uyuni Cluster is a P2P layer "on top of" at least one traditional Uyuni Server where whole communication is based on events via messaging bus and various type of data is stored on a distributed storages. Therefore adding another Uyuni Server as Cluster Node would mean to add a full clone of the node, from which the new one is provisioned or joined, except without the registered Client Systems.
+Conceptually, Uyuni Cluster is a **master-less, peer-to-peer layer** "on top of" at least one traditional Uyuni Server where whole communication is based on events via messaging bus and various type of data is stored on a distributed storages. Therefore adding another Uyuni Server as Cluster Node would mean to add a full clone of the previously existing node, from which the new one is provisioned or joined, except without the registered Client Systems.
 
-The entire Uyuni Cluster is master-less and doesn't have a special dedicated Uyuni Server which would be an etalon object in a system. Instead, cluster elects a **Leader Node**, which would affect all other cluster nodes. All Cluster Nodes in the system meant to be identical by sharing all the same information about channels, subscriptions, be equally sychronised (`reposync` etc), except the very data about registered Client Systems, which is always should be unique to each Uyuni Node.
+Uyuni Cluster consists of several internal componens, such as Node Controller, Load Driver and API Gateway. Each of those are performing on their own.
 
-Additionally, Uyuni Cluster has few more services, such as Node Controller, Load Driver and API Gateway. Each of those are performing on their own.
+## Master-less
+
+The entire Uyuni Cluster is master-less and doesn't have a special dedicated Uyuni Server which would function as a persistent etalon state in a whole system. Instead, on demand, cluster temporarily elects a **Leader Node**, which would affect all other cluster nodes. All Cluster Nodes in the system meant to be identical by sharing all the same information about channels, subscriptions, be equally sychronised (`reposync` etc), except the very data about registered Client Systems, which is always should be unique to each Cluster Node.
 
 ### Node Controller
 
-Node Controller is a microservice, preinstalled on the same corresponding Uyuni Node, acting as a proxy between the traditional Uyuni Server and a message bus of the whole cluster. Its main function is to create a bridge between all Uyuni Servers events and notify the whole cluster about any changes on that Node, once they were made.
+Node Controller is a microservice, preinstalled on the each corresponding Uyuni Node, and acting as a proxy between the traditional Uyuni Server and a message bus of the whole cluster. Its main function is to create a bridge between all Uyuni Servers events and notify the whole cluster about any changes on that Node, once they were made.
 
 ![Figure 1](images/uyuni-cluster-nc.png)
 
