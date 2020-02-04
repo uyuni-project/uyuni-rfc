@@ -51,59 +51,13 @@ For traditional clients the action types that are allowed when a system is locke
 
 In the case of Salt minions, the same approach will be used. The action types that are allowed when a system is locked will be stored in the db.
 
-Additionally, in order to make the approach more flexible and to accommodate CaaSP a new object called a "locking profile" will be introduced. 
+Additionally, in order to make the approach more flexible and to accommodate CaaSP a new object called a "locking profile" will be introduced.
 
-The locking profile will contain a list of permitted actions. A profile can be reused across multiple minions. A minion will have only one locking profile assigned when locked. Specifying a locking profile will be optional when locking a minion. If not specified, the global locking configuration will apply.
+The locking profile will contain a list of permitted actions. A profile can be reused across multiple minions. A minion will have only one locking profile assigned when locked. 
 
-Current db schema:
-```
-        Table "rhnActionType"
-      Column      |          Type                                                                                         
-------------------+------------------------                                                                             
- id               | numeric                
- label            | character varying(48)  
- name             | character varying(100) 
- trigger_snapshot | character(1)                                                                                  
- unlocked_only    | character(1)
+The locking profile will be configured in code. Based on the installed products or any other arbitrary criteria defined in code Uyuni will apply a locking profile. The profile will be applied automatically when the software profile is refreshed (either as a result of registration or when triggered at a later time).
 
-    Table "rhnserverlock"
-  Column   |           Type           
------------+--------------------------
- server_id | numeric                  
- locker_id | numeric                  
- reason    | character varying(4000)  
- created   | timestamp with time zone 
-
-```
-
-If column `unlocked_only` is `Y` the action type is blocked when the system is locked.
-
-Proposed enhancement with locking profiles:
-```
-+         Table "rhnLockProfile"
-       Column      |          Type                                                                                         
- ------------------+------------------------
-  id               | numeric
-  label            | character varying
- 
-+         Table "rhnLockProfileActionTypes"
-       Column      |          Type                                                                                         
- ------------------+------------------------
-  profile_id       | numeric references rhnLockProfile(id)
-  action_type_id   | numeric references rhnActionType(id)
-  unlocked_only    | character(1)
- 
-          Table "rhnServerLock"
-   Column    |           Type           
- ------------+--------------------------
-  server_id  | numeric                  
-  locker_id  | numeric                  
-  reason     | character varying(4000)  
-  created    | timestamp with time zone 
-+ profile_id | numeric nullable references rhnLockProfile(id)
-
-```
-The new column `rhnserverlock.profile_id` will reference the locking profile to be used. If it's `NULL` the global configuration from `rhnActionType.unlocked_only` will be used.
+The locked/unlocked state will be stored in the db in the table `rhnServerLock` just like for traditional clients. If the system is locked but there's no suitable locking profile found in code then the global default from the db will be applied (just like for traditional clients).
 
 ## UI and XML-RPC API selective blocking
 
