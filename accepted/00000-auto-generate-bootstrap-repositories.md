@@ -15,18 +15,18 @@ To be able to register a system to Uyuni Server you need to have the software in
 A bootstrap repository provide the software for the supported operating systems with its dependencies. The content for the
 bootstrap repositories come from the normal channels which must be synchronized and updated on regular base.
 
-Users very often do not know this, or forget to create them when they synchronize a new product. Also the bootstrap repository
-is only updated when the user execute the generator script again.
+Users very often do not know this, or forget to create them when they synchronize a new products and channels.
+Also the bootstrap repository is only updated when the user execute the generator script again.
 
 This RFC should describe how to change the current tools to automatically 
-execute the generation of bootstrap repositories after
-a new product was added and after a channel changed when a maintenance update was synced to Uyuni Server.
+execute the generation of bootstrap repositories after a new product or channel was added,
+and after a channel changed because the underlying repositories synced new or updated packages.
 
 # Detailed design
 [design]: #detailed-design
 
 The currently existing tool `mgr-create-bootstrap-repo` list all available bootstrap repositories it could generate.
-This list depends on the products the user has synchronized.
+This list depends on the products/channels the user has synchronized.
 
 Step 1: provide an option to enable an automatic mode which iterate over all available bootstrap repositories and generate them
 when needed. As we have sometimes have multiple options for the same local "path" we should iterate over the paths to minimize
@@ -38,6 +38,8 @@ we need the possibility to debug problems. All messages should go to a log file.
 Step 3: let `mgr-create-bootstrap-repo` use a configuration file. All commandline options should be possible to set via
 configuration file. This allows to influence the behavior even in automatic mode when it is not possible to change the commandline
 options.
+
+Setp 4: implement a locking mechanism to run only 1 instance of `mgr-create-bootstrap-repo` at the same time.
 
 To trigger the re-generation we implement the following algorithm:
 
@@ -52,18 +54,33 @@ To trigger the re-generation we implement the following algorithm:
 
 Provide a `--force` option to enforce recreation of all bootstrap repositories without checking if needed. Mostly for manual usage.
 
+
+## Optional feature enhancements
+[optional]: #optional
+
+### User Notifications
+
+As this now run in background we should add notifications for the users. The following are usefull:
+
+1. On Error: when regeneration of a bootstrap repository failed.
+2. On Success: when a regeneration successfully finished.
+
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
-We maybe 15 minutes late with the bootstrap repository or maybe longer when a channel failed to sync or does not sync at all.
+- We maybe 15 minutes late with the bootstrap repository or maybe longer when a channel failed to sync or does not sync at all.
+- Information when a product is ready to be used/bootstrap is not available. This problem is not new and exists already now.
+  Adding notification would give at least a hint.
+
 
 # Alternatives
 [alternatives]: #alternatives
 
 1. Execute the `mgr-create-bootstrap-repo` one time per day in the morning via taskomatic expecting the nightly reposync is finished.
 
-2. Every finished repo sync trigger a `mgr-create-bootstrap-repo --for_updated_channel <label>`. It check if this channel is used
-for any bootstrap repository. If yes, regenerate them. If not, exit without doing anything.
+2. Instead of triggering `mgr-create-bootstrap-repo` via taskomatic, we can call it also from `spacewalk-repo-sync`.
+   This would save us a new job.
 
 
 # Unresolved questions
