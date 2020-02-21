@@ -21,7 +21,7 @@ Usability:
 # Detailed design
 [design]: #detailed-design
 
-Traditional clients can be locked by the user. When locked, only certain action types are allowed. Actions that change the state of a system are blocked (package install, upgrade, apply highstate, etc) while read-only actions are allowed (hardware refresh, package profile refresh, etc).
+Traditional clients can be locked by the user. When locked, only certain action types are allowed. Actions that change the state of a system are blocked (package install, upgrade, apply highstate, etc) while read-only actions are allowed (hardware refresh, package profile refresh, etc). A notable exception is remote command execution. In order to be consistent with traditional clients this will be allowed on Salt minions.
 
 The same should be possible for Salt minions. However, in the case of Salt minions, additional flexibility is needed to allow blocking some actions depending on the the products installed on the minion. This is needed to accommodate CaaSP and maybe other clustering products in the future.
 
