@@ -1,6 +1,6 @@
 - Feature Name: Auto-disable skuba-update upon system bootstrap
 - Start Date: 2020-02-03
-- RFC PR: (leave this empty)
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/32
 
 # Summary
 [summary]: #summary
