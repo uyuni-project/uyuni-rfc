@@ -29,7 +29,7 @@ To prevent the user from accidentally executing forbidden actions, the selective
 
 ## Salt level selective action blocking
 
-The Salt blackout mechanism works by defining a special pillar called `minion_blackout` to tell the minion that it must reject all remote executions. Exceptions can be configured using the `minion_blackout_whitelist` pillar. This accepts a list of Salt functions that are allowed during blackout, e.g. `test.ping`, `state.apply`, etc.
+The Salt blackout mechanism works by defining a special pillar called `minion_blackout` to tell the minion that it must reject all Salt remote executions. Exceptions can be configured using the `minion_blackout_whitelist` pillar. This accepts a list of Salt functions that are allowed during blackout, e.g. `test.ping`, `state.apply`, etc.
 
 However, in Uyuni there are multiple actions that use `state.appply` under the hood. Some actions can change the state of the system while others are read-only but they all use `state.apply`. If `minion_blackout_whitelist` is used to allow `state.apply` then all actions that use this function are allowed.
 
@@ -55,7 +55,7 @@ Additionally, in order to make the approach more flexible and to accommodate Caa
 
 The locking profile will contain a list of permitted actions. A profile can be reused across multiple minions. A minion will have only one locking profile assigned when locked. 
 
-The locking profile will be configured in code. Based on the installed products or any other arbitrary criteria defined in code Uyuni will apply a locking profile. The profile will be applied automatically when the software profile is refreshed (either as a result of registration or when triggered at a later time).
+The locking profile will be provided by application code. It won't be stored in the db. Based on the installed products or any other arbitrary criteria defined in code Uyuni will apply a locking profile. The profile will be applied automatically when the software profile is refreshed (either as a result of registration or when triggered at a later time).
 
 The locked/unlocked state will be stored in the db in the table `rhnServerLock` just like for traditional clients. If the system is locked but there's no suitable locking profile found in code then the global default from the db will be applied (just like for traditional clients).
 
