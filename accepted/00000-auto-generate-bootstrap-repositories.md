@@ -39,11 +39,14 @@ Step 3: let `mgr-create-bootstrap-repo` use a configuration file. All commandlin
 configuration file. This allows to influence the behavior even in automatic mode when it is not possible to change the commandline
 options.
 
-Setp 4: implement a locking mechanism to run only 1 instance of `mgr-create-bootstrap-repo` at the same time.
+Step 4: implement a locking mechanism to run only 1 instance of `mgr-create-bootstrap-repo` at the same time or more fine grained
+to prevent generating the same repository from 2 instances. As triggering from reposync already serialize the generation of bootstrap
+repositories, we need to take care only about manual called `mgr-create-bootstrap-repo`. A full lock on the whole application
+should be sufficient here.
 
 To trigger the re-generation we implement the following algorithm:
 
-- Create a taskomatic job running every 15 minutes and call `mgr-create-bootstrap-repo --auto`
+- call `mgr-create-bootstrap-repo` from a successful finished reposync
 - It calculate all channels which are needed to create the bootstrap repository for every available OS
 - It compare the `last_modified` timestamps of the channels (DB) with the `modified date` of the main metadata file
   (repomd.xml or Release)
@@ -60,7 +63,7 @@ Provide a `--force` option to enforce recreation of all bootstrap repositories w
 
 ### User Notifications
 
-As this now run in background we should add notifications for the users. The following are usefull:
+As this now run in background we should add notifications for the users. The following are useful:
 
 1. On Error: when regeneration of a bootstrap repository failed.
 2. On Success: when a regeneration successfully finished.
@@ -79,8 +82,8 @@ As this now run in background we should add notifications for the users. The fol
 
 1. Execute the `mgr-create-bootstrap-repo` one time per day in the morning via taskomatic expecting the nightly reposync is finished.
 
-2. Instead of triggering `mgr-create-bootstrap-repo` via taskomatic, we can call it also from `spacewalk-repo-sync`.
-   This would save us a new job.
+2. Create a taskomatic job running every 15 minutes and call `mgr-create-bootstrap-repo --auto`. This would decouple bootstrap repo generation
+   from repository syncing, but we would get a delay and we would call it more often then needed in case a long running reposync is happening.
 
 
 # Unresolved questions
