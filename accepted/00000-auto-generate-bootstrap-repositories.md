@@ -72,7 +72,6 @@ As this now run in background we should add notifications for the users. The fol
 # Drawbacks
 [drawbacks]: #drawbacks
 
-- We maybe 15 minutes late with the bootstrap repository or maybe longer when a channel failed to sync or does not sync at all.
 - Information when a product is ready to be used/bootstrap is not available. This problem is not new and exists already now.
   Adding notification would give at least a hint.
 
