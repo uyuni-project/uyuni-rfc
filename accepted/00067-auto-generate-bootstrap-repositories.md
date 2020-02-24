@@ -1,6 +1,6 @@
 - Feature Name: Autogenerate Bootstrap Repositories
 - Start Date: 2020-02-19
-- RFC PR: (leave this empty)
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/33
 
 # Summary
 [summary]: #summary
