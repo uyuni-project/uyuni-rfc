@@ -52,8 +52,9 @@ To trigger the re-generation we implement the following algorithm:
   (repomd.xml or Release)
 - if all `last_modified` timestamps are newer then the timestamp of the main metadata file, re-generate the bootstrap repository
 - if any `last_modified` timestamps are newer then the timestamp of the main metadata file and the `modified date` of the main metadata
-  file is older than 26 hours, re-generate the bootstrap repository. This is for the case a channel is not synced. It can happen on
-  custom repositories needed for bootstrap repositories.
+  file is older than 4 hours, re-generate the bootstrap repository. This is for the case a channel has a different schedule as the other
+  channles. Or somebody called `spacewalk-repo-sync` manual for one channel only. The 4 hours are a grace period to prevent inconsistant
+  data in the bootstrap repo. We only generate the repository when all mandatory repos finished syncing at least 1 time in the past.
 
 Provide a `--force` option to enforce recreation of all bootstrap repositories without checking if needed. Mostly for manual usage.
 
