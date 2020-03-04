@@ -35,8 +35,8 @@ the number of runs.
 Step 2: add a log file to `mgr-create-bootstrap-repo`. Currently it has no log file. But when this tool is running in the background
 we need the possibility to debug problems. All messages should go to a log file.
 
-Step 3: let `mgr-create-bootstrap-repo` use a configuration file. All commandline options should be possible to set via
-configuration file. This allows to influence the behavior even in automatic mode when it is not possible to change the commandline
+Step 3: let `mgr-create-bootstrap-repo` use a configuration file. All command line options useful for automatic mode should be possible
+to set via configuration file. This allows to influence the behavior even in automatic mode when it is not possible to change the commandline
 options.
 
 Step 4: implement a locking mechanism to run only 1 instance of `mgr-create-bootstrap-repo` at the same time or more fine grained
@@ -48,15 +48,15 @@ To trigger the re-generation we implement the following algorithm:
 
 - call `mgr-create-bootstrap-repo` from a successful finished reposync
 - It calculate all channels which are needed to create the bootstrap repository for every available OS
-- It compare the `last_modified` timestamps of the channels (DB) with the `modified date` of the main metadata file
+- It compare the `last_synced` timestamps of the channels (DB) with the `modified date` of the main metadata file
   (repomd.xml or Release)
-- if all `last_modified` timestamps are newer then the timestamp of the main metadata file, re-generate the bootstrap repository
-- if any `last_modified` timestamps are newer then the timestamp of the main metadata file and the `modified date` of the main metadata
-  file is older than 4 hours, re-generate the bootstrap repository. This is for the case a channel has a different schedule as the other
-  channles. Or somebody called `spacewalk-repo-sync` manual for one channel only. The 4 hours are a grace period to prevent inconsistant
-  data in the bootstrap repo. We only generate the repository when all mandatory repos finished syncing at least 1 time in the past.
+- if all `last_synced` timestamps are newer then the timestamp of the main metadata file, re-generate the bootstrap repository
+- if any `last_synced` timestamps is newer then the timestamp of the main metadata file and the latest `last_synced` DB value
+  is older than 4 hours ago, re-generate the bootstrap repository. This is for the case a channel has a different schedule as the other
+  channels. Or somebody called `spacewalk-repo-sync` manual for one channel only. The 4 hours are a grace period to prevent inconsistent
+  data in the bootstrap repo. We only generate the repository when all mandatory repositories finished syncing at least 1 time in the past.
 
-Provide a `--force` option to enforce recreation of all bootstrap repositories without checking if needed. Mostly for manual usage.
+To force a generation of a bootstrap repo, the user can always call `mgr-create-bootstrap-repo` on the command line in interactive mode.
 
 
 ## Optional feature enhancements
