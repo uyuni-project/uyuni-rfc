@@ -224,6 +224,43 @@ We listed this feature as a future development because:
 * During our experiments we encountered [this bug](https://github.com/saltstack/salt/issues/53341) with `salt-proxy`, we correctly got past it but we were still unable to register a proxied system to the `salt-master`
 * Some of the features can be already implemented by scripting and using Salt on the cluster.
 
+## SSH keys management
+
+Any SSH key pair required for accessing the cluster nodes will be stored on the server.
+
+The keys will be made available to the provisioning node by:
+1. loading them into the `ssh-agent` on the server
+2. opening a connection to the provisioning node using agent forwarding (`ssh -A`)
+
+The connection must be opened before executing any action that might require connecting to the cluster nodes. E.g. joining a node, getting the cluster status, etc.
+The server must retrieve the value of the `SSH_AUTH_SOCK` environment variable and inject into subsequent `state.apply`s as a pillar.
+
+The salt state corresponding to the action must ensure the `SSH_AUTH_SOCK` environment variable is set correctly to allow access to the forwarded agent. 
+
+Once the action is completed the SSH connection can be terminated.
+
+E.g. a state that calls `skuba` to get the status of a CaaSP cluster:
+
+```yaml
+ssh_agent_socket:
+    environ.setenv:
+        - name: SSH_AUTH_SOCK
+        - value: {{ pillar['ssh_auth_sock'] }}
+
+cluster_status:
+     cmd.run:
+         - name: skuba cluster status
+         - cwd: {{ pillar['cluster_dir'] }}
+         - require:
+           - environ: ssh_agent_socket
+...
+```
+
+```
+salt <provisioning.node> state.apply caasp.join pillar='{"ssh_auth_sock": "/tmp/....", ...}'
+```
+
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
