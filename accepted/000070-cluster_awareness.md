@@ -50,7 +50,7 @@ The "Clusters" section will be available to the Administrative Roles and the new
 
 Under Clusters, there will be:
 
-- An “Import existing cluster” item that allows importing an existing cluster definition
+- An “Import existing cluster” item that allows importing an existing cluster
 - A “Create new cluster” item that allows to deploy and define a new cluster in Uyuni/SUSE Manager
 - An “Overview” item that lists all the clusters currently known to Uyuni/SUSE Manager
 
