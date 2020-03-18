@@ -115,6 +115,7 @@ It is intended that Uyuni/SUSE Manager references the cluster by providing a tok
   - Any optional link to monitoring endpoints (e.g. FQDNs of monitoring stack instances deployed in the cluster by setting a convention, e.g. querying the "monitoring" namespace)
 
 By enumerating all the functions of the Salt module corresponding to the cluster provider manager, Uyuni/SUSE Manager will offer to run all the actions that the cluster provider manager exposes.
+For the actions described in this section, we assume that the target node (the one that is the target of add/removal/... action) is reachable and accessible from the management node.
 A minimum list of actions that must be exposed by the cluster provider manager is:
 
 * Adding a node: Uyuni/SUSE Manager will invoke the cluster provider manager on the management node of the cluster and will pass any optional parameter (requested to the user) (e.g. username, IP of the system, type of the node).
