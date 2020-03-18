@@ -16,11 +16,13 @@ Make Uyuni/SUSE Manager aware and capable of deploying and managing clusters.
 
 Describe the problem you are trying to solve, and its constraints, without coupling them too closely to the solution you have in mind. If this RFC is not accepted, the motivation can be used to develop alternative solutions. -->
 
-Uyuni/SUSE Manager should be able to interact with other SUSE products:
+As a data center solution, we expect Uyuni/SUSE Manager to be in proximity to clusters already living in the data center. In a holistic SUSE vision, Uyuni/SUSE Manager must be able to interact with SUSE cluster products and with other types of a cluster:
 - SUSE Container as a Service Platform (CaaSP) and Cloud Application Platform (CAP). From now on, we consider CAP as an equivalent of CaaSP for our purposes
 - SUSE Enterprise Storage (SES)
 - SUSE Linux Enterprise High Availability (SLE-HA) and SUSE Linux Enterprise HA for SAP Products (SHAP)
 - Other types of clusters that are not covered in this RFC or that might be released in the future: the generic approach described in this RFC welcomes other types of clusters as long as the required interface is respected
+
+Imagine a user that wants to deploy a CaaSP and a SES cluster to use SES as the backend storage for the containers. Uyuni/SUSE Manager should be helping the user in deploying and managing the cluster. In regards to management, Uyuni/SUSE Manager must extend the already rich set of features (Configuration Management via Salt, Auditing, Channel Management) to all nodes of the cluster.
 
 The three SUSE products above constituted our initial study from which we tried to summarize the common actions that a user is interested to issue on a cluster, as much as generically speaking as possible.
 This RFC aims to explain how Uyuni/SUSE Manager can __initially__ support the idea of being aware of a cluster and issue a specific set of actions on it. This is the MVP for a cluster: future RFCs will be extending this RFC horizontally (more cluster actions) and vertically (extend an implemented action by adding optional specific actions).
