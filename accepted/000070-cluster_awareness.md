@@ -233,7 +233,7 @@ The keys will be made available to the provisioning node by:
 2. opening a connection to the provisioning node using agent forwarding (`ssh -A`)
 
 The connection must be opened before executing any action that might require connecting to the cluster nodes. E.g. joining a node, getting the cluster status, etc.
-The server must retrieve the value of the `SSH_AUTH_SOCK` environment variable and inject into subsequent `state.apply`s as a pillar.
+The server must retrieve the value of the `SSH_AUTH_SOCK` environment variable and inject it into subsequent `state.apply`s as a pillar.
 
 The salt state corresponding to the action must ensure the `SSH_AUTH_SOCK` environment variable is set correctly to allow access to the forwarded agent.
 
@@ -302,7 +302,6 @@ Documentation used to write this RFC:
 * https://documentation.suse.com/ses/6/single-html/ses-deployment/
 * https://confluence.suse.com/display/SUSEEnterpriseStorage/ceph-salt%3A+How+to+use#ceph-salt
 * https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-guide/
-* https://documentation.suse.com/sle-ha/15-SP1/single-html/
 * https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-install-quick/
 * https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-pmremote-quick
 
