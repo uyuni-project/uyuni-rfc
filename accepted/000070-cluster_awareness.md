@@ -103,9 +103,9 @@ Under “Cluster overview”, all clusters known to Uyuni/SUSE Manager will be d
   ```
   # salt <mgmt node> <cluster provider mgr>.list_nodes <cluster name>
   ```
-    - For CaaSP: `salt <mgmt node> skuba.list_nodes <cluster name>`
-    - For SES: `salt <mgmt node> ceph.list_nodes <cluster name>`
-    - For SLE-HA/SHAP: `salt <mgmt node> crm.list_nodes <cluster name>`
+    - For CaaSP: `salt <mgmt node> caasp.list_nodes <cluster name>`
+    - For SES: `salt <mgmt node> ses.list_nodes <cluster name>`
+    - For SLE-HA/SHAP: `salt <mgmt node> shap.list_nodes <cluster name>`
 
 It is intended that Uyuni/SUSE Manager references the cluster by providing a token/cluster secret to authenticate to the cluster provider manager before issuing any operation.
 
@@ -203,9 +203,9 @@ When a new cluster product type is available in Uyuni/SUSE Manager, the associat
 
 Summary of what a product must provide to Uyuni/SUSE Manager:
 
-* CaaSP: Salt-based cluster provider manager ("`skuba`")
-* SES: Salt-based cluster provider manager ("`cephadm`")
-* SLE-HA/SHAP: Salt-based cluster provider ("`crm`")
+* CaaSP: Salt-based cluster provider manager ("`caasp`")
+* SES: Salt-based cluster provider manager ("`ses`")
+* SLE-HA/SHAP: Salt-based cluster provider ("`shap`")
 
 It is intended that the cluster provider manager package must at least contain:
 
