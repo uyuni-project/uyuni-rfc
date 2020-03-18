@@ -154,7 +154,7 @@ NOTE: registering an SES 6 node to Uyuni/SUSE Manager is not be possible as SES 
 
 #### Relaxing system lock
 
-In the cluster overview, when listing individual nodes of the cluster, Uyuni/SUSE Manager will also offer the possibility of registering an individual node to Uyuni/SUSE Manager (with System > Bootstrapping).
+In the cluster overview, when listing individual nodes of the cluster, Uyuni/SUSE Manager will also offer the possibility of registering an individual node to Uyuni/SUSE Manager (with System > Bootstrapping) or will show the link to the system details if the system is already registered.
 
 It is common between all analyzed cluster products that rebooting and package modification/removal are two forbidden actions on all nodes of the cluster.
 
