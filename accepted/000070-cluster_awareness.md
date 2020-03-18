@@ -107,9 +107,9 @@ Under “Cluster overview”, all clusters known to Uyuni/SUSE Manager will be d
     - For SLE-HA/SHAP: `salt <mgmt node> crm.list_nodes <cluster name>`
 
 - Optional information retrieved via Salt grains (populated by the product):
-    - Link to the product dashboard (e.g. SES)
-    - Credentials download (e.g. download `kubeconfig` from CaaSP)
-- Optional information regarding the health of each node of the cluster (if supported by the cluster).
+  - Link to the product dashboard (e.g. SES)
+  - Credentials download (e.g. download `kubeconfig` from CaaSP)
+  - Any optional link to monitoring endpoints (e.g. FQDNs of monitoring stack instances deployed in the cluster by setting a convention, e.g. querying the "monitoring" namespace)
 
 By enumerating all the functions of the Salt module corresponding to the cluster provider manager, Uyuni/SUSE Manager will offer to run all the actions that the cluster provider manager exposes.
 A minimum list of actions that must be exposed by the cluster provider manager is:
@@ -178,6 +178,8 @@ Example:
 #### Cluster node as special citizens in the minion domain
 
 All systems add-on types will be disabled for installation, except for the Monitoring add-on.
+Monitoring a cluster is out of scope for this RFC.
+
 When deleting a system, a cleanup of salt-minion must not be done (requested by SES).
 
 All other actions will be inhibited by the system lock and will require special handling by being implemented in the cluster provider manager level.
