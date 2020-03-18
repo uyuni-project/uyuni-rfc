@@ -188,7 +188,7 @@ All other actions will be inhibited by the system lock and will require special 
 
 #### System groups
 
-When defining a new cluster, Uyuni/SUSE Manager also creates a system group named `<type><name>` in which all nodes of the cluster will be inserted.
+When defining a new cluster, Uyuni/SUSE Manager also creates a system group named `<type><name>` in which all nodes of the cluster will be inserted. Every time a node is added or removed from the cluster, Uyuni/SUSE Manager removes the node from the system group.
 
 ## Integration requirements from an external product perspective
 
