@@ -56,7 +56,7 @@ Under Clusters, there will be:
 - An “Overview” item that lists all the clusters currently known to Uyuni/SUSE Manager
 
 A cluster is identified in Uyuni/SUSE Manager by:
-- the cluster name
+- the cluster name (and an associated cluster secret)
 - the cluster type
 - the management node (hostname) - for clusters that do not requires a management node (e.g. SHAP) one node of the cluster will be used by Uyuni/SUSE Manager as the management node.
 
@@ -106,6 +106,8 @@ Under “Cluster overview”, all clusters known to Uyuni/SUSE Manager will be d
     - For CaaSP: `salt <mgmt node> skuba.list_nodes <cluster name>`
     - For SES: `salt <mgmt node> ceph.list_nodes <cluster name>`
     - For SLE-HA/SHAP: `salt <mgmt node> crm.list_nodes <cluster name>`
+
+It is intended that Uyuni/SUSE Manager references the cluster by providing a token/cluster secret to authenticate to the cluster provider manager before issuing any operation.
 
 - Optional information retrieved via Salt grains (populated by the product):
   - Link to the product dashboard (e.g. SES)
