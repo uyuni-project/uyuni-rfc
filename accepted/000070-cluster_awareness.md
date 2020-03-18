@@ -209,6 +209,8 @@ It is intended that the cluster provider manager package must at least contain:
 - The Salt Formula to deploy the management node
 - All Salt modules and states to implement the cluster actions described above
 
+### Future developments
+
 ## Opening Uyuni/SUSE Manager features to cluster objects
 
 Future developments can enrich the implementations described in the RFC by converting the cluster management node into a [Salt proxy minion](https://docs.saltstack.com/en/latest/topics/proxyminion/index.html) using the SSH backend to access all cluster nodes.
