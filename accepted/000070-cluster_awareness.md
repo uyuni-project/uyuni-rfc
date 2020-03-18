@@ -39,7 +39,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 - Managing an existing cluster has priority over deploying a new cluster from the Uyuni/SUSE Manager perspective
 - Deploying and provisioning the underlying infrastructure to host the cluster product is not covered in this RFC: for this purpose, consult [SUMA as a Virtualization Solution with Multi-Tenancy](https://confluence.suse.com/pages/viewpage.action?pageId=431620395)
 - We decided not to install the software management stack on the Uyuni/SUSE Manager itself but rather to have a dedicated management node for each cluster to avoid any kind of conflicts. This requirement may be relaxed in the future and Uyuni/SUSE Manager may be the management node of any cluster.
-- SES 6 requires to have a salt-master as part of the cluster - this will clash with the idea above of Uyuni/SUSE Manager being the salt-master of the minion. SES 7 is still under development but expected to be released in late 2020, will probably relax this requirement
+- SES 6 requires to have a salt-master as part of the cluster - this will clash with the idea above of Uyuni/SUSE Manager being the salt-master of the minion. SES 7 is still under development but expected to be released in late 2020 and will probably relax this requirement. Uyuni/SUSE Manager will target SES 7: we consulted the available documentation for SES 7 (see References) and for everything that was not clear at the time of writing we looked at the documentation for SES 6.
 - This is an MVP: only basic functionality for a cluster will be covered in this first iteration
 - The functionality is built in a pluggable way to be easily extendable
 
@@ -147,7 +147,7 @@ A minimum list of actions that must be exposed by the cluster provider manager i
 ### Single cluster node management with Uyuni/SUSE Manager
 
 The following actions refer to the individual cluster node registered to Uyuni/SUSE Manager. The following actions must be implemented after the cluster overview and its corresponding actions are implemented.
-NOTE: registering an SES 6 node to Uyuni/SUSE Manager is not be possible as SES 6 management node is a Salt master. From SES 7 on (under development), Salt will be used for deployment only.
+NOTE: registering an SES 6 node to Uyuni/SUSE Manager is not be possible as SES 6 management node is a Salt master. SES 7 will relax this requirement, as Salt will be used for node deployment only.
 
 #### Relaxing system lock
 
