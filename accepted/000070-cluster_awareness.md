@@ -41,7 +41,6 @@ This section should cover architecture aspects and the rationale behind disrupti
 - We decided not to install the software management stack on the Uyuni/SUSE Manager itself but rather to have a dedicated management node for each cluster to avoid any kind of conflicts. This requirement may be relaxed in the future and Uyuni/SUSE Manager may be the management node of any cluster.
 - SES 6 requires to have a salt-master as part of the cluster - this will clash with the idea above of Uyuni/SUSE Manager being the salt-master of the minion. SES 7 is still under development but expected to be released in late 2020 and will probably relax this requirement. Uyuni/SUSE Manager will target SES 7: we consulted the available documentation for SES 7 (see References) and for everything that was not clear at the time of writing we looked at the documentation for SES 6.
 - This is an MVP: only basic functionality for a cluster will be covered in this first iteration
-- The functionality is built in a pluggable way to be easily extendable
 
 ## A new Cluster object
 
@@ -261,6 +260,14 @@ cluster_status:
 salt <provisioning.node> state.apply caasp.join pillar='{"ssh_auth_sock": "/tmp/....", ...}'
 ```
 
+## Pluggable architecture
+
+The MVP will not be delivered as a plugin for the following reasons:
+- longer development time for implementing an MVP
+- unforeseen technical problems related to plugins. We don't expect anything major but small problems can add up to the overall development time.
+- it will result in a large and complex pull request which will require a lot of time and effort for reviewing
+
+After the first product is integrated into Uyuni/SUSE Manager, it can be extracted into a plugin and make the whole cluster architecture pluggable.
 
 # Drawbacks
 [drawbacks]: #drawbacks
