@@ -200,19 +200,14 @@ When a new cluster product type is available in Uyuni/SUSE Manager, the associat
 
 Summary of what a product must provide to Uyuni/SUSE Manager:
 
-* CaaSP:
-  - Salt Formula to install CaaSP software on the management node
-  - Salt Formula to install CaaSP software for control-plane/workers
-  - Cluster provider manager in a Salt module: skuba
-  - (Optional) Salt Formula to provision a load balancer
-* SES:
-  - Salt Formula to provision an SES minion
-  - Salt Formula to provision the management node
-  - Cluster provider manager in a Salt module: cephadm
-* SLE-HA/SHAP:
-  - Salt Formula to provision the management node
-  - Salt Formula to provision a SLE-HA/SHAP node
-  - Cluster provider manager in a Salt module: crm
+* CaaSP: Salt-based cluster provider manager ("`skuba`")
+* SES: Salt-based cluster provider manager ("`cephadm`")
+* SLE-HA/SHAP: Salt-based cluster provider ("`crm`")
+
+It is intended that the cluster provider manager package must at least contain:
+
+- The Salt Formula to deploy the management node
+- All Salt modules and states to implement the cluster actions described above
 
 ## Opening Uyuni/SUSE Manager features to cluster objects
 
