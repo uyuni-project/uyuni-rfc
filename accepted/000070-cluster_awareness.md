@@ -20,7 +20,7 @@ Uyuni/SUSE Manager should be able to interact with other SUSE products:
 - SUSE Container as a Service Platform (CaaSP) and Cloud Application Platform (CAP). From now on, we consider CAP as an equivalent of CaaSP for our purposes
 - SUSE Enterprise Storage (SES)
 - SUSE Linux Enterprise High Availability (SLE-HA) and SUSE Linux Enterprise HA for SAP Products (SHAP)
-- Other types of clusters that might be released in the future
+- Other types of clusters that are not covered in this RFC or that might be released in the future: the generic approach described in this RFC welcomes other types of clusters as long as the required interface is respected
 
 The three SUSE products above constituted our initial study from which we tried to summarize the common actions that a user is interested to issue on a cluster, as much as generically speaking as possible.
 This RFC aims to explain how Uyuni/SUSE Manager can __initially__ support the idea of being aware of a cluster and issue a specific set of actions on it. This is the MVP for a cluster: future RFCs will be extending this RFC horizontally (more cluster actions) and vertically (extend an implemented action by adding optional specific actions).
