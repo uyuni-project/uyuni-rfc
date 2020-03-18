@@ -180,8 +180,6 @@ Example:
 All systems add-on types will be disabled for installation, except for the Monitoring add-on.
 Monitoring a cluster is out of scope for this RFC.
 
-When deleting a system, a cleanup of salt-minion must not be done (requested by SES).
-
 All other actions will be inhibited by the system lock and will require special handling by being implemented in the cluster provider manager level.
 
 #### System groups
