@@ -83,7 +83,7 @@ When creating a new cluster, Uyuni/SUSE Manager will ask:
 2. A minion to provision as the management node identified by a specific System Add-On and provisioned with a Salt Formula that will install the clustering management stack on the minion. A list of available minions will be presented.
 3. Uyuni/SUSE Manager will apply the Salt highstate to provision the system as the clustering management stack.
 
-Only the clustering management stack is provisioned on the management node at this time.
+Only the clustering management stack is provisioned on the management node at this time. At the time of writing, nothing forbids that management stack for all types of a cluster can be installed on the same node.
 
 All other optional actions:
 - provisioning a load balancer
