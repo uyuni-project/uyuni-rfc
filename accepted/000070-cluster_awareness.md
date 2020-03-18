@@ -79,8 +79,8 @@ After successful registration, the cluster overview will be shown.
 When creating a new cluster, Uyuni/SUSE Manager will ask:
 
 1. Cluster name and cluster type
-2. A minion to provision as the management node using a System Add-On or a Salt Formula that will install the clustering management stack on the minion. A list of available minions will be presented.
-3. Uyuni/SUSE Manager will apply the Salt highstate (or the Salt formula) to provision the system as the clustering management stack.
+2. A minion to provision as the management node identified by a specific System Add-On and provisioned with a Salt Formula that will install the clustering management stack on the minion. A list of available minions will be presented.
+3. Uyuni/SUSE Manager will apply the Salt highstate to provision the system as the clustering management stack.
 
 Only the clustering management stack is provisioned on the management node at this time.
 
@@ -120,7 +120,7 @@ A minimum list of actions that must be exposed by the cluster provider manager i
   # salt <mgmt node> <cluster provider mgr>.add_node <cluster name> <optional params>
   ```
 
-  All the parameters of the formula have to be specified by the cluster provider manager's types.
+  All the parameters of the Salt Formula have to be specified by the cluster provider manager's types.
 
   In a future version, Uyuni/SUSE Manager may offer the possibility to present to the user a drop-down selection of systems registered to Uyuni/SUSE Manager and not part of any cluster.
 
@@ -194,7 +194,7 @@ When defining a new cluster, Uyuni/SUSE Manager also creates a system group name
 
 From the plugin perspective, a product needs to define:
 - a new cluster type in Uyuni/SUSE Manager with a specific configuration (cluster type <-> cluster provider manager)
-- provide a system add-on type (or a Salt Formula) that provisions the management node with cluster management software
+- provide a Salt Formula that provisions the management node with cluster management software
 
 When a new cluster product type is available in Uyuni/SUSE Manager, the association between the cluster type and its cluster provider manager is stored in the database.
 
