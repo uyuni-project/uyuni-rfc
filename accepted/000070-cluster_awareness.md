@@ -112,7 +112,7 @@ It is intended that Uyuni/SUSE Manager references the cluster by providing a tok
 - Optional information retrieved via Salt grains (populated by the product):
   - Link to the product dashboard (e.g. SES)
   - Credentials download (e.g. download `kubeconfig` from CaaSP)
-  - Any optional link to monitoring endpoints (e.g. FQDNs of monitoring stack instances deployed in the cluster by setting a convention, e.g. querying the "monitoring" namespace)
+  - Link to monitoring dashboard (if deployed or provided by the cluster)
 
 By enumerating all the functions of the Salt module corresponding to the cluster provider manager, Uyuni/SUSE Manager will offer to run all the actions that the cluster provider manager exposes.
 For the actions described in this section, we assume that the target node (the one that is the target of add/removal/... action) is reachable and accessible from the management node.
