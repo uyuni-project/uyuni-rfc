@@ -37,7 +37,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 ## Assumptions
 
 - During the writing of this RFC, we considered the documentation available of the latest version of the following products: CaaSP 4.1, SES 6, SLE-HA 15 SP1
-- All products that want to integrate with Uyuni/SUSE Manager must provide a cluster provider manager in the form of a Salt module that implements the actions described below: add a node, remove a node, upgrade the cluster.
+- All products that want to integrate with Uyuni/SUSE Manager must provide a cluster provider manager in the form of a Salt module that implements the actions described in this RFC.
 - Managing an existing cluster has priority over deploying a new cluster from the Uyuni/SUSE Manager perspective
 - Deploying and provisioning the underlying infrastructure to host the cluster product is not covered in this RFC: for this purpose, consult [SUMA as a Virtualization Solution with Multi-Tenancy](https://confluence.suse.com/pages/viewpage.action?pageId=431620395)
 - We decided not to install the software management stack on the Uyuni/SUSE Manager itself but rather to have a dedicated management node for each cluster to avoid any kind of conflicts. This requirement may be relaxed in the future and Uyuni/SUSE Manager may be the management node of any cluster.
