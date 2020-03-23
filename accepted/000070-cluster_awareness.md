@@ -169,15 +169,17 @@ When a system is locked, no action will be executed. System lock may be disabled
 
 It will be possible to define an allowed list of actions that Uyuni/SUSE Manager can issue on a specific node by implementing a combination of selective blackout (https://github.com/uyuni-project/uyuni-rfc/pull/31/) and package locking.
 
-A product can define a list of:
+Optionally, a product can define a list of:
 - an allowed list of actions in Uyuni/SUSE Manager action terms
 - packages or patterns to lock at the minion level
 
-This information must be provided by the product and must be inserted into Uyuni/SUSE Manager database.
-Upon bootstrapping, Uyuni/SUSE Manager will issue the required package locks and the allowed list of actions will be not part of the blackout.
+The information must be exposed via the cluster provider manager. Upon query of the cluster provider manager, Uyuni/SUSE Manager retrieves:
+- the list of actions (initially, in terms of Salt states used by Uyuni/SUSE Manager or Salt modules) to allow
+- the list of packages and pattern to lock at the `zypper` level
+
 Example:
-- CaaSP define the `zypper lock` the `patterns-caasp*` pattern
-- Uyuni/SUSE Manager allows package install, modify, removal actions
+- CaaSP's cluster provider manager defines that `patterns-caasp*` has to be locked
+- CaaSP's cluster provider manager defines that [`packages.pkginstall`](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/packages/pkginstall.sls#L2) is allowed
 
 #### Cluster node as special citizens in the minion domain
 
