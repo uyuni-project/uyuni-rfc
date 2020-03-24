@@ -103,9 +103,8 @@ Under “Cluster overview”, all clusters known to Uyuni/SUSE Manager will be d
   ```
   # salt <mgmt node> <cluster provider mgr>.list_nodes <cluster name>
   ```
-    - For CaaSP: `salt <mgmt node> caasp.list_nodes <cluster name>`
-    - For SES: `salt <mgmt node> ses.list_nodes <cluster name>`
-    - For SLE-HA/SHAP: `salt <mgmt node> shap.list_nodes <cluster name>`
+
+The cluster provider manager can be implemented as a [virtual module](https://docs.saltstack.com/en/latest/ref/modules/all/index.html) in Salt.
 
 It is intended that Uyuni/SUSE Manager references the cluster by providing a token/cluster secret to authenticate to the cluster provider manager before issuing any operation.
 
