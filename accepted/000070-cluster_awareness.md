@@ -148,6 +148,9 @@ NOTE: registering an SES 6 node to Uyuni/SUSE Manager is not be possible as SES 
 
 In the cluster overview, when listing individual nodes of the cluster, Uyuni/SUSE Manager will also offer the possibility of registering an individual node to Uyuni/SUSE Manager (with System > Bootstrapping) or will show the link to the system details if the system is already registered.
 
+When the user removes a node from the cluster, Uyuni/SUSE Manager will not delete ("unregister") the single node from Uyuni/SUSE Manager.
+When the user deletes ("unregister") a single node from Uyuni/SUSE Manager, Uyuni/SUSE Manager will not remove the node from the cluster.
+
 It is common between all analyzed cluster products that rebooting and package modification/removal are two forbidden actions on all nodes of the cluster.
 
 By default, Uyuni/SUSE Manager will put the minion in system lock when one of the following product is detected upon registration:
