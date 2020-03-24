@@ -40,7 +40,7 @@ This section should cover architecture aspects and the rationale behind disrupti
 - All products that want to integrate with Uyuni/SUSE Manager must provide a cluster provider manager in the form of a Salt module that implements the actions described in this RFC.
 - Managing an existing cluster has priority over deploying a new cluster from the Uyuni/SUSE Manager perspective
 - Deploying and provisioning the underlying infrastructure to host the cluster product is not covered in this RFC: for this purpose, consult [SUMA as a Virtualization Solution with Multi-Tenancy](https://confluence.suse.com/pages/viewpage.action?pageId=431620395)
-- We decided not to install the software management stack on the Uyuni/SUSE Manager itself but rather to have a dedicated management node for each cluster to avoid any kind of conflicts. This requirement may be relaxed in the future and Uyuni/SUSE Manager may be the management node of any cluster.
+- We decided not to install the cluster management stack on the Uyuni/SUSE Manager itself but rather to have a dedicated management node for each cluster to avoid any kind of conflicts. This requirement may be relaxed in the future and Uyuni/SUSE Manager may be the management node of any cluster.
 - SES 6 requires to have a salt-master as part of the cluster - this will clash with the idea above of Uyuni/SUSE Manager being the salt-master of the minion. SES 7 is still under development but expected to be released in late 2020 and will probably relax this requirement. Uyuni/SUSE Manager will target SES 7: we consulted the available documentation for SES 7 (see References) and for everything that was not clear at the time of writing we looked at the documentation for SES 6.
 - This is an MVP: only basic functionality for a cluster will be covered in this first iteration
 
@@ -66,7 +66,7 @@ All the described operations will be also exposed in an XMLRPC API.
 ### Import an existing cluster
 
 The requirement is to have an already provisioned management node for the cluster that the user wants to manage with Uyuni/SUSE Manager.
-It is implied that the management node is already capable of reaching the nodes of the cluster (via passwordless SSH or any other mean requested by the cluster provider manager) and all clustering management stack is already installed in the management node.
+It is implied that the management node is already capable of reaching the nodes of the cluster (via passwordless SSH or any other mean requested by the cluster provider manager) and Uyuni/SUSE Manager will make sure that the cluster management stack for the selected type of cluster is installed in the management node.
 
 When the import action is selected, Uyuni/SUSE Manager will register the management node to Uyuni/SUSE Manager (by replicating what is done under Systems > Bootstrapping).
 Additionally, Uyuni/SUSE Manager asks for the name and the type of cluster that the user wants to register.
@@ -80,10 +80,10 @@ After successful registration, the cluster overview will be shown.
 When creating a new cluster, Uyuni/SUSE Manager will ask:
 
 1. Cluster name and cluster type
-2. A minion to provision as the management node identified by a specific System Add-On and provisioned with a Salt Formula that will install the clustering management stack on the minion. A list of available minions will be presented.
-3. Uyuni/SUSE Manager will apply the Salt highstate to provision the system as the clustering management stack.
+2. A minion to provision as the management node identified by a specific System Add-On and provisioned with a Salt Formula that will install the cluster management stack on the minion. A list of available minions will be presented.
+3. Uyuni/SUSE Manager will apply the Salt highstate to provision the system as the cluster management stack.
 
-Only the clustering management stack is provisioned on the management node at this time. At the time of writing, nothing forbids that management stack for all types of a cluster can be installed on the same node.
+Only the cluster management stack is provisioned on the management node at this time. At the time of writing, nothing forbids that cluster management stack for all types of a cluster can be installed on the same node.
 
 All other optional actions:
 - provisioning a load balancer
@@ -98,7 +98,7 @@ Uyuni/SUSE Manager will store all entered cluster details data into the database
 
 Under “Cluster overview”, all clusters known to Uyuni/SUSE Manager will be displayed. When a cluster is selected, a new page listing all the details of the cluster will be shown, containing:
 
-- List of all nodes of the cluster - by invoking the cluster provider manager (via Salt) on the Management Node:
+- List of all nodes of the cluster - by invoking the cluster provider manager (via Salt) on the management node:
 
   ```
   # salt <mgmt node> <cluster provider mgr>.list_nodes <cluster name>
@@ -191,7 +191,7 @@ When defining a new cluster, Uyuni/SUSE Manager also creates a system group name
 
 From the plugin perspective, a product needs to define:
 - a new cluster type in Uyuni/SUSE Manager with a specific configuration (cluster type <-> cluster provider manager)
-- provide a Salt Formula that provisions the management node with cluster management software
+- provide a Salt Formula that provisions the management node with cluster management stack
 
 When a new cluster product type is available in Uyuni/SUSE Manager, the association between the cluster type and its cluster provider manager is stored in the database.
 
