@@ -134,14 +134,6 @@ A minimum list of actions that must be exposed by the cluster provider manager i
   # salt <mgmt node> <cluster provider mgr>.remove_node <cluster name> <optional params>
   ```
 
-* Node reboot: Uyuni/SUSE Manager will invoke the cluster provider manager on the management node of the cluster and will pass any optional parameter (requested to the user) to the call using Salt pillar.
-
-  ```
-  # salt <mgmt node> <cluster provider mgr>.reboot_node <cluster name> <optional params>
-  ```
-
-  The implementation of how a node is rebooted is left to the specific cluster provider manager.
-
 * Cluster upgrade: As every cluster has its peculiarities when upgrading the cluster nodes and Uyuni/SUSE Manager should be agnostic about the implementation strategy, Uyuni/SUSE Manager will invoke the cluster provider manager on the management node of the cluster and will pass any optional parameter (requested to the user) to the call using Salt pillar.
 
   ```
@@ -186,8 +178,7 @@ Example:
 All systems add-on types will be disabled for installation, except for the Monitoring add-on.
 Monitoring a cluster is out of scope for this RFC.
 
-All other actions will be inhibited by the system lock and will require special handling by being implemented in the cluster provider manager level. Example: node reboot: the cluster provider manager knows how to properly reboot a node:
-
+All other actions will be inhibited by the system lock and will require special handling by being implemented in the cluster provider manager level.
 - CaaSP: cordon and drain the node and then reboot. Or, create kured sentinel file https://github.com/SUSE/skuba/blob/master/skuba-update/skuba_update/skuba_update.py#L43
 - SES: enable maintenance mode, reboot, disable maintenance mode (https://documentation.suse.com/ses/6/single-html/ses-admin/#tips-stopping-osd-without-rebalancing)
 - SLE-HA: enable maintenance mode, reboot, disable maintenance mode
