@@ -75,6 +75,12 @@ Uyuni/SUSE Manager will store all entered cluster details data into the database
 
 After successful registration, the cluster overview will be shown.
 
+Example:
+- Uyuni/SUSE Manager knows that it can manage CaaSP, SES, and SHAP clusters (because the cluster provider manager is installed into the same Uyuni/SUSE Manager server)
+- Now the user wants to import the cluster: Uyuni/SUSE Manager asks for the cluster name and the cluster type (from the list gathered above).
+- Uyuni/SUSE Manager will ask the management node and proceed to register it to Uyuni/SUSE Manager (if not already registered to Uyuni/SUSE Manager).
+- Uyuni/SUSE Manager makes sure that the cluster management stack for the imported cluster is installed in the management node.
+
 ### Creating a new cluster
 
 When creating a new cluster, Uyuni/SUSE Manager will ask:
