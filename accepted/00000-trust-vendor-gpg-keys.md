@@ -1,6 +1,6 @@
 - Feature Name: trust-vendor-gpg-keys
 - Start Date: 2020-03-25
-- RFC PR: (leave this empty)
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/38
 
 # Summary
 [summary]: #summary
