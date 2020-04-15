@@ -248,7 +248,10 @@ There could be multiple ways to assign systems to maintenance schedules.
 - It should be possible to change the maintenance schedule for multiple systems using SSM
 - In the details of the Maintenance Schedule we could have a systems page where add/remove is possible.
 
-If a Maintenance Schedule is assigned and which one, should be visible in the systems details page.
+When a system is assigned to a new Maintenance Schedule, all future actions for this system should be canceled.
+The list of canceled actions should be shown.
+
+The information if a Maintenance Schedule is assigned to a system and which Schedule, should be visible in the systems details page.
 Implementation of XMLRPC functions for getting and setting the current maintenance schedule must be implemented.
 For setting a schedule should be possible for multiple systems using an array of system ids.
 
@@ -384,8 +387,6 @@ It should be possible to add a URL to an iCalendar file and maybe implement CalD
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-
-- Adding a Maintenance Schedule to a system: what should happen with existing scheduled action? They may be scheduled outside of the defined maintenance windows. It could be actions scheduled for multiple systems. Re-scheduling might not be the right option here. Maybe we do not allow it?
 
 - Pause icon could conflict with virtualization management. Is it a good idea?
 
