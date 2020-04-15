@@ -222,8 +222,10 @@ We define a second flag which say, if that action can be executed on systems not
 
 When a system is assigned to a maintenance schedule, actions which are flagged as `maintenance_mode_only` should be executed only within a maintenance window.
 In the User Interface we should show in these cases not the datepicker, but a simple Combo box with the Date and Time of the next 20 Maintenance Windows.
-By default all actions will be scheduled at the begin of the Maintenance Window. There should be an additional field to provide an "offset" in Minutes
-to delay the start of the action to a later point inside of the maintenance window.
+By default all actions will be scheduled at the begin of the Maintenance Window.
+
+If possible add another selector for the time to delay the start of the action to a later point inside of the maintenance window.
+This could also be implemented in the 2nd iteration.
 
 When using SSM it is possible that systems have different maintenance windows. The combination systems belong
 to one maintenance schedule and systems without maintenance schedule is not critical. The action would be scheduled
@@ -381,8 +383,6 @@ It should be possible to add a URL to an iCalendar file and maybe implement CalD
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
-
-- performance: what happens when a lot of actions are scheduled at the beginning of a maintenance window? Will this create a performance problem? Is salt batching ready to handle such situations properly?
 
 - Subscribe to channels: should also be possible outside of a maintenance window? 
   * Pro:
