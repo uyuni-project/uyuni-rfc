@@ -259,7 +259,8 @@ For setting a schedule should be possible for multiple systems using an array of
 
 The current status of the system should be reflected in the User Interface and API.
 
-If a system is in Maintenance Mode, the User Interface could show a special icon [ || ] (pause symbol of an audio player).
+If a system is in Maintenance Mode, the User Interface could show a special icon.
+Suggestion: https://www.iconfinder.com/icons/2639855/maintenance_icon
 
 In the XMLRPC API a flag could be added to `system.getDetails()`.
 A special function `system.listSystemsInMaintenanceMode()` should be added as well.
@@ -387,8 +388,6 @@ It should be possible to add a URL to an iCalendar file and maybe implement CalD
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-
-- Pause icon could conflict with virtualization management. Is it a good idea?
 
 # Info
 
