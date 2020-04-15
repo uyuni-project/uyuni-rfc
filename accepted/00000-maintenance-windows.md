@@ -103,6 +103,12 @@ Every `VEVENT` describe a maintenance window.
 Every `VEVENT` must have a `SUMMARY`. All events with the same "summary" belong to the same schedule.
 The summary must match the schedule name in the Uyuni Database.
 
+#### Timezones
+
+The ICalendar entry defines the timezone. Uyuni must of cause respect it. When showing the Maintenance Windows
+in the UI, they should be converted into the timezone set in the user preferences.
+
+
 ### Adding a new Maintenance Schedule
 
 In the left sidebar a new page should be added below `Schedule`.
