@@ -103,10 +103,10 @@ Every `VEVENT` describe a maintenance window.
 Every `VEVENT` must have a `SUMMARY`. All events with the same "summary" belong to the same schedule.
 The summary must match the schedule name in the Uyuni Database.
 
-#### Timezones
+#### Timezone
 
 The ICalendar entry defines the timezone. Uyuni must of cause respect it. When showing the Maintenance Windows
-in the UI, they should be converted into the timezone set in the user preferences.
+in the User Interface, they should be converted into the timezone set in the user preferences.
 
 
 ### Adding a new Maintenance Schedule
@@ -322,10 +322,21 @@ This Maintenance Window overflow should be show with a notification.
 Ideally we should have only one notification per maintenance window, not per client which cause the overflow.
 It is not an `error`, but it show the admin that the window might needs to get increased for the next runs.
 
+## Cluster
+
+Cluster defined in Uyuni needs to be handled in a special way. All nodes of the cluster are readonly and changes
+are applied only via a dedicated Cluster Manager.
+
+For Maintenance Windows we can define a `None Schedule` which defines no Maintenance Window and assign this schedule to
+all nodes of a cluster. This prevent to schedule any action on the cluster nodes.
+
+The Cluster Provider Manager may not be a system object and therefor need a special assignment of a maintenance schedule.
+More details will follow when we know more about the cluster implementation.
+
 
 ## Second Iteration
 
-### Implement a Maintenance Mode
+### Implement a Maintenance Mode override
 
 Put a system manually into "Maintenance Mode". This is useful in emergency situations where a system is down
 and needs to be fixed quickly.
