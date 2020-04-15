@@ -205,7 +205,7 @@ We define a second flag which say, if that action can be executed on systems not
   47 | kickstart_guest.add_tools_channel               | Subscribes a virtualization guest to the Spacewalk Tools channel associated with its base channel. | N
   48 | virt.setVCPUs                                   | Sets the Vcpu usage for a virtual domain.                                                          | Y
   49 | proxy.deactivate                                | Deactivate Proxy                                                                                   | N
-  50 | scap.xccdf_eval                                 | OpenSCAP xccdf scanning                                                                            | Y ?
+  50 | scap.xccdf_eval                                 | OpenSCAP xccdf scanning                                                                            | N
   51 | clientcert.update_client_cert                   | Update Client Certificate                                                                          | Y
  500 | image.deploy                                    | Deploy an image to a virtual host.                                                                 | N
  501 | distupgrade.upgrade                             | Service Pack Migration                                                                             | Y
@@ -213,7 +213,7 @@ We define a second flag which say, if that action can be executed on systems not
  503 | states.apply                                    | Apply states                                                                                       | Y
  504 | image.build                                     | Build an Image Profile                                                                             | N
  505 | image.inspect                                   | Inspect an Image                                                                                   | N
- 506 | channels.subscribe                              | Subscribe to channels                                                                              | Y ?
+ 506 | channels.subscribe                              | Subscribe to channels                                                                              | N
 
 (That list is currently the full action list. Not all actions are still in use)
 
@@ -384,14 +384,6 @@ It should be possible to add a URL to an iCalendar file and maybe implement CalD
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- Subscribe to channels: should also be possible outside of a maintenance window? 
-  * Pro:
-    * Some actions can only be prepared when the system has the correct channel assignment.
-    * Pre download of packages will only succeed when the correct channels are assigned.
-  * Con:
-    * we change the repository file on the system
-
-- oscap scan: possible outside of maintenance windows?
 
 - Adding a Maintenance Schedule to a system: what should happen with existing scheduled action? They may be scheduled outside of the defined maintenance windows. It could be actions scheduled for multiple systems. Re-scheduling might not be the right option here. Maybe we do not allow it?
 
