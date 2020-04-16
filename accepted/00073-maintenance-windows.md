@@ -430,14 +430,3 @@ Implement an integrated calendar editor to write own schedules without 3rd party
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-
-# Info
-
-## List of ICalendar fields we need
-
-- SUMMARY
-- RRULE
-- EXDATE
-- RDATE
-- DTSTART
-- DTEND
