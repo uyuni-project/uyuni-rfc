@@ -196,20 +196,20 @@ We define a second flag which say, if that action can be executed on systems not
   32 | rhnsd.configure                                 | SUSE Manager Network Daemon Configuration                                                          | N
   33 | packages.verify                                 | Verify deployed packages                                                                           | N
   34 | rhn_applet.use_satellite                        | Allows for rhn-applet use with an Spacewalk                                                        | N
-  35 | kickstart_guest.initiate                        | Initiate an auto installation for a virtual guest.                                                 | Y
-  36 | virt.shutdown                                   | Shuts down a virtual domain.                                                                       | Y
-  37 | virt.start                                      | Starts up a virtual domain.                                                                        | Y
-  38 | virt.suspend                                    | Suspends a virtual domain.                                                                         | Y
-  39 | virt.resume                                     | Resumes a virtual domain.                                                                          | Y
-  40 | virt.reboot                                     | Reboots a virtual domain.                                                                          | Y
-  41 | virt.destroy                                    | Destroys a virtual domain.                                                                         | Y
-  42 | virt.setMemory                                  | Sets the maximum memory usage for a virtual domain.                                                | Y
-  43 | virt.schedulePoller                             | Sets when the poller should run.                                                                   | Y
+  35 | kickstart_guest.initiate                        | Initiate an auto installation for a virtual guest.                                                 | N
+  36 | virt.shutdown                                   | Shuts down a virtual domain.                                                                       | N
+  37 | virt.start                                      | Starts up a virtual domain.                                                                        | N
+  38 | virt.suspend                                    | Suspends a virtual domain.                                                                         | N
+  39 | virt.resume                                     | Resumes a virtual domain.                                                                          | N
+  40 | virt.reboot                                     | Reboots a virtual domain.                                                                          | N
+  41 | virt.destroy                                    | Destroys a virtual domain.                                                                         | N
+  42 | virt.setMemory                                  | Sets the maximum memory usage for a virtual domain.                                                | N
+  43 | virt.schedulePoller                             | Sets when the poller should run.                                                                   | N
   44 | kickstart_host.schedule_virt_host_pkg_install   | Schedule a package install of host specific functionality.                                         | N
   45 | kickstart_guest.schedule_virt_guest_pkg_install | Schedule a package install of guest specific functionality.                                        | N
   46 | kickstart_host.add_tools_channel                | Subscribes a server to the Spacewalk Tools channel associated with its base channel.               | N
   47 | kickstart_guest.add_tools_channel               | Subscribes a virtualization guest to the Spacewalk Tools channel associated with its base channel. | N
-  48 | virt.setVCPUs                                   | Sets the Vcpu usage for a virtual domain.                                                          | Y
+  48 | virt.setVCPUs                                   | Sets the Vcpu usage for a virtual domain.                                                          | N
   49 | proxy.deactivate                                | Deactivate Proxy                                                                                   | N
   50 | scap.xccdf_eval                                 | OpenSCAP xccdf scanning                                                                            | N
   51 | clientcert.update_client_cert                   | Update Client Certificate                                                                          | Y
