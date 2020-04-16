@@ -1,6 +1,6 @@
 - Feature Name: Maintenance Windows
 - Start Date: 2020-03-31
-- RFC PR: (leave this empty)
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/39
 
 # Summary
 [summary]: #summary
