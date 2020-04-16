@@ -336,10 +336,22 @@ More details will follow when we know more about the cluster implementation.
 
 ## Second Iteration
 
+### Visualize Maintenance Schedules, Maintenance Windows and Scheduled Actions
+
+When dealing with multiple Maintenance Schedules which have multiple Maintenance Windows it would be good
+to get an overview by showing the calendar with all these items:
+
+- Maintenance Schedules
+- Maintenance Windows (colors belong to schedules)
+- Scheduled Actions (nice to have)
+
+
 ### Implement a Maintenance Mode override
 
 Put a system manually into "Maintenance Mode". This is useful in emergency situations where a system is down
 and needs to be fixed quickly.
+Another use case is to better cooperate with 3rd party ITSM tools which could use the API to enable the Maintenance Mode.
+
 An API call should be implemented to do it. The required permissions needs to be discussed.
 Either a normal admin of the system could get the permissions to do this, or it still required organization admin permissions.
 This requires further discussion.
@@ -352,7 +364,6 @@ could be implemented in the second iteration.
 
 All this would require a trigger mechanism which execute changes on the system to reflect the maintenance mode.
 
-
 #### Emergency Maintenance Mode
 
 When a system is put into Maintenance Mode manually, it mostly happen because of an emergency case.
@@ -361,6 +372,16 @@ back online.
 
 When a system is currently in Maintenance Mode, it should be possible to schedule actions "now" and for the next minute.
 
+
+#### 3rd party ITSM tool without calendar
+
+Without a calendar schedule actions upfront is not possible.
+Such a 3rd Party Tool could enable the maintenance mode, but nothing is prepared at that point in time.
+This makes sense only when the admin sitting in front of Uyuni Server and execute the actions "now".
+
+Another option would be to change the recurring action feature.
+An action could be prepared as recurring action which run automatically when the maintenance window is turned "on".
+The change of the maintenance mode would be the trigger to start the recurring action.
 
 #### Enforcing the Maintenance Mode on the client side
 
@@ -393,6 +414,10 @@ It should be possible to add a URL to an iCalendar file and maybe implement CalD
 ### Assign a Maintenance Schedule to a System
 
 - adding a system to a Maintenance Schedule via activation key at onboarding time. This requires changes on the activation key.
+
+### Schedule Editor
+
+Implement an integrated calendar editor to write own schedules without 3rd party tools.
 
 
 # Drawbacks
