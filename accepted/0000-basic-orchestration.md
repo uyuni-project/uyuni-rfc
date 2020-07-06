@@ -35,7 +35,7 @@ Salt supports asynchronous runner calls but it doesn't allow attaching metadata 
 In order to store the `jid` and the executions outcome a new table is needed:
 
 ```sql
-CREATE TABLE IF NOT EXISTS rhnActionSaltRunnerJob (
+CREATE TABLE IF NOT EXISTS rhnOrchestrationAction (
 
     action_id       NUMERIC NOT NULL
                             CONSTRAINT rhn_actsaltrunjob_aid_fk
@@ -115,8 +115,8 @@ Why should we **not** do this?
 # Alternatives
 [alternatives]: #alternatives
 
-- What other designs/options have been considered?
-- What is the impact of not doing this?
+- Use the Thorium Complex Reactor instead of Orchestration ?
+- Create a separate entity hierarchy for orchestration instead of reusing Action ?
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
