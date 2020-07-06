@@ -10,9 +10,10 @@ Implement basic support for Salt Orchestration in Uyuni.
 # Motivation
 [motivation]: #motivation
 
-The initial use case if for improving clustering support. There are two main use cases requiring orchestration:
+The initial use case if for improving clustering support. Use cases requiring orchestration:
 - Use temporary SSH keys on CaaSP cluster nodes: a SSH key must be generated, authorized on all the nodes on the cluster, then `skuba` is invoked to execute a cluster operation requiring the use of the temporary SSH key, then finally the key is removed from the nodes.
 - Setup a new CaaSP cluster from on a group of machines managed by Uyuni. Some of the steps involved are: setting up a load balancer (optional), authorizing a SSH key on the target machines, changing the `sudoers` file, loading the SSH key in the `ssh-agent`, running `skuba init` and `skuba node bootstrap` on the management node, add any nodes to the cluster by running `skuba node join`.
+- Protected sensitive cluster packages using locks. E.g. if locks are used to protected the CaaSP packages from accidental upgrade or remove ( from Uyuni, Salt or command line), the locks have to be removed before doing upgrade and then reinstated after the upgrade operation.
 
 In the initial version, the scope of the orchestration support will be limited to clustering. In later iterations it can be expanded to support other uses cases.
 
