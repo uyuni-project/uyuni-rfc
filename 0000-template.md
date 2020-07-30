@@ -57,7 +57,7 @@ Description:
 
 Acceptance criteria:
 - Given `<some context>`
-- When <some action is carried out>
+- When `<some action is carried out>`
 - Then `<a set of observable outcomes should occur>`
  
  What is a user story?
