@@ -44,3 +44,23 @@ Why should we **not** do this?
 
 - What are the unknowns?
 - What can happen if Murphy's law holds true?
+
+# User stories
+[user-stories]: #user-stories
+
+### Title User Story 1:
+
+Description:
+- As a           `<type of user>`   
+- I want to      `<perform some task>`
+- So that I can  `<achieve some goal>` 
+
+Acceptance criteria:
+- Given `<some context>`
+- When <some action is carried out>
+- Then `<a set of observable outcomes should occur>`
+ 
+ What is a user story?
+ - https://en.m.wikipedia.org/wiki/User_story
+ - https://youtu.be/eYZ8vBXL1kk
+ - https://blog.testlodge.com/writing-test-cases-from-user-stories-acceptance-criteria/
