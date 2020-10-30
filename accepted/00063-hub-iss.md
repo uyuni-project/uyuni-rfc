@@ -69,7 +69,7 @@ Transfer of the directory structure is described separately in the "Transport" s
 
 Dumped data will have to be limited to a specified piece of content to sync (eg. a software channel label, or a set of such labels).
 
-**Second core idea**: the generated SQL script will be generated without substantial hardcoding of database schema information int the program. Rather, the exporter will inspecting the schema programmatically and, for example, determine most or all of the involved tables, key relationships, ordering, etc.
+**Second core idea**: the generated SQL script will be generated without substantial hardcoding of database schema information in the program. Rather, the exporter will inspect the schema programmatically and, for example, determine most or all of the involved tables, key relationships, ordering, etc.
 
 Notes:
   - the current implementation serializes ISS Master database data to XML and deserializes it on the ISS Slave. Relatively complicated logic is in place on both communication ends to convert to and from this format
@@ -77,7 +77,7 @@ Notes:
   - the current implementation also needs an up-to-date mapping of tables and columns in Python code (ORM), and that has to be kept updated
     - intention of the approach in this RFC is to avoid most of the manual specification of the mapping, reducing maintenance
 
-A proof-of-concept Python script that implements partially those ideas is available at: https://github.com/moio/mgr-dump
+A proof-of-concept Golang tool that implements partially those ideas is available at: https://github.com/moio/mgr-dump
 
 #### First core idea: export as SQL script
 
