@@ -209,6 +209,10 @@ INSERT INTO rhnRepoRegenQueue (id, channel_label, reason, force)
 INSERT INTO rhnTaskQueue (org_id, task_name, task_data, priority, earliest)
     VALUES (:org_id, 'update_errata_cache_by_channel', :channel_id, 0, current_timestamp)
 ;
+
+-- for each errata
+INSERT INTO rhnErrataQueue (channel_id, errata_id, next_action)
+    VALUES (:channel_id, :errata_id, current_timestamp);
 ```
 Those instruct Taskomatic to regenerate the repo metadata files and to regenerate entries in `rhnServerNeededCache`.
 
