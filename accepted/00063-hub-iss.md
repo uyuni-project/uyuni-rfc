@@ -194,6 +194,24 @@ The first implementation of this RFC will:
 - inspection of the schema can be implemented via `SELECT` queries on Postgres's internal schema tables
   - current and new implementations would thus be completely independent, so could coexist for an initial period of time, as the new implementation matures
 
+### Software channel specific implementationd details
+
+Once a channel has been imported, the following needs to happen in order to refresh cache and other ancillary tables:
+- `ANALYZE` should be performed on `rhnChannelPackage` and possibly other heavily-changed tables
+- the `rhn_channel.refresh_newest_package(channel_id, 'inter-server-sync');` stored procedure should be called. This updates the `rhnChannelNewestPackage`/`rhnChannelNewestPackageAudit` tables so that they do not have to be transferred
+- change the last modification timestamp (`modified` column) of the `rhnChannel` row. This is needed for repo metadata generation, where this timestamp is compared to the one from on-disk files
+- the following `INSERT` queries should be executed:
+```sql
+INSERT INTO rhnRepoRegenQueue (id, channel_label, reason, force)
+    SELECT sequence_nextval('rhn_repo_regen_queue_id_seq'), :label, 'inter-server-sync', 'N'
+;
+
+INSERT INTO rhnTaskQueue (org_id, task_name, task_data, priority, earliest)
+    VALUES (:org_id, 'update_errata_cache_by_channel', :channel_id, 0, current_timestamp)
+;
+```
+Those instruct Taskomatic to regenerate the repo metadata files and to regenerate entries in `rhnServerNeededCache`.
+
 ## Impact on existing components and users
 All code would be new in a new component, so no change to existing components is expected. No impact on existing users is expected at all until the old implementation is dropped.
 
