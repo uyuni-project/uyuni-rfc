@@ -187,8 +187,10 @@ The first implementation of this RFC will:
 ## Implementation details
 
 - two commandline tools will be added, "exporter" and "importer"
-  - output of the "exportter" will be a directory with files and a SQL script
+  - output of the "exporter" will be a directory with files, a SQL script, and if needed an extra metadata file
+    - the metadata file will contain any extra piece of information useful at the importing end, such as the export version or the list of the included content identifiers (eg. channel labels)
   - the "importer" program will mainly copy files to correct locations and execute the SQL script
+    - the importer program might as well run some pre-condition check, for example making sure the channel selection is valid (any parent channel exists)
   - triggering of the "importer" tool might happen via Salt, this is left as an implementation detail
 - all new code will be in Go
 - inspection of the schema can be implemented via `SELECT` queries on Postgres's internal schema tables
@@ -196,6 +198,8 @@ The first implementation of this RFC will:
 
 ### Software channel specific implementationd details
 
+- it will not be possible to import child channels without their corresponding parents
+- it will be possible to import cloned channels without their originals, although this might break some features (notably CVE Audit and SP migration)
 Once a channel has been imported, the following needs to happen in order to refresh cache and other ancillary tables:
 - `ANALYZE` should be performed on `rhnChannelPackage` and possibly other heavily-changed tables
 - the `rhn_channel.refresh_newest_package(channel_id, 'inter-server-sync');` stored procedure should be called. This updates the `rhnChannelNewestPackage`/`rhnChannelNewestPackageAudit` tables so that they do not have to be transferred
@@ -216,6 +220,8 @@ INSERT INTO rhnErrataQueue (channel_id, errata_id, next_action)
 ```
 Those instruct Taskomatic to regenerate the repo metadata files and to regenerate entries in `rhnServerNeededCache`.
 
+The decision whether to perform these actions via an XMLRPC API or directly in the exported SQL script is left as an implementation detail.
+
 ## Impact on existing components and users
 All code would be new in a new component, so no change to existing components is expected. No impact on existing users is expected at all until the old implementation is dropped.
 
@@ -223,6 +229,8 @@ When that happens, there is a chance of regressions for ISS users, which represe
 
 # Drawbacks
 [drawbacks]: #drawbacks
+
+## Versioning
 
 Syncing content between different versions of Uyuni may not work, if the database schema changes in non-compatible ways.
 
@@ -239,6 +247,11 @@ With the proposal in this RFC, it is possible to implement protection from case 
 pl/SQL could still be used, as a last resort, to apply different commands to different ISS Slave versions, but that would be hardly maintainable, so it would only be suggested to handle critical situations temporarily.
 
 General recommendation would be to upgrade an ISS Master, then upgrade ISS Slaves before attempting any new Inter-Server Synchronization. Another RFC will detail how Hub could make such upgrades easier.
+
+## Others
+
+- assumption is that a Server will not import content from more than one exporting Server (current implementation allows multiple Masters). This limitation could be lifted at a later stage
+- current assumption is that content will be added to the Organization with the same name at the receiving end. Organization mapping might come as a later step
 
 
 # Alternatives
@@ -271,12 +284,15 @@ General recommendation would be to upgrade an ISS Master, then upgrade ISS Slave
 # Next steps
 [Next steps]: #next-steps
 
-- support more types of content: configuration management data, OS images, container images
+- support more types of content: configuration management data, OS images, container images, autoinstallation profiles, etc.
+- support synchronizing partial software channel clone chains. Eg. in a content liecycle structure with vendor -> qa -> prod, only sync the vendor and prod channels with a clone link being created at the receiving end
+- support automatic (eg. nightly) synchronization of content
 - support an API-based transport, if needed
 - drop the current ISS implementation
   - full backwards compatibility of all commandline flags is left as an implementation detail, it's probably achievable
   - dropping the old ISS implementation could save about ~9k LOC, as measured by `cloc backend/server/importlib/*Import* backend/satellite_exporter/ backend/satellite_tools/exporter/ backend/satellite_tools/*sat*ync*`
-- support syncing repo metadata, in order for them not to necessarily be regenerated on the ISS Slave
+- optionally support Organization mapping
+- optionally support syncing of repo metadata, in order for them not to necessarily be regenerated on the ISS Slave
 - allow downloading of files from locations other than the ISS Master - SCC, a closer Proxy, third-party repos...
 - offer a UI for ISS in general. Current implementation does not have one
 - integrate with the Content Lifecycle Management functionality: automatically sync after content is finalized
@@ -285,4 +301,5 @@ General recommendation would be to upgrade an ISS Master, then upgrade ISS Slave
 [unresolved]: #unresolved-questions
 
 - is it really possible to cover all cases with a SQL script? What cases would be missing?
-- is it acceptable to lose compatibility between ISS Master and ISS Slaves if they are on different Uyuni versions?
+- is it really acceptable to lose compatibility between ISS Master and ISS Slaves if they are on different Uyuni versions?
+- how to deal with product data? In particular, is it possible to sync vendor channels without product data without major side effects?
