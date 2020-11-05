@@ -8,9 +8,9 @@
 The topic of this RFC is implementing the "retracted patches" support in Uyuni.
 
 A retracted patch is a patch with attribute `status=retracted`. The purpose of
-the flag is to signalize the fact, that the patch had been released, but was
-then back (retracted) by its publisher. This can be used, for instance, when the
-publisher issues a patch that is invalid (e.g. can break a system).
+the flag is to signal the fact, that the patch had been released, but was then
+taken back (retracted) by its publisher. This can be used, for instance, when
+the publisher issues a patch that is invalid (e.g. can break a system).
 
 # Motivation
 [motivation]: #motivation
