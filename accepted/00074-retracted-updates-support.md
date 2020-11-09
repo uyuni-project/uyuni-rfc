@@ -8,7 +8,7 @@
 The topic of this RFC is implementing the "retracted patches" support in Uyuni.
 
 A retracted patch is a patch with attribute `status=retracted`. The purpose of
-the flag is to signal the fact, that the patch had been released, but was then
+the flag is to signal the fact that the patch had been released, but was then
 taken back (retracted) by its publisher. This can be used, for instance, when
 the publisher issues a patch that is invalid (e.g. can break a system).
 
@@ -70,9 +70,6 @@ Operations and their outcomes:
 The `rhnErrata` table must be updated with the `status` column of type
 `VARCHAR(32)`.
 
-Q: Alternatives: 1) `NUMERIC`, 2) normalize the `status` attribute and use
-another table (see `rhnErrataSeverity` for an example).
-
 ### Reposync
 
 The status `retracted` is part of `update` elements in the `updatedata.xml` file
@@ -109,12 +106,11 @@ The following pages must be updated:
 - Patch detail: information about the status. Given the fact we only have 2
   states now (`retracted`/`final`), this can be a boolean information telling
   whether the patch is retracted or not.
-
-Q: should this be read-write? so that user can modify the `status` attribute
-using a toggle (for non-vendor channels). If we allow this, we need to face the
-consequences of modifying a patch (maybe regenerating some data
-(`rhnServerNeededCache`, regenerating repodata of all channels, if this is not
-already handled somewhere)).
+  We should implement this as a checkbox, allowing the user to change
+  the attribute (although the change should be disabled for vendor patches).
+  We need to take into account the possible consequences of modifying
+  a patch (maybe regenerating some data (`rhnServerNeededCache`,
+  regenerating repodata of all involved channels)).
 
 - Patch list (*Patches -> All/Relevant*): an icon in the list, if the
   patch is retracted.
@@ -233,7 +229,6 @@ packages them could lead to unwanted results (e.g. breaking systems).
 - See the inline "Q:" parts.
 - How to "uninstall" a patch that used to be stable, but is retracted now? Is
   there some other way than `zypper in --oldpackage pkg-oldver`?
-- any screens/consequences for image building? (ask @cbbayburt)
 - What happens if patch=stable -> retracted -> stable? this path should be also
   supported
 
@@ -244,6 +239,8 @@ packages them could lead to unwanted results (e.g. breaking systems).
   - patching: we create an action bearing all errata, salt then
     applies state `packages.patchinstall` with all of the patches
   - upgrading: we call `packages.pkginstall` with package name, arch and version  
+- Q: Does the feature have any consequences for image building?
+  - A: no.
 
 # Appendix
 Examples of XML data for a retracted patch.
