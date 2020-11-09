@@ -5,7 +5,7 @@
 # Summary
 [summary]: #summary
 
-Uyuni Server has a functionality called Inter-Server Synchronization (abbreviated to ISS from now on) that allows users to transfer channel data (packages and metadata) from one Server (called an ISS Master) to another Server (called an ISS Slave).
+Uyuni Server has a functionality called Inter-Server Synchronization (abbreviated to ISS from now on) that allows users to transfer channel data (packages and repo/product metadata) from one Server (called an ISS Master) to another Server (called an ISS Slave).
 
 Current implementation [is documented in Uyuni manuals](https://www.uyuni-project.org/uyuni-docs/uyuni/administration/iss.html).
 
@@ -40,35 +40,48 @@ From the requirements:
 # Detailed design
 [design]: #detailed-design
 
-## Main concept
+## Overall problem statement
 
 Any kind of managed content on a Uyuni Server can be thought as:
-  - a set of database records describing that content and, optionally,
-  - a set of files on a filesystem referred to by those records
+  1- a set of database records describing that content and, optionally,
+  2- a set of files on a filesystem referred to by those records
 
-One way to look at the ISS problem is to provide a way of exporting from an ISS Master, transferring and importing into an ISS Slave those two pieces of information.
+One way to look to look at this problem is to provide a way of:
+  - exporting (from a Server),
+  - transferring, and
+  - importing (into another Server)
+
+The two pieces of information above.
+
+**Core idea**: the whole mechanism will be reimplemented from scratch via an "exporter" program which dumps relevant data from the originating Server and an "importer" program that consumes that dump on the receiving Server. Dump will be saved to the filesystem.
 
 ### File export/import
 
-The ISS Master, given a specified piece of content to sync, should be able to identify the set of relevant files and "export" it. Then it should be transfered to the ISS Slave and "imported" (see "Transport" below).
+A "file exporter" component runs on a Server and given a specified piece of content to sync (eg. a software channel label), will access the database to identify the set of relevant files and save them in an appropriate directory structure.
 
-The current implementation has a code on the ISS Master to "export" files and code on the ISS Slave to "import" them - this concept is not supposed to change.
+A "file importer" component runs on the target Server and, given an exported directory structure, copies files in appropriate locations.
+
+Transfer of the directory structure is described separately in the "Transport" section below.
 
 ### Database data import/export
 
-The ISS Master, given a specified piece of content to sync, should be able to export relevant data from the ISS Master database, to be transported and imported on the ISS Slave side.
+**First core idea**: a "database exporter" component runs on a Server and dumps data in form of a special SQL script. On the target Server, data is then imported by executing the SQL script against the local database.
 
-The current implementation serializes ISS Master database data to XML and deserializes it on the ISS Slave. Relatively complicated logic is in place on both communication ends to convert to and from this format.
+Dumped data will have to be limited to a specified piece of content to sync (eg. a software channel label, or a set of such labels).
 
-**First core idea** of this RFC is to **export database data from the ISS Master in form of a SQL script to be executed as-is on the ISS Slave** (eg. via `psql`).
+**Second core idea**: the generated SQL script will be generated without substantial hardcoding of database schema information in the program. Rather, the exporter will inspect the schema programmatically and, for example, determine most or all of the involved tables, key relationships, ordering, etc.
 
-**Second core idea is to generate that SQL script from the ISS Master data mainly by inspecting the schema programmatically** (eg. figuring out by schema inspection most of the involved tables, key relationships, ordering, etc.).
+Notes:
+  - the current implementation serializes ISS Master database data to XML and deserializes it on the ISS Slave. Relatively complicated logic is in place on both communication ends to convert to and from this format
+    - intention of the approach in this RFC is to avoid most of this complication
+  - the current implementation also needs an up-to-date mapping of tables and columns in Python code (ORM), and that has to be kept updated
+    - intention of the approach in this RFC is to avoid most of the manual specification of the mapping, reducing maintenance
 
-A proof-of-concept Python script that implements partially those ideas is available at: https://github.com/SUSE/spacewalk/blob/Manager-4.0-iss2/iss2/iss2.py
+A proof-of-concept Golang tool that implements partially those ideas is available at: https://github.com/moio/mgr-dump
 
 #### First core idea: export as SQL script
 
-The SQL script exported from the ISS Master will have to be idempotent. For example:
+The exported SQL script will have to be idempotent. For example:
 
 ```sql
 INSERT INTO "rhnchecksumtype" (
@@ -123,7 +136,7 @@ At this point it is believed/assumed that:
 
 #### Second core idea: SQL script is generated via introspection
 
-The SQL script would be produced by a program that looks at the ISS Master's schema and, given a small set of starting tables (eg. `rhnchannel`) and starting rows given by a criterion (eg. `channel_id = 103` or `modified_date > '2019-01-01'`), figures out:
+The SQL script would be produced by a program that looks at the database schema and, given a small set of starting tables (eg. `rhnchannel`) and starting rows given by a criterion (eg. `channel_id = 103` or `modified_date > '2019-01-01'`), figures out:
 
 - the graph of dependent/dependency tables (from the starting set)
 - for each table:
@@ -145,36 +158,69 @@ Expected benefits:
 
 ### Transport
 
-Both file and database data need to be transferred somehow from the ISS Master to the ISS Slave.
+Both file and database data need to be transferred somehow to the receiving Server.
 
 Current ISS implementation offers:
   - storage-based transfer (a directory with well-defined structure is created to host files and data in XML form) and
   - API-based transfer: an XMLRPC request is made from ISS Slave to Server, and the same data set is sent over XMLRPC (http), streamed
 
-The new ISS implementation will eventually support both a storage-based transfer and an API-based transfer (not necessarily XMLRPC based). Details on the API-based transfer are not covered by this RFC, see "Limitations" below.
+The initial, most basic version of the new ISS will not implement a transport at all, relying on the user to deliver data to the receiving Server.
+
+Later versions might wrap the import process in a Salt module, delegating the transport to Salt itself (possibly via `https`, `rsync` or other protocols subject to performance needs). It is in principle possible to copy files directly to desired destinations, avoiding a temporary directory to be transfered at all.
+
+There is no plan for API-based transfer, although that could be implemented later.
 
 ### Triggering
 
 Current ISS implementation is ISS-Slave-triggered - the `mgr-inter-sync` command will trigger syncing (by default via the API-based transport).
 
-The new ISS implementation will be ISS-Master triggered, possibly via Salt states. The exact mechanism is left as an implementation detail.
+The new ISS implementation will be triggered from the exporting side, possibly via Salt states. The exact mechanism is left as an implementation detail.
+
+For software channel synchronization, either the SQL script or the "importer" will have to trigger errata cache refresh and repository metadata regeneration.
 
 ### Limitations
 
 The first implementation of this RFC will:
-  - be limited to software channels
+  - be limited to software channels, including product metadata
   - be limited to storage-based transfers
 
 ## Implementation details
 
-- two commandline tools will be added, one to be used on an ISS Master and one on an ISS Slave
-  - output of the ISS Master tool will be a directory with files and a SQL script
-  - the ISS Slave tool will mainly copy files to correct locations and execute the SQL script
-  - triggering of the ISS Slave tool might happen via Salt, this is left as an implementation detail
-  - transfer proper could be done via `rsync` or `rclone`, which provide transparent compression and delta encoding
-- all new code will be either typed Python 3, connecting to Postgres via psycopg2 and no dependencies to the old Python stack, or Go. Choice is deferred at implementation time
-- inspection of the schema can be implemented via `SELECT` queries on Postgres's internal tables
+- two commandline tools will be added, "exporter" and "importer"
+  - output of the "exporter" will be a directory with files, a SQL script, and if needed an extra metadata file
+    - the metadata file will contain any extra piece of information useful at the importing end, such as the export version or the list of the included content identifiers (eg. channel labels)
+  - the "importer" program will mainly copy files to correct locations and execute the SQL script
+    - the importer program might as well run some pre-condition check, for example making sure the channel selection is valid (any parent channel exists)
+  - triggering of the "importer" tool might happen via Salt, this is left as an implementation detail
+- all new code will be in Go
+- inspection of the schema can be implemented via `SELECT` queries on Postgres's internal schema tables
   - current and new implementations would thus be completely independent, so could coexist for an initial period of time, as the new implementation matures
+
+### Software channel specific implementationd details
+
+- it will not be possible to import child channels without their corresponding parents
+- it will be possible to import cloned channels without their originals, although this might break some features (notably CVE Audit and SP migration)
+Once a channel has been imported, the following needs to happen in order to refresh cache and other ancillary tables:
+- `ANALYZE` should be performed on `rhnChannelPackage` and possibly other heavily-changed tables
+- the `rhn_channel.refresh_newest_package(channel_id, 'inter-server-sync');` stored procedure should be called. This updates the `rhnChannelNewestPackage`/`rhnChannelNewestPackageAudit` tables so that they do not have to be transferred
+- change the last modification timestamp (`modified` column) of the `rhnChannel` row. This is needed for repo metadata generation, where this timestamp is compared to the one from on-disk files
+- the following `INSERT` queries should be executed:
+```sql
+INSERT INTO rhnRepoRegenQueue (id, channel_label, reason, force)
+    SELECT sequence_nextval('rhn_repo_regen_queue_id_seq'), :label, 'inter-server-sync', 'N'
+;
+
+INSERT INTO rhnTaskQueue (org_id, task_name, task_data, priority, earliest)
+    VALUES (:org_id, 'update_errata_cache_by_channel', :channel_id, 0, current_timestamp)
+;
+
+-- for each errata
+INSERT INTO rhnErrataQueue (channel_id, errata_id, next_action)
+    VALUES (:channel_id, :errata_id, current_timestamp);
+```
+Those instruct Taskomatic to regenerate the repo metadata files and to regenerate entries in `rhnServerNeededCache`.
+
+The decision whether to perform these actions via an XMLRPC API or directly in the exported SQL script is left as an implementation detail.
 
 ## Impact on existing components and users
 All code would be new in a new component, so no change to existing components is expected. No impact on existing users is expected at all until the old implementation is dropped.
@@ -184,9 +230,9 @@ When that happens, there is a chance of regressions for ISS users, which represe
 # Drawbacks
 [drawbacks]: #drawbacks
 
-This will only work with PostgreSQL, but that is not expected to be a problem given it's the only supported database backend at this point.
+## Versioning
 
-Syncing content between different versions of Uyuni on the ISS Master and on the ISS Slave may not work, if the database schema changes in non-compatible ways.
+Syncing content between different versions of Uyuni may not work, if the database schema changes in non-compatible ways.
 
 This risk is fundamentally unavoidable at a conceptual level, although different mitigations can be put in place and the current implementation actually allows for a broader set of mitigations than the proposal in this RFC can allow.
 
@@ -201,6 +247,11 @@ With the proposal in this RFC, it is possible to implement protection from case 
 pl/SQL could still be used, as a last resort, to apply different commands to different ISS Slave versions, but that would be hardly maintainable, so it would only be suggested to handle critical situations temporarily.
 
 General recommendation would be to upgrade an ISS Master, then upgrade ISS Slaves before attempting any new Inter-Server Synchronization. Another RFC will detail how Hub could make such upgrades easier.
+
+## Others
+
+- assumption is that a Server will not import content from more than one exporting Server (current implementation allows multiple Masters). This limitation could be lifted at a later stage
+- current assumption is that content will be added to the Organization with the same name at the receiving end. Organization mapping might come as a later step
 
 
 # Alternatives
@@ -233,12 +284,15 @@ General recommendation would be to upgrade an ISS Master, then upgrade ISS Slave
 # Next steps
 [Next steps]: #next-steps
 
-- support more types of content: configuration management data, OS images, container images
-- support an API-based transport
+- support more types of content: configuration management data, OS images, container images, autoinstallation profiles, etc.
+- support synchronizing partial software channel clone chains. Eg. in a content liecycle structure with vendor -> qa -> prod, only sync the vendor and prod channels with a clone link being created at the receiving end
+- support automatic (eg. nightly) synchronization of content
+- support an API-based transport, if needed
 - drop the current ISS implementation
   - full backwards compatibility of all commandline flags is left as an implementation detail, it's probably achievable
   - dropping the old ISS implementation could save about ~9k LOC, as measured by `cloc backend/server/importlib/*Import* backend/satellite_exporter/ backend/satellite_tools/exporter/ backend/satellite_tools/*sat*ync*`
-- support syncing repo metadata, in order for them not to necessarily be regenerated on the ISS Slave
+- optionally support Organization mapping
+- optionally support syncing of repo metadata, in order for them not to necessarily be regenerated on the ISS Slave
 - allow downloading of files from locations other than the ISS Master - SCC, a closer Proxy, third-party repos...
 - offer a UI for ISS in general. Current implementation does not have one
 - integrate with the Content Lifecycle Management functionality: automatically sync after content is finalized
@@ -247,4 +301,5 @@ General recommendation would be to upgrade an ISS Master, then upgrade ISS Slave
 [unresolved]: #unresolved-questions
 
 - is it really possible to cover all cases with a SQL script? What cases would be missing?
-- is it acceptable to lose compatibility between ISS Master and ISS Slaves if they are on different product versions?
+- is it really acceptable to lose compatibility between ISS Master and ISS Slaves if they are on different Uyuni versions?
+- how to deal with product data? In particular, is it possible to sync vendor channels without product data without major side effects?
