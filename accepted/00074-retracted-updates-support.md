@@ -62,7 +62,9 @@ Operations and their outcomes:
   yields "patch not needed" and exit code `0`. Consequence: retracted patch
   can't be applied to a system! Q: somebody double-check this.
 - if a system already has a patch installed, that becomes retracted, zypper has
-  no intention to fix this situation
+  no intention to fix this situation (this can be problematic, since downgrading
+  RPM is potentially dangerous operation because of rpm scripts)
+
 
 ## Iteration 1 - Minimal Viable Product
 
@@ -77,16 +79,10 @@ of the repository. We need to adjust `spacewalk-repo-sync` (`errataImport.py`)
 so that it parses this attribute during repository synchronization and stores it
 in the database (`rhnErrata.status`).
 
-Q: How does SCC retract the patch? Does it modify the patch with the same id by
-   changing `status=stable` to `status=retracted` or does it somehow issue a new
-   patch?
-
-A: i think it's the former (modify), but verify that!
-   https://jira.suse.com/browse/SLE-8770
-
 Q: If the previous question==true: We need to think of consequences of modifying
-   an existing patch. Normally reposync is not designed to modify data. We need
-   to make sure reposync spots this change and maybe we also need to update some
+   an existing patch (that has been synced in the past with
+   `status=final`). Normally reposync is not designed to modify data. We need to
+   make sure reposync spots this change and maybe we also need to update some
    caches (system available updates are cached (`rhnServerNeededCache`?)).
 
 ### Java backend
@@ -99,42 +95,58 @@ Enhance the `UpdateInfoWriter` class, so that it includes the `status` attribute
 in the output XML. Currently the `status` output is hardcoded to `final`.
 
 
+## Iteration 2 - Enhance UI and XMLRPC
+
+In this iteration, we add the support to user-facing parts of SUMA.
+
 ### UI
 
 The following pages must be updated:
 
-- Patch detail: information about the status. Given the fact we only have 2
-  states now (`retracted`/`final`), this can be a boolean information telling
-  whether the patch is retracted or not.
-  We should implement this as a checkbox, allowing the user to change
-  the attribute (although the change should be disabled for vendor patches).
-  We need to take into account the possible consequences of modifying
-  a patch (maybe regenerating some data (`rhnServerNeededCache`,
-  regenerating repodata of all involved channels)).
+- *Patches -> All -> detail*:
+  information about the status. Given the fact we only have 2 states now
+  (`retracted`/`final`), this can be a boolean information telling whether the
+  patch is retracted or not.
 
-- Patch list (*Patches -> All/Relevant*): an icon in the list, if the
-  patch is retracted.
+- *Patches -> Manage Patches*: 
+  We should implement a checkbox, allowing the user to change the status
+  attribute (although the change should be disabled for vendor patches). We need
+  to take into account the possible consequences of modifying a patch (maybe
+  regenerating some data (`rhnServerNeededCache`, regenerating repodata of all
+  involved channels)).
 
-- *System detail -> Software -> Packages -> List/Upgrade/Install*: a **fat**
-  warning icon in the list, if a package is contained in a retracted patch. The
-  warning should contain a popup text, telling that selecting that package
-  **installs** the package.
+- *Patches -> All*: an icon in the list, if the patch is retracted.
 
-- Package install/upgrade confirmation screens: if there are any packages
-  contained retracted patches, we should explicitly inform the user on these
-  screens too.
+- *Patches -> Relevant*: a retracted patch should not be displayed
+  in this list at all.
 
-- *System detail -> Software -> Patches*: an icon in the list, if the
-  patch is retracted. The warning should contain a popup text, telling that
-  selecting the patch for installation doesn't have any effect (see the details
-  about zypper above).
+- *System detail -> Software -> Packages -> List*:
+  Installed packages contained in retracted patches should be highlighted (icon,
+  possibly accompanied by red text).
 
-- *Channel detail -> Patches*: an icon
+- *System detail -> Software -> Packages -> Upgrade*:
+  Package upgrades that are part of the retracted patch should not be
+  displayed. The highest ("non-retracted") update of the package should be
+  displayed.
 
-- *Channel detail -> Packages*: an icon
+- *System detail -> Software -> Packages -> Install*:
+  Don't display package versions that are part of a retracted patch.
 
-Q: consider this alternative: toggle button `show retracted patches`/`show
-  packages from retracted` in the lists above.
+- New tab *System detail -> Software -> Packages -> Retracted*:
+  This screen should allow user to install packages contained in retracted
+  patches and should contain huge warning about possible consequences.
+
+  - Q: this wasn't clarified on the mtg: should this allow installation or
+  upgrade of packages contained in a retracted patch? Maybe both, but the UI
+  would get messy.
+
+- *System detail -> Software -> Patches*:
+  Don't display retracted patches.
+
+- *Channel detail -> Patches*: an icon for a retracted patch
+
+- *Channel detail -> Packages*: an icon for a package contained in a retracted
+  patch
 
 
 ### XMLRPC
@@ -143,14 +155,14 @@ The following endpoints must be updated:
 - `ErrataHandler.getDetails` the endpoint will expose the `status` field of an
   Erratum
 
-- `ErrataHandler.setDetails` (if we allow modifying the flag) for non-vendor
-  channels the endpoint allows setting `status` to either `retracted` or `final`
+- `ErrataHandler.setDetails` for non-vendor channels the endpoint allows setting
+  `status` to either `retracted` or `final`
 
 - Q: `ErrataHandler.create` shall we support creating retracted patches via API?
   Likely not.
 
-- `PackageHandler.getDetails` add a boolean flag to the return value, that tells
-  if the package is part of a retracted patch
+- `PackageHandler.getDetails`, `PackageHandler.findByNvrea` add a boolean flag
+  to the return value, that tells if the package is part of a retracted patch
 
 - `SystemHandler.schedulePackageInstall` no changes needed. The endpoint takes
   package ids, so the user most likely knows the details of the package (and
@@ -168,7 +180,7 @@ Q: todo verify that user can't get list of package ids without knowing the
   can be retrieved via existing XMLRPC methods and `ErrataHandler.getDetails`.
 
 
-## Iteration 2 - Content Lifecycle management
+## Iteration 3 - Content Lifecycle management
 
 Enhance Content Lifecycle Manager and notifications.
 
@@ -176,21 +188,25 @@ Enhance Content Lifecycle Manager and notifications.
 
 - add a filter that strips retracted patches from the sources
 
-- add a filter for turning `retracted` patches into `stable` ones
-Q: This is questionable. Do we need that? And are filters a good fit for that?
-Mabye we need some to generalize the filters a bit.
-
 ### Projects
 
 - distinguish a project with retracted patch in it
-
 - Warn about out-of-date CLM clones with new retracted patches
 
 ### Notifications
-- notification after reposync, when some patches -> retracted &&
 
+Early idea:
+- notification after reposync: when some patches got retracted, create a
+  notification containing this information:
+  - retracted patch details
+  - affected channels channels containing the patch
+  - channels containing clone of the retracted patch
 
-## Iteration 3 - deeper UI integration, allow uninstalling a retracted patch
+This must be grouped in a sane way.
+
+Q: does ths ^ make sense?
+
+## Iteration 4 - deeper UI integration, allow uninstalling a retracted patch
 - Channel detail: a warning icon and a message, that the channel contains a
   retracted patch
 
@@ -198,12 +214,12 @@ Mabye we need some to generalize the filters a bit.
   patch
 
 - System detail: a warning icon and a message, that the system has a retracted
-  patch installed
+  patch (or its clone) installed
 
 - System list: a warning icon in the list, if the system has a retracted patch
-  installed
+  (or its clone)  installed
 
-- Allow uninstalling a retracted patch (downgrade)
+Q: evaluate query complexity of underlying queries
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -227,9 +243,7 @@ packages them could lead to unwanted results (e.g. breaking systems).
 [unresolved]: #unresolved-questions
 
 - See the inline "Q:" parts.
-- How to "uninstall" a patch that used to be stable, but is retracted now? Is
-  there some other way than `zypper in --oldpackage pkg-oldver`?
-- What happens if patch=stable -> retracted -> stable? this path should be also
+- Q: What happens if patch=stable -> retracted -> stable? this path should be also
   supported
 
 # Resolved questions
@@ -239,8 +253,22 @@ packages them could lead to unwanted results (e.g. breaking systems).
   - patching: we create an action bearing all errata, salt then
     applies state `packages.patchinstall` with all of the patches
   - upgrading: we call `packages.pkginstall` with package name, arch and version  
+
 - Q: Does the feature have any consequences for image building?
   - A: no.
+
+- Q: How does SCC retract the patch? Does it modify the patch with the same id by
+   changing `status=stable` to `status=retracted` or does it somehow issue a new
+   patch?
+   - A: They modify the same patch. The `status` flag will change in the
+     repodata for that patch.
+     
+- Q: Is a system with installed retracted patch supported?
+  - A: Yes.
+  
+- Q: What's the best way to uninstall a retracted patch?
+  - A: There is no good way to do this. Downgrading an RPM can always break
+    something if it contains pre/post scripts.
 
 # Appendix
 Examples of XML data for a retracted patch.
