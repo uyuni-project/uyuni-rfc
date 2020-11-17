@@ -94,6 +94,8 @@ will implement an `enum`.
 Enhance the `UpdateInfoWriter` class, so that it includes the `status` attribute
 in the output XML. Currently the `status` output is hardcoded to `final`.
 
+## Inter Server Sync
+Make sure that the patch status gets propagated correctly in the ISS slaves.
 
 ## Iteration 2 - Enhance UI and XMLRPC
 
@@ -133,12 +135,21 @@ The following pages must be updated:
   Don't display package versions that are part of a retracted patch.
 
 - New tab *System detail -> Software -> Packages -> Retracted*:
-  This screen should allow user to install packages contained in retracted
-  patches and should contain huge warning about possible consequences.
+  This screen should allow user to install or upgrade packages
+  contained in retracted patches and should contain huge warning about
+  possible consequences. The table should contain packages for both
+  installation and upgrade in the following manner:
 
-  - Q: this wasn't clarified on the mtg: should this allow installation or
-  upgrade of packages contained in a retracted patch? Maybe both, but the UI
-  would get messy.
+  - Installation: display the newest version of the "retracted"
+    package, if it's the newest version in the channel (i.e. there is
+    no non-retracted package that superseedes this one) and the
+    package is not installed on the system.
+
+  - Upgrade: for each package installed on the system, display its
+    retracted upgrade, if there is no superseeding non-retracted
+    upgrade in the channel.
+
+  - We should distinguish the install/upgrade rows graphically
 
 - *System detail -> Software -> Patches*:
   Don't display retracted patches.
