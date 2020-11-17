@@ -12,6 +12,7 @@ the flag is to signal the fact that the patch had been released, but was then
 taken back (retracted) by its publisher. This can be used, for instance, when
 the publisher issues a patch that is invalid (e.g. can break a system).
 
+
 # Motivation
 [motivation]: #motivation
 
@@ -29,6 +30,7 @@ systems due to broken released patches.
 
 To make Uyuni aware of the `retracted` status of patches and to update
 corresponding pieces of UI/XMLRPC.
+
 
 # Detailed design
 [design]: #detailed-design
@@ -60,7 +62,7 @@ Operations and their outcomes:
   taken into account, since this is the way we upgrade packages in SUMA)
 - installing retracted patch (`zypper in patch:<retracted_patch_id>`):
   yields "patch not needed" and exit code `0`. Consequence: retracted patch
-  can't be applied to a system! Q: somebody double-check this.
+  can't be applied to a system.
 - if a system already has a patch installed, that becomes retracted, zypper has
   no intention to fix this situation (this can be problematic, since downgrading
   RPM is potentially dangerous operation because of rpm scripts)
@@ -79,11 +81,12 @@ of the repository. We need to adjust `spacewalk-repo-sync` (`errataImport.py`)
 so that it parses this attribute during repository synchronization and stores it
 in the database (`rhnErrata.status`).
 
-Q: If the previous question==true: We need to think of consequences of modifying
-   an existing patch (that has been synced in the past with
-   `status=final`). Normally reposync is not designed to modify data. We need to
-   make sure reposync spots this change and maybe we also need to update some
-   caches (system available updates are cached (`rhnServerNeededCache`?)).
+We need to think of consequences of modifying an existing patch (that has been
+synced in the past with `status=final`). We need to make sure reposync spots
+this change and maybe we also need to update some caches (system available
+updates are cached (`rhnServerNeededCache`?)).
+
+Analyze the case, when a stable patchh gets retracted and then stable again in SCC.
 
 ### Java backend
 
@@ -96,6 +99,7 @@ in the output XML. Currently the `status` output is hardcoded to `final`.
 
 ## Inter Server Sync
 Make sure that the patch status gets propagated correctly in the ISS slaves.
+
 
 ## Iteration 2 - Enhance UI and XMLRPC
 
@@ -159,7 +163,6 @@ The following pages must be updated:
 - *Channel detail -> Packages*: an icon for a package contained in a retracted
   patch
 
-
 ### XMLRPC
 The following endpoints must be updated:
 
@@ -169,8 +172,8 @@ The following endpoints must be updated:
 - `ErrataHandler.setDetails` for non-vendor channels the endpoint allows setting
   `status` to either `retracted` or `final`
 
-- Q: `ErrataHandler.create` shall we support creating retracted patches via API?
-  Likely not.
+- `ErrataHandler.create` shall we support creating retracted patches via API?
+   No.
 
 - `PackageHandler.getDetails`, `PackageHandler.findByNvrea` add a boolean flag
   to the return value, that tells if the package is part of a retracted patch
@@ -215,7 +218,6 @@ Early idea:
 
 This must be grouped in a sane way.
 
-Q: does ths ^ make sense?
 
 ## Iteration 4 - deeper UI integration, allow uninstalling a retracted patch
 - Channel detail: a warning icon and a message, that the channel contains a
@@ -230,7 +232,8 @@ Q: does ths ^ make sense?
 - System list: a warning icon in the list, if the system has a retracted patch
   (or its clone)  installed
 
-Q: evaluate query complexity of underlying queries
+As a part of this iteration, evaluate query complexity of underlying queries.
+
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -238,6 +241,7 @@ Q: evaluate query complexity of underlying queries
 Why should we **not** do this?
 It adds complexity to the product for relatively sparse use case (SCC is not
 retracting patches _that_ often).
+
 
 # Alternatives
 [alternatives]: #alternatives
@@ -249,13 +253,6 @@ Not doing anything at all.
 The retracted patches would be exposed to the clients and installing its
 packages them could lead to unwanted results (e.g. breaking systems).
 
-
-# Unresolved questions
-[unresolved]: #unresolved-questions
-
-- See the inline "Q:" parts.
-- Q: What happens if patch=stable -> retracted -> stable? this path should be also
-  supported
 
 # Resolved questions
 - Q: how does SUMA upgrade packages/install patches via salt? does it specify
@@ -280,6 +277,7 @@ packages them could lead to unwanted results (e.g. breaking systems).
 - Q: What's the best way to uninstall a retracted patch?
   - A: There is no good way to do this. Downgrading an RPM can always break
     something if it contains pre/post scripts.
+
 
 # Appendix
 Examples of XML data for a retracted patch.
