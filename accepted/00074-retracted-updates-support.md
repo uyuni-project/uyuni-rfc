@@ -152,7 +152,9 @@ The following pages must be updated:
     retracted upgrade, if there is no superseeding non-retracted
     upgrade in the channel.
 
-  - We should distinguish the install/upgrade rows graphically
+  - The table will contain *Installed package* column (as in *System detail ->
+    Software -> Packages -> Upgrade*) for distinguishing between package install
+    and upgrade.
 
 - *System detail -> Software -> Patches*:
   Don't display retracted patches.
