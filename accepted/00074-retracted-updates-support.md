@@ -38,8 +38,7 @@ corresponding pieces of UI/XMLRPC.
 We will implement the feature in an iterative way, starting from basic support
 of the `retracted` status in the `spacewalk-repo-sync` and backend. After that,
 it should be exposed in the user-facing parts of Uyuni. Finally, we will enhance
-the Content Lifecycle feature by adding new filters operating with the
-`retracted` status.
+the Content Lifecycle feature.
 
 ## Zypper implementation of retracted patches
 
@@ -86,7 +85,7 @@ synced in the past with `status=final`). We need to make sure reposync spots
 this change and maybe we also need to update some caches (system available
 updates are cached (`rhnServerNeededCache`?)).
 
-Analyze the case, when a stable patchh gets retracted and then stable again in SCC.
+Analyze the case, when a stable patch gets retracted and then stable again in SCC.
 
 ### Java backend
 
@@ -98,7 +97,7 @@ Enhance the `UpdateInfoWriter` class, so that it includes the `status` attribute
 in the output XML. Currently the `status` output is hardcoded to `final`.
 
 ## Inter Server Sync
-Make sure that the patch status gets propagated correctly in the ISS slaves.
+Make sure that the patch status gets propagated correctly to the ISS slaves.
 
 
 ## Iteration 2 - Enhance UI and XMLRPC
@@ -219,7 +218,7 @@ Early idea:
 This must be grouped in a sane way.
 
 
-## Iteration 4 - deeper UI integration, allow uninstalling a retracted patch
+## Iteration 4 - deeper UI integration
 - Channel detail: a warning icon and a message, that the channel contains a
   retracted patch
 
