@@ -179,21 +179,33 @@ The following endpoints must be updated:
 - `PackageHandler.getDetails`, `PackageHandler.findByNvrea` add a boolean flag
   to the return value, that tells if the package is part of a retracted patch
 
-- `SystemHandler.schedulePackageInstall` no changes needed. The endpoint takes
-  package ids, so the user most likely knows the details of the package (and
-  a possible presence of a retracted patch too)
+- `SystemHandler.listLatestInstallablePackages/listLatestUpgradablePackages/listLatestAvailablePackage`
+  Output of these endpoints should not contain packages from retracted patches.
+  
+- `SystemHandler.getRelevantErrata`
+  Retracted patches should not be listed.
 
-Q: todo verify that user can't get list of package ids without knowing the
-  retracted status somewhere
+- `SystemHandler.schedulePackageInstall` no changes needed. The endpoint takes
+  package ids, so the user should know the details of the package (and a
+  possible presence of it in a retracted patch)
+
+- `SystemHandler.schedulePackageInstallByNevra` same as `schedulePackageInstall`
 
 - `SystemHandler.scheduleApplyErrata` no changes needed for the same
   reason. Moreover, even if user schedules a retracted patch application, the
   patch won't be installed (see the details about zypper above). We might inform
   the user about it somehow.
-
-- Information about the presence of a retracted patch on a system/in a channel
-  can be retrieved via existing XMLRPC methods and `ErrataHandler.getDetails`.
-
+  
+- Information about the presence of a package from a retracted patch on a
+  system/in a channel can be retrieved via existing XMLRPC methods and
+  `ErrataHandler/PackageHandler.getDetails`. This might be too slow (e.g. going
+  over all installed packages and calling `PackageHandler.getDetails` for each
+  one is not effective). We could solve it either
+    - by enhancing `SystemHandler.getDetails`.
+    - or by introducing a new endpoint.
+    
+- The previous point is valid for software channels as well.
+  
 
 ## Iteration 3 - Content Lifecycle management
 
