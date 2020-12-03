@@ -20,6 +20,9 @@ But this also complicates migration of Uyuni/SUSE Manager to newer versions by i
 
 To be able to recreate PXE entries, it is needed to store some additional details about terminals, make them available for the branch server minion and have a state which will recreate them. Idea is that after replacing branch server for any reason, user is able to apply a state and recreate the pxe entries for all connected terminals.
 
+By PXE entries are meant both PXE configuration files commonly named `01-mac_address_dash_separated` and GRUB configuration for UEFI commonly named `01:mac_address_colon_separated.grub2.cfg`.
+Later in the text I introduced term `pxe server`. This is usually branch server proxy, however design should be flexible enough to allow any salt client to become pxe server, particularly in branchless scenarios with e.g. peripheral hub servers instead of branch server proxy.
+
 # Detailed design
 [design]: #detailed-design
 
@@ -35,12 +38,21 @@ boot_image: $boot_image_name
 terminal_kernel_parameters: $hwtype_based_parameters
 ```
 
-These data are then together with data from branch data used to create pxe and grub entries like:
+These data are then together with data from branch data used to create PXE and GRUB entries like:
 
 ```
 LABEL netboot
         kernel POS_Image_JeOS7-7.0.0/POS_Image_JeOS7.x86_64-7.0.0-5.3.18-24.37-default.kernel
         append initrd=POS_Image_JeOS7-7.0.0/POS_Image_JeOS7.x86_64-7.0.0.initrd.xz  panic=60 ramdisk_size=710000 ramdisk_blocksize=4096 vga=0x317 splash=silent  USE_FQDN_MINION_ID=1 MINION_ID_PREFIX=branch1 root=/dev/disk/by-path/pci-0000:04:00.0-part3 salt_device=/dev/disk/by-path/pci-0000:04:00.0-part3
+```
+
+and
+
+```
+menuentry netboot {
+        linuxefi ${prefix}/POS_Image_JeOS7-7.0.0/POS_Image_JeOS7.x86_64-7.0.0-5.3.18-24.37-default.kernel panic=60 ramdisk_size=710000 ramdisk_blocksize=4096 vga=0x317 splash=silent  USE_FQDN_MINION_ID=1 MINION_ID_PREFIX=branch1 root=/dev/disk/by-path/pci-0000:04:00.0-part3 salt_device=/dev/disk/by-path/pci-0000:04:00.0-part3
+        initrdefi ${prefix}/POS_Image_JeOS7-7.0.0/POS_Image_JeOS7.x86_64-7.0.0.initrd.xz
+}
 ```
 
 The data send in the `pxe_update` event are not stored anywhere on the Uyuni/SUSE Manager, upon receiving the event reactor applies `pxe/terminal_entry` state on the branch server which will create the pxe entries.
@@ -60,8 +72,8 @@ CREATE TABLE suseRetailMinionInfo
                             CONSTRAINT suse_retail_minion_info_sid_fk
                                 REFERENCES suseMinionInfo (server_id)
                                 ON DELETE CASCADE,
-    branch_id           NUMERIC
-                            CONSTRAINT suse_retail_branch_info_sid_fk
+    pxeserver_id        NUMERIC
+                            CONSTRAINT suse_retail_pxeserver_info_sid_fk
                                 REFERENCES suseMinionInfo (server_id)
                                 ON DELETE SET NULL,
     mac_address         VARCHAR(17),
@@ -72,16 +84,26 @@ CREATE TABLE suseRetailMinionInfo
 )
 ```
 
-To prevent storing long `root_device` and `salt_device` we propose to change saltboot use from dev-by-path to dev-by-uuid and sending only UUIDs of used devices.
+To prevent storing long `root_device` and `salt_device` we propose to **change saltboot use from dev-by-path to dev-by-uuid** and sending only UUIDs of used devices.
 
 
 `boot_image` points to part of built retail PXE OS image. This part is currently not registered in database itself and information about it are only available in generated pillar data. Information from pillar addressed by `boot_image` is then used in generated pxe entry to correctly set what initrd and kernel should be served to the terminal during pxe boot.
 
 `kernel_parameters` are taken from HWTYPE group given terminal is member of. It is sent in event, because branch server, where pxe entries are to be generated, generally does not have access to pillars from saltboot formula of HWTYPE group.
 
-Added `branch_id` column references branch server to which this terminal belongs to. Column `mac_address` specify MAC address of the terminal. Similar column is also present in `rhnServerNetInterface` table, however that information is populated only after hardware refresh is scheduled, which is done only after successful deployment. Whereas pxe entries needs to be available before full deployment because of cases when kernel version of inird is different to kernel version in image and terminal requires reboot to correct kernel version.
+`pxeserver_id` column references PXE server (usually branch server) which provides PXE/UEFI booting data (including UEFI HTTP boot if configured).
+
+Column `mac_address` specify MAC address of the terminal. Similar column is also present in `rhnServerNetInterface` table, however that information is populated only after hardware refresh is scheduled, which is done only after successful deployment. Whereas pxe entries needs to be available before full deployment because of cases when kernel version of inird is different to kernel version in image and terminal requires reboot to correct kernel version.
 
 Another option is that event handler creates the correct entry in `rhnServerNetInterface` table.
+
+### Detecting pxeserver_id
+
+In scenarios where terminals are connected to the branch server proxy, `pxeserver_id` is currently assumed to be branch server proxy and can be detected as such by event handler. However architectures where proxy server is not involved such detection will not work (for example Hub scenarios where peripheral server is used instead of proxy server).
+
+One way to solve this is adapt saltboot to send IP address or FQDN of server which provided initrd and kernel during PXE boot. This can be obtained by parsing DHCP response for `next-server` field. DHCP response is stored and available in dracut environment where saltboot is operating. Mandatory requirement in this case will be that such server is managed by Uyuni/SUSE Manager.
+
+This is related to the [Hub Retail extension](https://github.com/uyuni-project/uyuni-rfc/pull/45) discussion about how should Retail architecture look like in Hub environment.
 
 ## Storing data in database
 
@@ -115,22 +137,63 @@ ext_pillar:
   - postgres:
       'retail_terminals':
          query: "SELECT S.name, root_device, salt_device, boot_image, kernel_parameters,mac_address FROM
-                (SELECT * FROM suseRetailMinionInfo as RMI, rhnServer as S WHERE RMI.branch_id = S.id AND S.name LIKE %s) AS I JOIN rhnServer AS S ON I.server_id = S.id"
+                (SELECT * FROM suseRetailMinionInfo as RMI, rhnServer as S WHERE RMI.pxeserver_id = S.id AND S.name LIKE %s) AS I JOIN rhnServer AS S ON I.server_id = S.id"
          as_list: False
          depth: 1
 ```
 
-or by writing pillar files for given branch server.
+or by writing pillar files for given PXE server (branch server) using already existing Java methods provided by `MinionPillarFileManager`.
 
-Keeping data hidden in database prevents manual state application by user, but does not clutter pillar space with rarely used data. To allow user to manually trigger pxe entries regeneration would need development of UI or XMLRPC API endpoint user can call.
+
+Keeping data hidden in database prevents manual state application by user, but does not clutter pillar space with rarely used data.
+To allow user to manually trigger PXE entries regeneration would need development of UI or XMLRPC API endpoint.
 
 Using these data `pxe/terminal_entry` state would need to be adapted to look for pillar data in correct places and also to support generating single pxe entry or all pxe entries depending on the values passed to the state.
 
 ## Updating PXE entries
 
-Moving terminal between branches happens. This means event handler needs to be aware of this possibility and adapt `branch_id` field as needed.
+Moving terminal between pxe servers happen. This means event handler needs to be aware of this possibility and adapt `pxeserver_id` field as needed.
   
-Removal of the branch server system profile would set `branch_id` to `null` and terminal will need to be rebooted under new branch server to be this entry updated.
+Removal of the PXE server (branch server) system profile would set `pxeserver_id` to `null`. To update the entry terminal will need to be rebooted under new PXE server or user would need to manually update using API call.
+
+## API for manipulating and (re)generation of PXE entries
+
+Proposed API namespace `saltboot` as these entries related to saltbooted images.
+
+### API to modify PXE entries
+
+API should be implemented and it should be possible:
+
+* change pxeserver_id (use case when pxe server was changed - e.g. new machine registered as a replacement)
+* change kernel options for the terminals
+
+`saltboot.modifyPXEentries(sessionKey, [server_id1, server_id2, ...], { key: value})` where `key` is one of `pxeserver_id`, `kernel_parameters`, `boot_image`, `mac_address`
+
+### API to trigger regeneration of PXE entries
+
+API should be implemented and it should be possible to:
+
+* (re)generate all PXE entries for given pxe server (use case when pxe server was replaced, e.g. after hardware failure)
+* (re)generate single PXE entry for given pxe server and terminal (use case when changing the kernel option of the terminal, e.g. for debugging purposes)
+
+`saltboot.generatePXEentry(sessionKey, server_id)`
+
+`saltboot.generatePXEentries(sessionKey, pxeserver_id)`
+
+### API to show/list entries
+
+API is recommended to be implemented for sake of complete API based access and it should be possible to:
+
+* list PXE entries for given pxeserver id
+* show PXE entries for given server id
+
+`saltboot.listPXEentries(sessionKey, pxeserver_id)` -> list of `server_id` with pxe entry for given `pxeserver_id`
+
+`saltboot.getPXEentry(sessionKey, server_id)` -> dictionary of stored values for given `server_id`
+
+### API to remove PXE entries
+
+It is up to discussion as the entry should be automatically removed when terminal server is removed from Uyuni/SUSE Manager.
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -173,5 +236,4 @@ Why should we **not** do this?
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- What are the unknowns?
-- What can happen if Murphy's law holds true?
+- Detecting `pxeserver_id` when terminal is not connected to the proxy, but directly to the Uyuni/SUSE Manager. Depends on discussion about Hub and Retail architecture.
