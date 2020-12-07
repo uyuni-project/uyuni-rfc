@@ -101,7 +101,9 @@ Another option is that event handler creates the correct entry in `rhnServerNetI
 
 In scenarios where terminals are connected to the branch server proxy, `pxeserver_id` is currently assumed to be branch server proxy and can be detected as such by event handler. However architectures where proxy server is not involved such detection will not work (for example Hub scenarios where peripheral server is used instead of proxy server).
 
-One way to solve this is adapt saltboot to send IP address or FQDN of server which provided initrd and kernel during PXE boot. This can be obtained by parsing DHCP response for `next-server` field. DHCP response is stored and available in dracut environment where saltboot is operating. Mandatory requirement in this case will be that such server is managed by Uyuni/SUSE Manager.
+Way to solve this is adapt saltboot to send IP address or FQDN of server which provided initrd and kernel during PXE boot. This can be obtained by parsing DHCP response for `next-server` field. DHCP response is stored and available in dracut environment where saltboot is operating. Mandatory requirement in this case will be that such server is managed by Uyuni/SUSE Manager.
+
+When the FQDN of `next-server` is not in the Uyuni database, such is the case when terminal is connected directly to the Uyuni, then `pxeserver_id` would be set to `null`.
 
 This is related to the [Hub Retail extension](https://github.com/uyuni-project/uyuni-rfc/pull/45) discussion about how should Retail architecture look like in Hub environment.
 
@@ -111,7 +113,7 @@ As data are provided within salt event, implementing new event handler `Saltboot
 
 Event handler should also schedule generation of new PXE entry.
 
-## Generating PXE entries
+## Exposing PXE entries to users
 
 In current implementation, consumer of the `pxe_update` event data is `pxe/terminal_entry` state which is part of PXE formula.
 
@@ -121,7 +123,6 @@ In case of keeping the final action in salt space, there is a need to provide pi
   * by exposing database data to salt pillar system.
 
 Exposing database data may have some benefit like enabling user to manually apply `pxe/terminal_entry` or similar state to (re)generate pxe entries. This option can save resources by making UI/XML-RPC API changes non-essential.
-
 
 Database can be exposed to pillar system by external pillar mechanism connecting to the database using postgresql external pillar:
 
@@ -149,6 +150,14 @@ Keeping data hidden in database prevents manual state application by user, but d
 To allow user to manually trigger PXE entries regeneration would need development of UI or XMLRPC API endpoint.
 
 Using these data `pxe/terminal_entry` state would need to be adapted to look for pillar data in correct places and also to support generating single pxe entry or all pxe entries depending on the values passed to the state.
+
+## Generating PXE entries
+
+Update to routine is needed to support terminals connected directly to Uyuni server. Mainly calling `pxe/terminal_entry` state using salt runner or other means locally on Uyuni.
+
+Complete routine should look like:
+
+![Generating PXE entries flowchart](images/0000-retail-pxe-db-workflow.png)
 
 ## Updating PXE entries
 
@@ -236,4 +245,6 @@ Why should we **not** do this?
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- Detecting `pxeserver_id` when terminal is not connected to the proxy, but directly to the Uyuni/SUSE Manager. Depends on discussion about Hub and Retail architecture.
+- `pxeserver_id` when terminal is not connected to the proxy, but directly to the Uyuni/SUSE Manager is `null` and has a functional meaning. However the same state can be achieved by removing branch server server entry. How big problem is it?
+
+- UI for pxe generation. Is it needed, or is XMLRPC API enough?
