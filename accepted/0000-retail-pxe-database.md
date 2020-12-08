@@ -241,10 +241,16 @@ Why should we **not** do this?
 
   This would allow to reuse of current external pillar mechanism, but suffer from the same issues like existing implementation - maintaining consistency of data and others. (See [overall issue](https://github.com/SUSE/spacewalk/issues/10679))
 
+- Detection of `pxeserver_id` can also be done similarly as `salt` CNAME is being resolved by saltboot. That means adding `tftp` CNAME as hard requirement for DNS resolution. It is already documented to do so, however it wasn't used for anything and given number of users use their DNS servers instead of retail provided one this can introduce a regression in users scenarios.
+
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
+- Is presented detection of `pxeserver_id` acceptable?
+
 - `pxeserver_id` when terminal is not connected to the proxy, but directly to the Uyuni/SUSE Manager is `null` and has a functional meaning. However the same state can be achieved by removing branch server server entry. How big problem is it?
 
 - UI for pxe generation. Is it needed, or is XMLRPC API enough?
+
+- What mechanism to use to export pillar data? Do we need to export pillar data?
