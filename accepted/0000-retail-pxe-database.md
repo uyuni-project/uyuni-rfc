@@ -30,7 +30,7 @@ Later in the text I introduced term `pxe server`. This is usually branch server 
 
 ## Workflow description
 
-When terminal is booting up, it sends an event `suse/manager/pxe_update` together with following data:
+On each boot (first boot and all next boots) terminal sends an event `suse/manager/pxe_update` together with following data:
 
 ```
 salt_device: $dev_by_id_path
@@ -120,34 +120,12 @@ Event handler should also schedule generation of new PXE entry.
 
 In current implementation, consumer of the `pxe_update` event data is `pxe/terminal_entry` state which is part of PXE formula.
 
-In case of keeping the final action in salt space, there is a need to provide pillar data to the state:
+Keeping the final action in salt space, there is a need to provide pillar data to the state:
 
   * by supplying directly to state when scheduling pxe generating action.
   * by exposing database data to salt pillar system.
 
 Exposing PXE data is not hard requirement but may have some benefit like enabling user to manually apply `pxe/terminal_entry` or similar state to (re)generate pxe entries. This option can save resources by making UI/XML-RPC API changes non-essential.
-
-Database can be exposed to pillar system by external pillar mechanism connecting to the database using postgresql external pillar:
-
-```
-postgres:
-  db: susemanager
-  host: localhost
-  pass: spacewalk
-  port: 5432
-  user: spacewalk
-
-ext_pillar:
-  - postgres:
-      'retail_terminals':
-         query: "SELECT S.name, root_device, salt_device, boot_image, kernel_parameters,mac_address FROM
-                (SELECT * FROM suseRetailMinionInfo as RMI, rhnServer as S WHERE RMI.pxeserver_id = S.id AND S.name LIKE %s) AS I JOIN rhnServer AS S ON I.server_id = S.id"
-         as_list: False
-         depth: 1
-```
-
-or by writing pillar files for given PXE server using already existing Java methods provided by `MinionPillarFileManager`.
-
 
 Keeping data hidden in database has a positive side by not cluttering pillar space with rarely used data.
 To allow user to manually trigger PXE entries regeneration it is needed to develop UI or XMLRPC API endpoint, proposed below.
@@ -245,6 +223,26 @@ Why should we **not** do this?
   This would allow to reuse of current external pillar mechanism, but suffer from the same issues like existing implementation - maintaining consistency of data and others. (See [overall issue](https://github.com/SUSE/spacewalk/issues/10679))
 
 - Detection of `pxeserver_id` can also be done similarly as `salt` CNAME is being resolved by saltboot. That means adding `tftp` CNAME as hard requirement for DNS resolution. It is already documented to do so, however it wasn't used for anything and given number of users use their DNS servers instead of retail provided one this can introduce a regression in users scenarios.
+
+- Exposing pillar data using postgres external pillar:
+
+  ```
+  postgres:
+    db: susemanager
+    host: localhost
+    pass: spacewalk
+    port: 5432
+    user: spacewalk
+
+  ext_pillar:
+    - postgres:
+        'retail_terminals':
+          query: "SELECT S.name, root_device, salt_device, boot_image, kernel_parameters,mac_address FROM
+                  (SELECT * FROM suseRetailMinionInfo as RMI, rhnServer as S WHERE RMI.pxeserver_id = S.id AND S.name LIKE %s) AS I JOIN rhnServer AS S ON I.server_id = S.id"
+          as_list: False
+          depth: 1
+  ```
+  Not considering this as this should be part of [spacewalk#10679](https://github.com/SUSE/spacewalk/issues/10679).
 
 
 # Unresolved questions
