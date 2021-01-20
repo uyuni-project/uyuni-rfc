@@ -73,6 +73,18 @@ Uyuni runs a Salt state to read the lifecycle data file provided with the packag
 
 The lifecycle information is provided in the `lifecycle-data-sle-module-live-patching` package in the Live Patching product. Uyuni unpacks this RPM and reads the data from the extracted CSV file during reposync of this product. The data is stored in the database per live patch package.
 
+A high-level algorithm of the process is as follows:
+```
+# At reposync or as a separate task after sync
+
+for all RPMs that start with `lifecycle-data-*`:
+  unpack RPM and loop through `*.lifecycle` files:
+    read `name,version,date` in file
+    if name in [`kgraft-patch-*`, `kernel-livepatch-*`, ...]:
+       insert into DB table `susePackageLifecycleData`
+    delete temp data
+```
+
 **Pros:**
  - Independent, no impositions on clients
  - Gathered data is always available and can be used for UI enhancements such as displaying EOL info for all live patch packages displayed in the UI
@@ -174,5 +186,4 @@ Alternative implementations for EOL data retrieval are mentioned in the [data re
 
 # TODO
 
- - Consider `kgraft` support for live patching SLES12
  - Split EOL data and CLM improvements into separate RFCs
