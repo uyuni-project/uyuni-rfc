@@ -5,7 +5,9 @@
 # Summary
 [summary]: #summary
 
-Brief (one-paragraph) explanation of the feature.
+Provide visibility of **inherited** Configuration State Channels connections at a System Details level. The reverse information as well should be provided by giving visibility of those systems they are connected (directly or by **inheritance**) to a certain Configuration State Channel at a Channel Details level.
+
+*Note: everything discussed in this RFC applies to Salt clients only. Traditional clients do not inherit Configuration State Channels.*
 
 # Motivation
 [motivation]: #motivation
