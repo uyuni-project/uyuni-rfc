@@ -1,6 +1,6 @@
 - Feature Name: Database backed salt pillar storage
 - Start Date: 2021-01-13
-- RFC PR: TBD
+- RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/51
 
 # Summary
 [summary]: #summary
@@ -121,16 +121,80 @@ CREATE TRIGGER minion_removed BEFORE DELETE ON suseMinionInfo FOR EACH ROW EXECU
 CREATE TRIGGER group_removed BEFORE DELETE ON rhnServerGroup FOR EACH ROW EXECUTE PROCEDURE group_removed();
 ```
 
+## Performance impact
+
+I did a small scale test with 100 minions and 100 pillar refresh repetitions with following results:
+
+Command:
+
+```bash
+time bash -c 'for i in `seq 1 100`;do salt "*" saltutil.pillar_refresh > /dev/null; done'
+```
+
+* both suma-minion.py and DB pillars active:
+
+```
+real    4m40,897s
+user    1m52,634s
+sys     0m10,143s
+```
+
+* only suma-minion.py pillar active:
+
+```
+real    4m37,656s
+user    1m53,964s
+sys     0m10,080s
+```
+
+
+* only DB pillar active:
+
+```
+real    4m39,619s
+user    1m54,091s
+sys     0m10,101s
+```
+
+
+I also did another small scale test with 1000 minions and 10 pillar refresh repetitions with following results:
+
+Command:
+```bash
+time bash -c 'for i in `seq 1 10`;do salt "*" saltutil.pillar_refresh > /dev/null; done'
+```
+
+* both DB pillar and `suma_minion.py` pillars active:
+
+```
+real    3m17,522s
+user    0m39,096s
+sys     0m2,260s
+```
+
+* when only `suma_minion.py` pillar was active:
+
+```
+real    3m22,705s
+user    0m40,239s
+sys     0m2,244s
+```
+
+* when only DB pillar was active:
+
+```
+real    3m21,272s
+user    0m39,661s
+sys     0m2,320s
+```
+
+In conclusion I do not see very notable impact in this isolated scenario.
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
 Why should we **not** do this?
 
-* will it impact performance?
-  
-  TBD, I suspect better performance then with thousands of files in one directory
-  
 * what other parts of the product will be affected?
   
   Salt integration and thus basically whole product is affected.
@@ -145,6 +209,8 @@ Why should we **not** do this?
 - Use single pillar row for each minion and without `category` column.
 
 This was the original idea how to implement this, however during prototype implementation having separate rows for separate pillar data made implementation better match how it is done now. I am not opposed using single row per minion, but I also do not see disadvantages for using multiple rows per minion.
+
+- Instead of using upstream `salt.pillar.postgres` module, option is to write our own customized for Uyuni database. This would help for example with integrating formula pillars into database at minimal costs to adapt formula system. As formulas are not storing complete pillar information, rather in format of changes to form.yml. So `suma_minion.py` on top of loading formula pillar JSON needs to parse formula `form.yml` and merge data properly. Our custom db module would be able to read formula JSON pillar from database and do the same parsing of `form.yml` and data merge.
 
 
 # Unresolved questions
