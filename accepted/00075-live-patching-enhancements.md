@@ -71,19 +71,41 @@ Uyuni runs a Salt state to read the lifecycle data file provided with the packag
 
 #### Unpack and read the lifecycle data RPM on Uyuni server
 
-The lifecycle information is provided in the `lifecycle-data-sle-module-live-patching` package in the Live Patching product. Uyuni unpacks this RPM and reads the data from the extracted CSV file during reposync of this product. The data is stored in the database per live patch package.
+The lifecycle information for a product is provided with `*.lifecycle` files inside a separate package. Uyuni unpacks this RPM and reads the data from the extracted CSV file during reposync of this product. The data is stored in the database per package.
 
-A high-level algorithm of the process is as follows:
+An example SQL query to retrieve the list of RPMs to unpack and the corresponding files to read from:
 ```
-# At reposync or as a separate task after sync
+SELECT
+    c.name filename,
+    p.path rpm_path
+FROM
+    rhnPackage p
+    JOIN rhnPackageFile f ON p.id = f.package_id
+    JOIN rhnPackageCapability c ON c.id = f.capability_id
+    JOIN rhnPackageEvr e ON p.evr_id = e.id
+WHERE
+    --Select packages that have '*.lifecycle' files in them
+    c.name LIKE '%.lifecycle' AND
+    e.evr = (
+        --Select latest EVR for a package name
+        SELECT MAX(evr)
+        FROM rhnPackageEvr se
+            JOIN rhnPackage sp ON se.id = sp.evr_id
+        WHERE sp.name_id = p.name_id
+    );
+```
 
-for all RPMs that start with `lifecycle-data-*`:
-  unpack RPM and loop through `*.lifecycle` files:
-    read `name,version,date` in file
-    if name in [`kgraft-patch-*`, `kernel-livepatch-*`, ...]:
-       insert into DB table `susePackageLifecycleData`
-    delete temp data
+The output is a list of RPM paths in the local filesystem and the packed filenames to extract the data from:
 ```
+                      filename                       |                         rpm_path
+-----------------------------------------------------+----------------------------------------------------------
+ /var/lib/lifecycle/data/sle-live-patching.lifecycle | .../lifecycle-data-sle-live-patching-1-10.79.1.noarch.rpm
+
+```
+
+The list of RPMs are unpacked into a temp directory and the corresponding files are read into a table called `susePackageLifecycle` with the following structure:
+ - `package_id` as a foreign key to `rhnPackage` table
+ - `eol_date` of `DATE` type
 
 **Pros:**
  - Independent, no impositions on clients
