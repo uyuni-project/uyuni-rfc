@@ -38,6 +38,7 @@ Uyuni shall use this information to provide the following:
  - Display EOL dates for the current live patch in system details
  - Display an out-of-support systems list in the home page
  - Use the notifications system and/or send emails to report live patched systems approaching/past EOL
+ - The notifications/emails will be sent in advance according to a time value configurable from the UI
 
 ### Data Retrieval
 
