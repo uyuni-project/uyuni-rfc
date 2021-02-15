@@ -42,13 +42,17 @@ Below are some examples of such sets of filters:
 
 The process of live patching can be made more user-friendly using "CLM filter wizards". The wizards are alternatives to the regular filter creation dialogs that provide a tailored interaction to create multiple filters that serve a single purpose. These dialogs can be accessed via the "Use wizard" button in the filter creation dialog. This concept can be extended to other use cases and workflows in the future.
 
-When completed, the wizards will create multiple filters that look like the examples mentioned in the section above to set up a project with a specific purpose. Since live patching channels can be composed using the existing filter types, no additional filter type needs to be implemented.
+When completed, the wizard will create the following filter to set up a project for live patching:
+```
+DENY erratum contains package with epoch/version/release greater than kernel-default <EVR> (package_nevr)
+```
+Since live patching channels can be composed using the existing filter types, no additional filter type needs to be implemented.
 
-An advantage of this approach is that since the workflow is defined with a set of regular filters, advanced users can modify these filters to achieve finer control over the project.
+An advantage of this approach is that since the workflow is defined with a regular filter, advanced users can further modify the filters to achieve finer control over the project.
 
-A wizard can be applied on a project at any time, adding filters as described. Multiple wizards can be applied to a single project and it's the user's responsibility to make sure the created filters do not conflict with each other.
+A wizard can be applied on a project at any time, adding the filter as described. Multiple wizards can be applied to a single project and it's the user's responsibility to make sure the created filters do not conflict with each other.
 
-A wizard can be applied independently from a project. In that case, the filters will be created without being added to a specific project. These filters can be used in any project later on.
+A wizard can be applied independently from a project. In that case, the filter will be created without being added to a specific project. These filters can be used in any project later on.
 
 In scope of this RFC, two different wizards are proposed. The process of creating the filters using these wizards are described below.
 
