@@ -53,7 +53,7 @@ To follow current SUSE Manager security model [[4]](#4) we should consider
 implementing following default configuration:
 
 * Upgrade Prometheus to version >= 2.24.1.
-* Create and deploy Prometheus server certificate signed by CA (own or public).
+* [Optional] Create and deploy Prometheus server certificate signed by CA (own or public).
 * Configure `tls_server_config` using this certificate.
 * Configure basic authentication accounts to map SUSE Manager credentials.
 
@@ -73,7 +73,7 @@ authentication, client certificate authentication seems to be the preferred
 approach as the certificate will be anyway available on the Prometheus server.
 It would involve following configuration steps:
 
-* Create and deploy CA signed server certificates for all monitored minions.
+* [Optional] Create and deploy CA signed server certificates for all monitored minions.
 * Configure `tls_server_config` in node exporter using these certificates.
 * Configure `tls_config.ca_file` in Prometheus job configuration to use server
   certificate [[7]](#7).
