@@ -2,6 +2,10 @@
 - Start Date: 04-04-2019
 - RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/4
 
+# Unimplemented note
+
+This RFC was not ultimately implemented. It is still archived here for historical purposes.
+
 # Summary
 [summary]: #summary
 

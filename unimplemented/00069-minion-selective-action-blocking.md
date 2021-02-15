@@ -2,6 +2,11 @@
 - Start Date: 2020-01-21
 - RFC PR: (leave this empty)
 
+# Unimplemented note
+
+This RFC was not ultimately implemented. It is still archived here for historical purposes.
+
+
 # Summary
 [summary]: #summary
 

@@ -2,6 +2,10 @@
 - Start Date: 29-04-2019
 - RFC PR: https://github.com/uyuni-project/uyuni-rfc/pull/5
 
+# Unimplemented note
+
+This RFC was not ultimately implemented due to time limitations. It is still archived here for historical purposes.
+
 # Summary
 Change the current package predownloading ("staging") feature for minions. Allow users to customize the start download time on a per-Action basis.
 

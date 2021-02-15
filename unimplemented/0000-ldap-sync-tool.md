@@ -2,6 +2,12 @@
 - Start Date: 2019, Oct 28
 - RFC PR: (leave this empty)
 
+
+# Unimplemented note
+
+This RFC was not ultimately implemented in the main Uyuni codebase, although a proof of concept implementation exists. It is still archived here for historical purposes.
+
+
 # Summary
 [summary]: #summary
 
