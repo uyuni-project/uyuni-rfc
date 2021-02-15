@@ -40,23 +40,29 @@ An example SQL query to retrieve the list of RPMs to unpack and the correspondin
 
 ```sql
 SELECT
+    p.id package_id,
     c.name filename,
     p.path rpm_path
 FROM
     rhnPackage p
+    JOIN rhnChannelPackage cp ON p.id = cp.package_id
     JOIN rhnPackageFile f ON p.id = f.package_id
-    JOIN rhnPackageCapability c ON c.id = f.capability_id
+    JOIN rhnPackageCapability ca ON ca.id = f.capability_id
     JOIN rhnPackageEvr e ON p.evr_id = e.id
 WHERE
+    --Select only the channel currently being synced
+    cp.channel_id = '@CHANNEL_ID' AND
     --Select packages that have '*.lifecycle' files in them
-    c.name LIKE '%.lifecycle' AND
+    ca.name LIKE '%.lifecycle' AND
     e.evr = (
         --Select latest EVR for a package name
         SELECT MAX(evr)
         FROM rhnPackageEvr se
             JOIN rhnPackage sp ON se.id = sp.evr_id
         WHERE sp.name_id = p.name_id
-    );
+    ) AND
+    --Select packages that haven't been synced yet
+    NOT EXISTS (SELECT 1 FROM susePackageLifecycle WHERE lifecycle_package_id = p.id);
 ```
 
 The output is a list of RPM paths in the local filesystem and the packed filenames to extract the data from:
@@ -70,6 +76,7 @@ The output is a list of RPM paths in the local filesystem and the packed filenam
 The list of RPMs are unpacked into a temp directory and the corresponding files are read into a table called `susePackageLifecycle` with the following structure:
  - `package_id` as a foreign key to `rhnPackage` table
  - `eol_date` of `DATE` type
+ - `lifeycle_package_id` pointing to the lifecycle package that the data is synced from
 
  The data stored in this table is available to be queried and consumed in the UI.
 
