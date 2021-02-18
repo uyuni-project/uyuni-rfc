@@ -174,13 +174,12 @@ This **new** page is pointed by:
 
 # Drawbacks
 [drawbacks]: #drawbacks
-<!-- TODO -->
-Why should we **not** do this?
 
-  * obscure corner cases
-  * will it impact performance?
-  * what other parts of the product will be affected?
-  * will the solution be hard to maintain in the future?
+## Why should we **not** do this?
+
+No real reason for not enhancing the feature adding the missing visibility.
+
+The concrete drawback is: the solution is adding information to a tech-debt affected architecture, spreading the same information in many places (see how many pages/screenshots). Maintaining should not be complicated, but future refactoring of the feature workflow could be more difficult.
 
 # Alternatives
 [alternatives]: #alternatives
