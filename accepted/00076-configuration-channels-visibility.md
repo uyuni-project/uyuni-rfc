@@ -183,9 +183,11 @@ The concrete drawback is: the solution is adding information to a tech-debt affe
 
 # Alternatives
 [alternatives]: #alternatives
-<!-- TODO -->
-- What other designs/options have been considered?
-- What is the impact of not doing this?
+
+## What other designs/options have been considered?
+
+Without investigating deeply, the alternative would be redesigning the feature completely from both the design and technical perspectives: the technical refactoring should get rid of the struts stack and redefine the concept of Configuration Channel and Configuration State Channel used by traditional or salt minion clients. By addressing the technical part, also the workflow could be re-drawn, dropping some pages and instead of adding separated tabs of tables it would be preferrable to have unified modern lists of filterable entries. The drawback of this alternative is that it would take much longer (from 3 to 5 times roughly) than the proposed official solution.
+
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
