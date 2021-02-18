@@ -7,7 +7,7 @@ The "RFC" (request for comments) process is intended to provide a consistent and
 ## TL;DR
 
 * Fork https://github.com/uyuni-project/uyuni-rfc
-* Copy `00000-template.md` to `accepted/0000-my-feature.md`
+* Copy `00000-template.md` to `accepted/00000-my-feature.md`
   - 'my-feature' should be as descriptive as possible.
   - please don't assign an RFC number yet.
 * Write the content, based on the [RFC template](0000-template.md).
