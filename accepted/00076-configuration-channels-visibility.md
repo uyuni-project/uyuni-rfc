@@ -191,6 +191,11 @@ Without investigating deeply, the alternative would be redesigning the feature c
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
-<!-- TODO -->
-- What are the unknowns?
-- What can happen if Murphy's law holds true?
+
+## What are the unknowns?
+1. There is a real need for representing `registration-states` (as mentioned before) or they can still stay behind the scene?
+2. Salt States coming from Formulas are not yet considered as part of this RFC
+3. This RFC is considering presenting all the sources of the Salt States for a given system. The RFC is **not** considering instead to implement a reverse-engineering to pick every Salt State from a given HighState and build the history of the specific source where it came from.
+
+## What can happen if Murphy's law holds true?
+1. No periculous path visible at the moment
