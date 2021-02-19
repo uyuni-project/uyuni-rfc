@@ -53,7 +53,8 @@ To follow current SUSE Manager security model [[4]](#4) we should consider
 implementing following default configuration:
 
 * Upgrade Prometheus to version >= 2.24.1.
-* [Optional] Create and deploy Prometheus server certificate signed by CA (own or public).
+* [Optional] Create intermediate certificate authority (CA) dedicated for monitoring.
+* [Optional] Create and deploy Prometheus server certificate signed by this CA.
 * Configure `tls_server_config` using this certificate.
 * Configure basic authentication accounts to map SUSE Manager credentials.
 
