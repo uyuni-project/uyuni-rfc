@@ -25,15 +25,14 @@ This is expected to help with maintaining consistency, help with backup procedur
 In this RFC I propose to use native JSON type of PostgreSQL ([see](https://www.postgresql.org/docs/12/datatype-json.html)) to use as a storage of the pillar data, particularly JSONB type:
 
 ```sql
-  CREATE TABLE suseSaltPillars
-  (
-      target: VARCHAR(256) NOT NULL,
-      category: VARCHAR,
-      pillar: JSONB
-  )
+CREATE TABLE suseSaltPillars
+(
+    target VARCHAR(256) NOT NULL,
+    category VARCHAR,
+    pillar JSONB
+);
   
-  CREATE INDEX suse_salt_pillar_target_idx
-  ON suseSaltPillars (target);
+CREATE INDEX suse_salt_pillar_target_idx ON suseSaltPillars (target);
 ```
 
 To see differences between TEXT, JSON and JSONB datatype I quote PostgreSQL documentation:
@@ -61,13 +60,15 @@ postgres:
 ext_pillar:
   - postgres:
       - query: "SELECT pillar from suseSaltPillars WHERE target = '*'"
-      - query: "SELECT pillar from suseSaltPillars WHERE target IN (SELECT server_group_id::VARCHAR FROM rhnServerGroupMembers AS G LEFT JOIN suseMinionInfo AS M ON G.server_id = M.server_id WHERE M.minion_id = %s)"
+      - query: "SELECT pillar from suseSaltPillars WHERE target = (SELECT CONCAT('org_id:', org_id::VARCHAR) FROM rhnServer AS S LEFT JOIN suseMinionInfo AS M on S.id = M.server_id WHERE M.minion_id = %s)"
+      - query: "SELECT pillar from suseSaltPillars WHERE target IN (SELECT CONCAT('group_id:', server_group_id::VARCHAR) FROM rhnServerGroupMembers AS G LEFT JOIN suseMinionInfo AS M ON G.server_id = M.server_id WHERE M.minion_id = %s)"
       - query: "SELECT pillar from suseSaltPillars WHERE target = %s"
 ```
 
 This example contains three different queries:
 - Universal pillars looking for target `*`
-- Group pillars. This is done by looking up salt client `server_id` using its `minion_id` joining server group membership table to obtain `server_group_id` set where salt client is a member. Then looking up `target` in this result set.
+- Organization pillars looking for target `org_id:<organization id>`
+- Group pillars. This is done by looking up salt client `server_id` using its `minion_id` joining server group membership table to obtain `server_group_id` set where salt client is a member. Then looking up target `group_id:<group id>` in this result set.
 - Minion pillars looking for `minion_id`
 
 Salt automatically merge results from these queries, latest with the highest priority.
@@ -112,7 +113,7 @@ END $$ LANGUAGE PLPGSQL;
 
 CREATE OR REPLACE FUNCTION group_removed() RETURNS TRIGGER AS $$
 BEGIN
-  DELETE FROM suseSaltPillars WHERE target = OLD.id::VARCHAR;
+  DELETE FROM suseSaltPillars WHERE target = CONCAT('group_id:',OLD.id::VARCHAR);
   RETURN OLD;
 END $$ LANGUAGE PLPGSQL;
 
@@ -120,6 +121,8 @@ CREATE TRIGGER minion_removed BEFORE DELETE ON suseMinionInfo FOR EACH ROW EXECU
 
 CREATE TRIGGER group_removed BEFORE DELETE ON rhnServerGroup FOR EACH ROW EXECUTE PROCEDURE group_removed();
 ```
+
+In case of organization removal, enhance `delete_org` stored procedure to delete organizational pillar as well.
 
 ## Performance impact
 
@@ -202,6 +205,10 @@ Why should we **not** do this?
 * will the solution be hard to maintain in the future?
   
   I expect easier maintaining then with file generators.
+
+* Hibernate support
+
+  Hibernate itself does not support JSONB data type. It is possible to either implement our own user type in hibernate or use (and package) existing project [hibernate-types](https://github.com/vladmihalcea/hibernate-types).
 
 # Alternatives
 [alternatives]: #alternatives
