@@ -23,7 +23,6 @@ information [[1]](#1).
 Applications needing access to Prometheus API:
 
 * _Grafana_
-* _Alertmanager_
 
 Users needing access to Prometheus API/UI:
 
@@ -117,6 +116,16 @@ the time of writing:
 Exporter Exporter can be placed in front of insecure exporters and expose
 their metrics on the encrypted endpoint. The goal should be though to
 provide native TLS support in upstream components.
+
+### Alertmanager
+
+Similarly to Prometheus server also Alertmanager exposes API and UI for monitoring
+administrators. Upstream developers plan to add TLS support for Alertmanager in the next
+months. Secure configuration of this service should also be considered when
+implementation is ready.
+
+Uyuni supports deploying Alertmanager on the same host as Prometheus server. It alows to
+use the same server/client certificates as for Prometheus server.
 
 ## Certificates generation
 
