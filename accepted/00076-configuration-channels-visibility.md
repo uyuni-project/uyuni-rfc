@@ -122,7 +122,7 @@ After:
 
 ### `Systems > System Set Manager > Overview > Configuration > Unsubscribe to Channels`
 Before:
-![SSM Unsubscribe From Channels BEFORE](images/configuration-channels-visibility/Systems_SSM_Configuration_UnsbscribeFromChannels_BEFORE.png)
+![SSM Unsubscribe From Channels BEFORE](images/configuration-channels-visibility/Systems_SSM_Configuration_UnsubscribeFromChannels_BEFORE.png)
 
 After:
 ![SSM Unsubscribe From Channels AFTER](images/configuration-channels-visibility/Systems_SSM_Configuration_UnsubscribeFromChannels_AFTER.png)
