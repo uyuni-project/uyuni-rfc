@@ -91,71 +91,71 @@ The proposed solution of this RFC is not including an end-to-end description of 
 This page represents the assignment connection between an organization and both configuration channels and state channels. All the systems in this organization will inherit the selection set of channels here. This should be only a list of Configuration Channels and State Channels with the possibility of simply select/deselect channels and Apply changes. If there is a need to show only the channel selected, a filter to the list page should be added instead.
 
 Before:
-![My Organization BEFORE](images/configuration-channels-visibility/Home_MyOrganization_ConfigurationChannels_BEFORE.png)
+![My Organization BEFORE](images/state-channels-visibility/Home_MyOrganization_ConfigurationChannels_BEFORE.png)
 
 After:
-![My Organization AFTER](images/configuration-channels-visibility/Home_MyOrganization_ConfigurationChannels_AFTER.png)
+![My Organization AFTER](images/state-channels-visibility/Home_MyOrganization_ConfigurationChannels_AFTER.png)
 
 ### `Systems > Details > States > Configuration Channels`
 Before:
-![System Details BEFORE](images/configuration-channels-visibility/Systems_Details_States_ConfigurationChannels_BEFORE.png)
+![System Details BEFORE](images/state-channels-visibility/Systems_Details_States_ConfigurationChannels_BEFORE.png)
 
 After:
-![System Details AFTER 1](images/configuration-channels-visibility/Systems_Details_States_ConfigurationChannels_AFTER_1.png)
-![System Details AFTER 2](images/configuration-channels-visibility/Systems_Details_States_ConfigurationChannels_AFTER_2.png)
+![System Details AFTER 1](images/state-channels-visibility/Systems_Details_States_ConfigurationChannels_AFTER_1.png)
+![System Details AFTER 2](images/state-channels-visibility/Systems_Details_States_ConfigurationChannels_AFTER_2.png)
 
 ### `Systems > System Groups > Details > States > Configuration Channels`
 This page represents the assignment connection between a system group and state channels. All the systems in this system group will inherit the selection set of channels here. This should be only a list of State Channels with the possibility of simply select/deselect channels and Apply changes. If there is a need to show only the channel selected, a filter to the list page should be added instead.
 
 Before:
-![System Groups BEFORE](images/configuration-channels-visibility/Systems_SystemGroups_Details_States_ConfigurationChannels_BEFORE.png)
+![System Groups BEFORE](images/state-channels-visibility/Systems_SystemGroups_Details_States_ConfigurationChannels_BEFORE.png)
 
 After:
-![System Groups AFTER](images/configuration-channels-visibility/Systems_SystemGroups_Details_States_ConfigurationChannels_AFTER.png)
+![System Groups AFTER](images/state-channels-visibility/Systems_SystemGroups_Details_States_ConfigurationChannels_AFTER.png)
 
 ### `Systems > System Set Manager > Overview > Configuration > Subscribe to Channels`
 Before:
-![SSM Subscribe To Channels BEFORE](images/configuration-channels-visibility/Systems_SSM_Configuration_SubscribeToChannels_BEFORE.png)
+![SSM Subscribe To Channels BEFORE](images/state-channels-visibility/Systems_SSM_Configuration_SubscribeToChannels_BEFORE.png)
 
 After:
-![SSM Subscribe To Channels AFTER](images/configuration-channels-visibility/Systems_SSM_Configuration_SubscribeToChannels_AFTER.png)
+![SSM Subscribe To Channels AFTER](images/state-channels-visibility/Systems_SSM_Configuration_SubscribeToChannels_AFTER.png)
 
 ### `Systems > System Set Manager > Overview > Configuration > Unsubscribe to Channels`
 Before:
-![SSM Unsubscribe From Channels BEFORE](images/configuration-channels-visibility/Systems_SSM_Configuration_UnsubscribeFromChannels_BEFORE.png)
+![SSM Unsubscribe From Channels BEFORE](images/state-channels-visibility/Systems_SSM_Configuration_UnsubscribeFromChannels_BEFORE.png)
 
 After:
-![SSM Unsubscribe From Channels AFTER](images/configuration-channels-visibility/Systems_SSM_Configuration_UnsubscribeFromChannels_AFTER.png)
+![SSM Unsubscribe From Channels AFTER](images/state-channels-visibility/Systems_SSM_Configuration_UnsubscribeFromChannels_AFTER.png)
 
 ### `Configuration > Overview`
 Before:
-![Configuration Overview BEFORE](images/configuration-channels-visibility/Configuration_Overview_BEFORE.png)
+![Configuration Overview BEFORE](images/state-channels-visibility/Configuration_Overview_BEFORE.png)
 
 After:
-![Configuration Overview AFTER](images/configuration-channels-visibility/Configuration_Overview_AFTER.png)
+![Configuration Overview AFTER](images/state-channels-visibility/Configuration_Overview_AFTER.png)
 
 ### `Configuration > Channels`
 Before:
-![Configuration Channels BEFORE](images/configuration-channels-visibility/Configuration_Channels_BEFORE.png)
+![Configuration Channels BEFORE](images/state-channels-visibility/Configuration_Channels_BEFORE.png)
 
 After:
-![Configuration Channels AFTER](images/configuration-channels-visibility/Configuration_Channels_AFTER.png)
+![Configuration Channels AFTER](images/state-channels-visibility/Configuration_Channels_AFTER.png)
 
 ### `Configuration > Channels > Details > Overview`
 Before:
-![Configuration Channels Detail Overview BEFORE](images/configuration-channels-visibility/Configuration_Channels_Details_Overview_BEFORE.png)
+![Configuration Channels Detail Overview BEFORE](images/state-channels-visibility/Configuration_Channels_Details_Overview_BEFORE.png)
 
 After:
-![Configuration Channels Detail Overview AFTER](images/configuration-channels-visibility/Configuration_Channels_Details_Overview_AFTER.png)
+![Configuration Channels Detail Overview AFTER](images/state-channels-visibility/Configuration_Channels_Details_Overview_AFTER.png)
 
 ### `Configuration > Channels > Details > Systems > Inheriting Systems`
 This is a new page where systems are listed only if not subscribed to the channel directly, but inheriting it through Organization or System Group assignment.
 
 Before:
-![Configuration Channels Detail Systems BEFORE](images/configuration-channels-visibility/Configuration_Channels_Details_Systems_BEFORE.png)
+![Configuration Channels Detail Systems BEFORE](images/state-channels-visibility/Configuration_Channels_Details_Systems_BEFORE.png)
 
 After:
-![Configuration Channels Detail Systems AFTER](images/configuration-channels-visibility/Configuration_Channels_Details_Systems_AFTER.png)
+![Configuration Channels Detail Systems AFTER](images/state-channels-visibility/Configuration_Channels_Details_Systems_AFTER.png)
 
 
 ### `Configuration > Channels > Details > System Groups`
