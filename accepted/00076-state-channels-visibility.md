@@ -79,7 +79,7 @@ A transparent representation of all State Channels assigned to a system from all
 
 ## Limitation
 
-It turns out that once the Salt States are collected from the various source States Channels, they are handled by the Salt engine itself who builds up the Salt highstate, and this one has no tracking information of the order or the source of the states origin.
+It turns out that once the Salt States are collected from the various source States Channels, they are handled by the Salt engine itself which builds up the Salt highstate, and this one has no tracking information of the order or the source of the states origin.
 
 The proposed solution of this RFC is not including an end-to-end description of where each single Salt State comes from where at the moment, the initial improvement is to add the visibility of the set of State Channels every system inherits from other entities (System Groups and Organizations as described before).
 
