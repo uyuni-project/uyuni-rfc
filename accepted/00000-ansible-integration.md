@@ -14,20 +14,22 @@ This RFC proposes how to integrate and manage your existing Ansible nodes in Uyu
 There are two main motivations for this:
 
 1. A user might have some investment Ansible in the past but wants to switch to Uyuni now.
-Ansible-Gate would offer a transition path for that. The user can start with the already existing playbooks, get familiar with Uyuni and then switch over. It is also be possible to manage clients with Salt and Ansible in parallel. 
+This RFC would offer a transition path for that. The user can import the Ansible systems, start with the already existing playbooks, get familiar with Uyuni and then switch over. It is also be possible to manage clients with Salt and Ansible in parallel.
 2. Managing parts of the infrastructure in Ansible.
 If it is not possible or not wanted to move everything to Uyuni, it is possible to just keep using Ansible for the few clients that cannot be transitioned.
 
+This RFC is more focus on allowing users to import their existing Ansible environments into Uyuni (allow some basic operations, coexistance of Salt and Ansible managed infrastructure in Uyuni, eventually apply playbooks and also an easy way to transition from Ansible to a full featured Salt minion managed system), rather than making Uyuni a top-featured UI to build your Ansible infrastructure from scratch.
 
 _Describe the problem you are trying to solve, and its constraints, without coupling them too closely to the solution you have in mind. If this RFC is not accepted, the motivation can be used to develop alternative solutions._
+
 
 # Detailed design
 [design]: #detailed-design
 
 There are two main parts/goals here, conceptually:
 
-1) Collect data from an Ansible controller (Inventory / SSH Keys / Playbooks, etc) and import the inventory as Ansible systems in Uyuni.
-2) Operate Ansible: Apply playbooks (either in controller or in ansible managed-systems) / Apply Salt states to Ansible systems / Make Ansible system become a fully featured Salt Minion.
+1) Collect data from an Ansible controller (Inventory / SSH Keys / Playbooks, etc) and import the hosts in the inventory as ANSIBLE systems in Uyuni.
+2) Operate Ansible: Apply playbooks via controller node / Apply Salt commands & states directly to Ansible managed systems / Make Ansible system become a fully featured Salt Minion.
 3) Maintain Ansible infrastructure: Uyuni Playbook catalog
 
 ## Collecting data from Ansible
@@ -46,6 +48,7 @@ This approach I think would also make some Python and UI code reusable from "Vir
   * external host SSH (user/pass): (inventory label, host, username, password, port, remote inventory path, remote playbook path)
   * external host SSH key: (inventory label, local ssh key, host, port, remote inventory path, remote playbook path)
   * AWX API (...)
+  * A system already registered in Uyuni.
 
 This tool would receive a JSON input with the necessary information to feed the corresponding plugin and will return a JSON output with collected information.
 
@@ -70,10 +73,10 @@ Output example:
 
 As you can see, besides of reporting the hosts from the Ansible inventory, the idea is that we also stored it locally in the Uyuni server in order to being able to reuse it later to target those hosts with "salt-ssh" directly from the Uyuni server.
 
-In short, we would gather:
+In short, we would gather, for instance:
 - Ansible inventory (hosts)
 - Ansible SSH keys referenced in the inventory
-- Playbooks under specified "remote playbook path"
+- Playbooks under specified "remote playbook path" (to be displayed in the UI - readonly)
 
 This would be stored under ""/var/lib/spacewalk/ansible/inventory-label/" path in the Uyuni server. At the time of processing the inventory file by "ansible-gatherer", it needs to be tailored to adapt the path of the SSH keys to the local path in the Uyuni server. As done in script from Ansible Integration PoC [here](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/import_systems_from_ansible_controller.py).
 
