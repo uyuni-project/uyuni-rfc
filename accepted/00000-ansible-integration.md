@@ -85,13 +85,51 @@ With this information, Java is able to proceed creating these systems in Uyuni, 
 - If any of those systems is already existing with "ANSIBLE" entitlement, then nothing to do
 - If the system is already registered but not with "ANSIBLE" entitlement, then add "ANSIBLE" entitlement.
 
-Of course, we need some new tables in the database, something like:
+Of course, we need some new tables in the database, at least something like:
 
 "suseAnsibleController" (label, type, org_1)
 "suseAnsibleControllerConfig" (controller_id, parameter, value)
 "suseAnsibleControllerSystem" (system_id, controller_id)
+"suseAnsibleControllerPlaybook" (controller_id, local_path, content?)
 
-Also the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also traditional entitlements.
+And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also traditional entitlements.
+
+## Operating Ansible
+
+This part describes different expectations/features to implement in order to execute certain operation in your Ansible infrastructure.
+
+#### Run playbooks in an Ansible controller node
+Each Ansible controller node contains an Ansible inventory together with all different playbooks and files used together with the playbooks. The targets for the different tasks of a playbook are defined inside the playbook yaml file itself and not externally like Salt does for the states.
+
+The execution of a given playbooks is done in the corresponding Ansible controller, which contains the inventory and the hosts definition.
+
+The playbooks available to apply on each Ansible controller, are the ones exposed by "ansible-gatherer" and ultimately, in the future, playbooks created and maintained in Uyuni (via future Ansible playbook catalog) that would be then pushed to the controller node.
+
+Option 1)
+- SaltSSH to Ansible controller to apply Salt state (playbook located in Ansible controller):
+
+```yaml
+execute_ansible_playbook:
+  ansible.playbooks:
+    - playbook: /some/path/in/my/ansible/controller/playbook_1.yaml
+```
+
+Option 2)
+- SaltSSH to Ansible controller to apply Salt state (playbook coming from Uyuni):
+
+```yaml
+execute_ansible_playbook:
+  ansible.playbooks:
+    - playbook: salt://ansible_playbooks/org_1/inventory-label/playbook-1.yaml
+```
+
+The SSH credentials to use to contact the controller are the same that "ansible-gatherer" is using.
+
+### Execute Salt commands & states to Ansible systems
+
+
+
+### Transition to fully featured minion
 
 
 This is the bulk of the RFC. Explain the design in enough detail for somebody familiar with the product to understand, and for somebody familiar with the internals to implement.
