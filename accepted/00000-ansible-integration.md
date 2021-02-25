@@ -101,12 +101,49 @@ This part describes different expectations/features to implement in order to exe
 #### Run playbooks in an Ansible controller node
 Each Ansible controller node contains an Ansible inventory together with all different playbooks and files used together with the playbooks. The targets for the different tasks of a playbook are defined inside the playbook yaml file itself and not externally like Salt does for the states.
 
+This is an example of Ansible playbook:
+
+```yaml
+---
+- name: update web servers
+  hosts: webservers
+  remote_user: root
+
+  tasks:
+  - name: ensure apache is at the latest version
+    yum:
+      name: httpd
+      state: latest
+  - name: write the apache config file
+    template:
+      src: /srv/httpd.j2
+      dest: /etc/httpd.conf
+
+- name: update db servers
+  hosts: databases
+  remote_user: root
+
+  tasks:
+  - name: ensure postgresql is at the latest version
+    yum:
+      name: postgresql
+      state: latest
+  - name: ensure that postgresql is started
+    service:
+      name: postgresql
+      state: started
+```
+
+As you can see, this playbook is defining different tasks to execute on different "hosts" groups. Those groups are of course defined in the Ansible inventory (default at /etc/ansible/hosts).
+
 The execution of a given playbooks is done in the corresponding Ansible controller, which contains the inventory and the hosts definition.
 
 The playbooks available to apply on each Ansible controller, are the ones exposed by "ansible-gatherer" and ultimately, in the future, playbooks created and maintained in Uyuni (via future Ansible playbook catalog) that would be then pushed to the controller node.
 
+At the time of running a playbook from the Ansible controller, Uyuni is able to do it by reaching the controller and operating it using "salt-ssh". There are different approaches here:
+
 Option 1)
-- SaltSSH to Ansible controller to apply Salt state (playbook located in Ansible controller):
+- SaltSSH to Ansible controller located in Ansible controller) via Salt state (or execution module):
 
 ```yaml
 execute_ansible_playbook:
@@ -123,18 +160,53 @@ execute_ansible_playbook:
     - playbook: salt://ansible_playbooks/org_1/inventory-label/playbook-1.yaml
 ```
 
-The SSH credentials to use to contact the controller are the same that "ansible-gatherer" is using.
+The option 1 is refers to executing a playbook which is already stored and maintained in the Ansible controller. On the other hand, option 2 would work in an scenario where the maintenance of the Playbooks are done in Uyuni, so we need to make the Ansible controller to get the generated playbook by Uyuni from the Salt file roots.
+
+The SSH credentials to use in both cases to reach the Ansible controller would be the same that "ansible-gatherer" is using.
+
 
 ### Execute Salt commands & states to Ansible systems
+The "ansiblegate" module of Salt also allows "salt-ssh" to reuse an Ansible inventory to reach those systems that are being managed by Ansible and execute Salt commands on it.
 
+Example:
+
+```console
+# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p suma41-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 grains.items
+```
+
+On this example, we pass `roster=ansible` and then we pass the Ansible inventory as `roster_file`. With `-N` we set the Ansible group to target, in this case `webservers`. We use `ProxyCommand` here because we want the SSH connection jumps via the Ansible controller (in case some firewall). The SSH credentials for the final `webservers` would be taken from the Ansible inventory.
 
 
 ### Transition to fully featured minion
+Since we're able to reuse the inventory, it's easy to trigger the "bootstrap" state in an Ansible managed system to easily onboard this system as fully featured minion:
+
+```console
+# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p suma41-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 state.apply certs,bootstrap pillar='{"mgr_server": "suma41-srv.tf.local", "minion_id": "suma41-ansible-sles15sp1-2.tf.local"}'
+```
+
+In esence, we apply the same states that we do at the time of Boostrapping a new minion via the UI, passing the necessary information as pillar data.
+
+The Java part that reacts to the minion startup event needs to be adjusted to take care of the entitlement migration and proper minion onboarding when the system is "Foreign/ANSIBLE" and needs to transition to "Salt/ANSIBLE".
+
+NOTE: So far, those systems that are registered as "Foreign/ANSIBLE" are not necessary been ever contacted by Uyuni, this means we do not have the real `machine-id` which is needed to do a proper matching while onboarding the new minion. This means, before triggering the "Bootstrap" of an Ansible client, the `machine-id` needs to be properly set to the registered system. Easily done by(executing a command on the Ansible system before executing the "boostrap" state.
+
 
 
 This is the bulk of the RFC. Explain the design in enough detail for somebody familiar with the product to understand, and for somebody familiar with the internals to implement.
 
 This section should cover architecture aspects and the rationale behind disruptive technical decisions (when applicable), as well as corner-cases and warnings. Whenever the new feature creates new user interactions, this section should include examples of how the feature will be used.
+
+
+## Maintain your Ansible infrastructure using Uyuni
+This section is more like the next level of the Ansible integration in Uyuni. So far, we have been focus on visualize your Ansible infrastrucutre in Uyuni and so some basic operations, like triggering playbooks in the controller or migrate to minion.
+
+This sections exposes lot of different possibilities in case that we really want to make Uyuni an UI for mantaining your playbooks and Ansible infrastructure. Maybe this is not really want we want for Uyuni, since there might be already better tools for this and it's opening a whole new world. In any case, some ideas that might be explored are:
+
+- Maintain your own Ansible Playbooks catalog in the Uyuni server: Playbook catalog (like Configuration State Channels)
+  ...
+
+- Ansible Playbooks with Forms
+  ...
 
 # Drawbacks
 [drawbacks]: #drawbacks
