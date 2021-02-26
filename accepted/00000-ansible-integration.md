@@ -5,7 +5,7 @@
 # Summary
 [summary]: #summary
 
-This RFC proposes how to integrate and manage your existing Ansible nodes in Uyuni using the "Ansible-Gate" module of Salt. This means that you are able to import an Ansible inventory and you can apply playbooks to nodes from this inventory using Uyuni.
+This RFC proposes how to integrate and manage your existing Ansible nodes in Uyuni with the help of Salt and its "Ansible-Gate" module. This means that you would be able to import Ansible inventories, their systems and also apply playbooks to these nodes using Uyuni.
 
 
 # Motivation
@@ -13,12 +13,12 @@ This RFC proposes how to integrate and manage your existing Ansible nodes in Uyu
 
 There are two main motivations for this:
 
-1. A user might have some investment Ansible in the past but wants to switch to Uyuni now.
+1. A user might have some investment in Ansible in the past but wants to switch to Uyuni now.
 This RFC would offer a transition path for that. The user can import the Ansible systems, start with the already existing playbooks, get familiar with Uyuni and then switch over. It is also be possible to manage clients with Salt and Ansible in parallel.
 2. Managing parts of the infrastructure in Ansible.
 If it is not possible or not wanted to move everything to Uyuni, it is possible to just keep using Ansible for the few clients that cannot be transitioned.
 
-This RFC is more focus on allowing users to import their existing Ansible environments into Uyuni (allow some basic operations, coexistance of Salt and Ansible managed infrastructure in Uyuni, eventually apply playbooks and also an easy way to transition from Ansible to a full featured Salt minion managed system), rather than making Uyuni a top-featured UI to build your Ansible infrastructure from scratch.
+This RFC is more focus on allowing users to import their existing Ansible environments into Uyuni, allow some basic operations, coexistance of Salt and Ansible managed infrastructure in Uyuni, eventually apply playbooks and also to provide an easy way to transition from Ansible to a fully-featured Salt minion managed system in Uyuni, rather than making Uyuni a top-featured UI to build your Ansible infrastructure from scratch.
 
 _Describe the problem you are trying to solve, and its constraints, without coupling them too closely to the solution you have in mind. If this RFC is not accepted, the motivation can be used to develop alternative solutions._
 
@@ -29,14 +29,14 @@ _Describe the problem you are trying to solve, and its constraints, without coup
 There are two main parts/goals here, conceptually:
 
 1) Collect data from an Ansible controller (Inventory / SSH Keys / Playbooks, etc) and import the hosts in the inventory as ANSIBLE systems in Uyuni.
-2) Operate Ansible: Apply playbooks via controller node / Apply Salt commands & states directly to Ansible managed systems / Make Ansible system become a fully featured Salt Minion.
-3) Maintain Ansible infrastructure: Uyuni Playbook catalog
+2) Operate Ansible: Apply playbooks via controller node / Apply Salt commands & states directly to Ansible managed systems / Make Ansible system become a fully-featured Salt Minion.
+3) Maintain Ansible infrastructure: Own Uyuni Playbook catalog, revisions, formulas.
 
 ## Collecting data from Ansible
 
-The premise here is that there is already an existing Ansible infrastructure somewhere and we want to import it into Uyuni. We're primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
+The premise here is that there is already an existing Ansible infrastructure somewhere and we want to import it into Uyuni. We're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
 
-Therefore, there might be more than one Ansible controller host, or even the Uyuni server could act at some point as an Ansible controller. As sources, and type of sources (i.a. single host, AWX api) might be multiple, this RFC proposes an approach similarly to what Uyuni does for handling "Virtual Host Managers (VHM)". This means, using a Python tool, in this case called something like "ansible-gatherer", which is plugin-based (so easily allow implementing different sources of Ansible inventores). This tool would be called via an Uyuni Java schedule, like the "virtual-host-gatherer", passing the necessary information (parameters, type of host, etc) to reach the Ansible controller and collect the necessary information.
+Therefore, there might be more than one Ansible controller host, or even the Uyuni server could act at some point as an Ansible controller. Since data sources, and type of sources (i.a. single host, AWX api) might be multiple, this RFC proposes an approach similarly to what Uyuni does for handling "Virtual Host Managers (VHM)". This means, using a Python tool, in this case called something like "ansible-gatherer", which is plugin-based (so easily allow implementing different sources of Ansible inventores). This tool would be called via an Uyuni Java schedule, like the "virtual-host-gatherer", passing the necessary information (parameters, type of host, etc) to reach the Ansible controller and collect the necessary information.
 
 This approach I think would also make some Python and UI code reusable from "Virtual Host Managers".
 
@@ -76,9 +76,9 @@ As you can see, besides of reporting the hosts from the Ansible inventory, the i
 In short, we would gather, for instance:
 - Ansible inventory (hosts)
 - Ansible SSH keys referenced in the inventory
-- Playbooks under specified "remote playbook path" (to be displayed in the UI - readonly)
+- Playbooks under specified "remote playbook path" (to be displayed in the UI - readonly mode - not editable)
 
-This would be stored under ""/var/lib/spacewalk/ansible/inventory-label/" path in the Uyuni server. At the time of processing the inventory file by "ansible-gatherer", it needs to be tailored to adapt the path of the SSH keys to the local path in the Uyuni server. As done in script from Ansible Integration PoC [here](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/import_systems_from_ansible_controller.py).
+This would be stored under `/var/lib/spacewalk/ansible/inventory-label/` path in the Uyuni server. At the time of processing the inventory file by "ansible-gatherer", it needs to be tailored to adapt the path of the SSH keys to the local path in the Uyuni server. As done in script from Ansible Integration PoC [here](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/import_systems_from_ansible_controller.py).
 
 With this information, Java is able to proceed creating these systems in Uyuni, as "Foreign / ANSIBLE" entitled systems.
 
@@ -93,6 +93,8 @@ Of course, we need some new tables in the database, at least something like:
 "suseAnsibleControllerPlaybook" (controller_id, local_path, content?)
 
 And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also traditional entitlements.
+
+NOTE: The profile for a system with registered in Uyuni as "Foreign/ANSIBLE" does not look like as the one Salt/Traditional system, since most of the Uyuni features (channels, software profile, etc) are not implemented for neither "Foreign" nor "ANSIBLE" entitlements. In order to get the entire portfolio of Uyuni features for Salt minion, this "Foreign/ANSIBLE" systems would need to be transitioned to "Salt" minion.
 
 ## Operating Ansible
 
@@ -171,24 +173,24 @@ The "ansiblegate" module of Salt also allows "salt-ssh" to reuse an Ansible inve
 Example:
 
 ```console
-# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p suma41-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 grains.items
+# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p uyuni-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 grains.items
 ```
 
 On this example, we pass `roster=ansible` and then we pass the Ansible inventory as `roster_file`. With `-N` we set the Ansible group to target, in this case `webservers`. We use `ProxyCommand` here because we want the SSH connection jumps via the Ansible controller (in case some firewall). The SSH credentials for the final `webservers` would be taken from the Ansible inventory.
 
 
-### Transition to fully featured minion
-Since we're able to reuse the inventory, it's easy to trigger the "bootstrap" state in an Ansible managed system to easily onboard this system as fully featured minion:
+### Transition to a fully-featured minion
+Since we're able to reuse the inventory, it's easy to trigger the "bootstrap" (default or SSH) state in an Ansible managed system to easily onboard this system as fully-featured minion. This could be done with a "salt-ssh" call like:
 
 ```console
-# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p suma41-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 state.apply certs,bootstrap pillar='{"mgr_server": "suma41-srv.tf.local", "minion_id": "suma41-ansible-sles15sp1-2.tf.local"}'
+# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p uyuni-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 state.apply certs,bootstrap pillar='{"mgr_server": "uyuni-srv.tf.local", "minion_id": "uyuni-ansible-sles15sp1-2.tf.local"}'
 ```
 
 In esence, we apply the same states that we do at the time of Boostrapping a new minion via the UI, passing the necessary information as pillar data.
 
 The Java part that reacts to the minion startup event needs to be adjusted to take care of the entitlement migration and proper minion onboarding when the system is "Foreign/ANSIBLE" and needs to transition to "Salt/ANSIBLE".
 
-NOTE: So far, those systems that are registered as "Foreign/ANSIBLE" are not necessary been ever contacted by Uyuni, this means we do not have the real `machine-id` which is needed to do a proper matching while onboarding the new minion. This means, before triggering the "Bootstrap" of an Ansible client, the `machine-id` needs to be properly set to the registered system. Easily done by(executing a command on the Ansible system before executing the "boostrap" state.
+NOTE: So far, those systems that are registered as "Foreign/ANSIBLE" are not necessary been ever contacted by Uyuni yet, this means we do not have the real `machine-id`, which is not part of the Ansible inventory, and which needed to do a proper matching while onboarding the new minion. This means, before triggering the "Bootstrap" of an Ansible client, the `machine-id` needs to be properly set to the registered system. Easily done by(executing a command on the Ansible system before executing the "boostrap" state.
 
 
 
