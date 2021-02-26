@@ -5,7 +5,8 @@
 # Summary
 [summary]: #summary
 
-Provide visibility of **inherited** State Channels connections at a System Details level. The reverse information as well should be provided by giving visibility of those systems they are connected (directly or by **inheritance**) to a certain State Channel at a Channel Details level.
+Provide better visibility of the relationships between State Channels, System Groups, Organizations and Systems - especially indirect ones.
+The goal is to clarify which system **inherits** which State Channels, and why - conversely, which State Channel are ultimately associated to which Groups, Organizations and Systems.
 
 *Note: everything discussed in this RFC applies to Salt clients only. Traditional clients do not inherit State Channels.*
 
@@ -14,7 +15,7 @@ Provide visibility of **inherited** State Channels connections at a System Detai
 
 ## Why are we doing this?
 
-By definition a State Channel is a pool of salt states resources. Once a channel of this type is created, it is possible to subscribe systems to it in order to apply the content of that channel to them. Alternatively, channels can also be assigned to System Groups and/or to Organizations.
+By definition a State Channel is a pool of Salt states. Once a Channel of this type is created, it is possible to subscribe systems to it in order to apply such states to them. Alternatively, State Channels can also be assigned to System Groups and/or to Organizations.
 
 Collecting the possibilities as described above, we can see that:
 - a channel can be assigned directly to a system `channel --> system`
@@ -30,7 +31,7 @@ The final channel assignements result, from a system perspective, can be:
 
 That said, in the current implementation there is no way to figure out which channels are assigned to a system other than the directly assigned ones (1.).
 
-And here it is the problem this RFC is trying to describe to solve: apart from the direct assignment, the System inherits channels (thus the content) from the Organization it is part of, and the same goes for the System Groups he is part of, but this inheritance is not visible in the Web UI nor in the XML RPC API.
+Users have a hard time figuring out those relationships, this RFC has the goal to make them more evidently visible in the UI.
 
 Note: in addition to what has been described so far, for what concerns the State Channels case, behind all the Salt States collected from the channels, there are also a bunch of default Salt States, the ones the server has to supply during the registration of a salt minion client, and during other management operations (such as channel - normal software channels - subscription, certificates, etc). Those are not *assigned* in any way because they are not part of any State Channel, they do just exists due to the logic implementation of a client registration using Salt. In the end, those are not visible Salt States anyway, and the System will be affected by them during those maintenance actions, so from the System perspective an additional source of Salt States could be defined as directly assigned: a non-manageable source behaving as a State Channel that will be named *internal management states*.
 
@@ -79,16 +80,18 @@ A transparent representation of all State Channels assigned to a system from all
 
 ## Limitation
 
-It turns out that once the Salt States are collected from the various source States Channels, they are handled by the Salt engine itself which builds up the Salt highstate, and this one has no tracking information of the order or the source of the states origin.
+Salt States are collected from various sources including but not limited to States Channels. Those are handled by Salt which builds up the Salt highstate (or other target aggregated states). At the time of writing, Salt lacks tracking information about the origin of each state, and it is not part of this RFC to add such tracking.
 
-The proposed solution of this RFC is not including an end-to-end description of where each single Salt State comes from where at the moment, the initial improvement is to add the visibility of the set of State Channels every system inherits from other entities (System Groups and Organizations as described before).
+This RFC exclusively covers adding visibility to relationships of State Channels, and not individual states.
 
 
 # Detailed design
 [design]: #detailed-design
 
 ### `Home > My Organization > Configuration Channels`
-This page represents the assignment connection between an organization and both configuration channels and state channels. All the systems in this organization will inherit the selection set of channels here. This should be only a list of Configuration Channels and State Channels with the possibility of simply select/deselect channels and Apply changes. If there is a need to show only the channel selected, a filter to the list page should be added instead.
+This page presents associations between an organization and both Configuration Channels and State Channels. All systems in this organization will inherit Channels selected here. This is a list of Configuration Channels and State Channels with the possibility of selecting/deselecting channels and Applying any changes.
+
+Proposal is to add a filter to the list page for convenience.
 
 Before:
 ![My Organization BEFORE](images/state-channels-visibility/Home_MyOrganization_ConfigurationChannels_BEFORE.png)
@@ -112,7 +115,9 @@ After:
 ![System Details AFTER 2](images/state-channels-visibility/Systems_Details_States_ConfigurationChannels_AFTER_2.png)
 
 ### `Systems > System Groups > Details > States > Configuration Channels`
-This page represents the assignment connection between a system group and state channels. All the systems in this system group will inherit the selection set of channels here. This should be only a list of State Channels with the possibility of simply select/deselect channels and Apply changes. If there is a need to show only the channel selected, a filter to the list page should be added instead.
+This page presents associations between a system group and State Channels. All systems in this system group will inherit the selected set of channels.
+
+Proposal is to add a filter to the list page for convenience.
 
 Before:
 ![System Groups BEFORE](images/state-channels-visibility/Systems_SystemGroups_Details_States_ConfigurationChannels_BEFORE.png)
@@ -156,7 +161,7 @@ After:
 ![Configuration Channels Detail Overview AFTER](images/state-channels-visibility/Configuration_Channels_Details_Overview_AFTER.png)
 
 ### `Configuration > Channels > Details > Systems > Inheriting Systems`
-This is a **new** page where systems are listed only if not subscribed to the channel directly, but inheriting it through Organization or System Group assignment. The list will contain two columns: one for the system name and one for the source the system got the channel inherited from.
+This is a **new** page where systems are listed only if not subscribed to a given channel directly, but inheriting it through an Organization or System Group assignment. The list will contain two columns: one for the system name and one for the source the system got the channel inherited from.
 
 Before:
 ![Configuration Channels Detail Systems BEFORE](images/state-channels-visibility/Configuration_Channels_Details_Systems_BEFORE.png)
@@ -212,7 +217,7 @@ Without investigating deeply, the alternative would be redesigning the feature c
 
 ## What are the unknowns?
 1. Salt States coming from Formulas are not yet considered as part of this RFC
-2. This RFC is considering presenting all the sources of the Salt States for a given system. The RFC is **not** considering instead to implement a reverse-engineering to pick every Salt State from a given HighState and build the history of the specific source where it came from.
+2. This RFC is considering presenting all the sources of the Salt States for a given system. The RFC is **not** considering instead to implement a reverse-engineering to pick every Salt State from a given HighState and build the history of the specific source where it came from. This RFC is also **not** about tracing each line in the highstate to one of the states assigned to a system directly and/or indirectly from their sources.
 
 ## What can happen if Murphy's law holds true?
 1. No periculous path visible at the moment
