@@ -1,4 +1,4 @@
-- Feature Name: Ansible-Gate
+- Feature Name: Ansible Integration
 - Start Date: 2021-02-01
 - RFC PR: (leave this empty)
 
