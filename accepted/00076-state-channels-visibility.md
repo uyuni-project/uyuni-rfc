@@ -156,13 +156,24 @@ After:
 ![Configuration Channels Detail Overview AFTER](images/state-channels-visibility/Configuration_Channels_Details_Overview_AFTER.png)
 
 ### `Configuration > Channels > Details > Systems > Inheriting Systems`
-This is a new page where systems are listed only if not subscribed to the channel directly, but inheriting it through Organization or System Group assignment.
+This is a **new** page where systems are listed only if not subscribed to the channel directly, but inheriting it through Organization or System Group assignment. The list will contain two columns: one for the system name and one for the source the system got the channel inherited from.
 
 Before:
 ![Configuration Channels Detail Systems BEFORE](images/state-channels-visibility/Configuration_Channels_Details_Systems_BEFORE.png)
 
 After:
 ![Configuration Channels Detail Systems AFTER](images/state-channels-visibility/Configuration_Channels_Details_Systems_AFTER.png)
+
+
+The list could look like:
+```
+|----------------+-----------------|
+| System name    | Inherited from  |
+|----------------+-----------------|
+| test01.suse.de | org1, my group1 |
+| test02.suse.de | my group2       |
+|----------------+-----------------|
+```
 
 
 ### `Configuration > Channels > Details > System Groups`
