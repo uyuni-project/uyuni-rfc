@@ -87,10 +87,12 @@ With this information, Java is able to proceed creating these systems in Uyuni, 
 
 Of course, we need some new tables in the database, at least something like:
 
+```
 "suseAnsibleController" (label, type, org_1)
 "suseAnsibleControllerConfig" (controller_id, parameter, value)
 "suseAnsibleControllerSystem" (system_id, controller_id)
 "suseAnsibleControllerPlaybook" (controller_id, local_path, content?)
+```
 
 And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also traditional entitlements. Here is the [SQL script](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/add_ansible_entitleme.sql) used for PoC demo. It's also needed to adapt the rhn databaste functions implemented in the DB.
 
@@ -244,6 +246,7 @@ Why should we **not** do this?
 [alternatives]: #alternatives
 
 * Interfacing AWX.
+
 An alternative would be to use the API of AWX. While this would mean that all options of AWX would be available, it would also mean that we would need to make sure to always stay compatible with all versions used by users, breaking changes could be introduced by AWX and some features might even need to be implemented in AWX first before being able to use them in Uyuni.
 
 # Unresolved questions
