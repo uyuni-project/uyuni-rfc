@@ -32,13 +32,13 @@ That said, in the current implementation there is no way to figure out which cha
 
 And here it is the problem this RFC is trying to describe to solve: apart from the direct assignment, the System inherits channels (thus the content) from the Organization it is part of, and the same goes for the System Groups he is part of, but this inheritance is not visible in the Web UI nor in the XML RPC API.
 
-Note: in addition to what has been described so far, for what concerns the State Channels case, behind all the Salt States collected from the channels, there are also a bunch of default Salt States, the ones the server has to supply during the registration of a salt minion client. Those are not *assigned* in any way because they are not part of any State Channel, they do just exists due to the logic implementation of a client registration using Salt. In the end, those are not visible Salt States anyway, and the System will be affected by them during the registration, so from the System perspective an additional source of Salt States could be defined as directly assigned: a non-manageable source behaving as a State Channel that will be named *registration-states*.
+Note: in addition to what has been described so far, for what concerns the State Channels case, behind all the Salt States collected from the channels, there are also a bunch of default Salt States, the ones the server has to supply during the registration of a salt minion client, and during other management operations (such as channel - normal software channels - subscription, certificates, etc). Those are not *assigned* in any way because they are not part of any State Channel, they do just exists due to the logic implementation of a client registration using Salt. In the end, those are not visible Salt States anyway, and the System will be affected by them during those maintenance actions, so from the System perspective an additional source of Salt States could be defined as directly assigned: a non-manageable source behaving as a State Channel that will be named *internal management states*.
 
 Adding the latter to the picture:
 1. `system --> channel`
 2. `system --> group --> channel`
 3. `system --> org --> channel`
-4. `system --> registration-states`
+4. `system --> internal states`
 
 
 ## What are the use cases?
@@ -95,6 +95,13 @@ Before:
 
 After:
 ![My Organization AFTER](images/state-channels-visibility/Home_MyOrganization_ConfigurationChannels_AFTER.png)
+
+### `Systems > Details > States > Highstate`
+Before:
+![System Details Highstate BEFORE](images/state-channels-visibility/Systems_Details_States_Highstate_BEFORE.png)
+
+After:
+![System Details Highstate AFTER](images/state-channels-visibility/Systems_Details_States_Highstate_AFTER.png)
 
 ### `Systems > Details > States > Configuration Channels`
 Before:
@@ -193,9 +200,8 @@ Without investigating deeply, the alternative would be redesigning the feature c
 [unresolved]: #unresolved-questions
 
 ## What are the unknowns?
-1. There is a real need for representing `registration-states` (as mentioned before) or they can still stay behind the scene?
-2. Salt States coming from Formulas are not yet considered as part of this RFC
-3. This RFC is considering presenting all the sources of the Salt States for a given system. The RFC is **not** considering instead to implement a reverse-engineering to pick every Salt State from a given HighState and build the history of the specific source where it came from.
+1. Salt States coming from Formulas are not yet considered as part of this RFC
+2. This RFC is considering presenting all the sources of the Salt States for a given system. The RFC is **not** considering instead to implement a reverse-engineering to pick every Salt State from a given HighState and build the history of the specific source where it came from.
 
 ## What can happen if Murphy's law holds true?
 1. No periculous path visible at the moment
