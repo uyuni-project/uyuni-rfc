@@ -159,13 +159,13 @@ After:
 
 
 ### `Configuration > Channels > Details > System Groups`
-This page reproduces the same behavior of the `Configuration > Channels > Details > Systems` tab, but for System Groups.
+This page reproduces the same behavior of the `Configuration > Channels > Details > Systems` tab, but for System Groups. Being able to filter by System Group would be a nice but not strictly required addition.
 
 This **new** page is pointed by:
 - the `Channel information` box link of the system groups counting in the `Configuration > Channels > Details > Overview` page: the link will land on the new page at the `Subscribed System Groups` tab
 
 ### `Configuration > Channels > System Groups`
-This page represents a complete list of pairs value `State Channel - System Group`: every value is a link to the specific entity detail (channel or system group).
+This page represents a complete list of pairs value `State Channel - System Group`: every value is a link to the specific entity detail (channel or system group). Filters for both fields should be available in order to look for a certain State Channel or a System Group or both.
 
 This **new** page is pointed by:
 - the `Configuration summary` box link of the system groups counting in the `Configuration > Overview` page: the link will land on the new page where all the pairs `State Channel - System Group` are listed
