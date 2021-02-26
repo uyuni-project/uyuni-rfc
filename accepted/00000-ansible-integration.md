@@ -56,18 +56,18 @@ Output example:
 
 ```json
 {
-	"inventory-label",
+	"inventory-label": "my-ansible-controller",
         "hosts": {
 		"my-ansible-managed-system1.foo.bar",
 		"my-ansible-managed-system2.foo.bar",
 		"my-ansible-managed-system3.foo.bar"
 	},
 	"local_stored_inventory": "/var/lib/spacewalk/ansible/inventory-label/inventory.yaml",
-	"optional_local_stored_playbooks": {
+	"optional_local_stored_playbooks": [
 		"/var/lib/spacewalk/ansible/inventory-label/playbooks/playbook1.yaml",
 		"/var/lib/spacewalk/ansible/inventory-label/playbooks/playbook2.yaml",
 		"/var/lib/spacewalk/ansible/inventory-label/playbooks/playbook3.yaml"
-	}
+	]
 }
 ```
 
