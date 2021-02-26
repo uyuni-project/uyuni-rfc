@@ -92,9 +92,18 @@ Of course, we need some new tables in the database, at least something like:
 "suseAnsibleControllerSystem" (system_id, controller_id)
 "suseAnsibleControllerPlaybook" (controller_id, local_path, content?)
 
-And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also traditional entitlements.
+And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also traditional entitlements. Here is the [SQL script](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/add_ansible_entitleme.sql) used for PoC demo. It's also needed to adapt the rhn databaste functions implemented in the DB.
 
 NOTE: The profile for a system with registered in Uyuni as "Foreign/ANSIBLE" does not look like as the one Salt/Traditional system, since most of the Uyuni features (channels, software profile, etc) are not implemented for neither "Foreign" nor "ANSIBLE" entitlements. In order to get the entire portfolio of Uyuni features for Salt minion, this "Foreign/ANSIBLE" systems would need to be transitioned to "Salt" minion.
+
+Notice also that the Ansible controller is not listed as systems list page, since there is not system entry for it, it would be shown in the respective new UI page for managing Ansible Controller.
+
+#### New UI tabs & pages
+
+* Ansible
+* Ansible / Ansible Controllers list
+* Ansible / Add new Ansible controller
+* Ansible / View Ansible controller information & and visualize playbooks (would also allow triggering playbooks via "salt-ssh" in the controller)
 
 ## Operating Ansible
 
@@ -178,6 +187,8 @@ Example:
 
 On this example, we pass `roster=ansible` and then we pass the Ansible inventory as `roster_file`. With `-N` we set the Ansible group to target, in this case `webservers`. We use `ProxyCommand` here because we want the SSH connection jumps via the Ansible controller (in case some firewall). The SSH credentials for the final `webservers` would be taken from the Ansible inventory.
 
+Note that, in terms of performance, targetting Ansible systems using Salt means doing SSH connections via "salt-ssh".
+
 
 ### Transition to a fully-featured minion
 Since we're able to reuse the inventory, it's easy to trigger the "bootstrap" (default or SSH) state in an Ansible managed system to easily onboard this system as fully-featured minion. This could be done with a "salt-ssh" call like:
@@ -192,7 +203,7 @@ The Java part that reacts to the minion startup event needs to be adjusted to ta
 
 NOTE: So far, those systems that are registered as "Foreign/ANSIBLE" are not necessary been ever contacted by Uyuni yet, this means we do not have the real `machine-id`, which is not part of the Ansible inventory, and which needed to do a proper matching while onboarding the new minion. This means, before triggering the "Bootstrap" of an Ansible client, the `machine-id` needs to be properly set to the registered system. Easily done by(executing a command on the Ansible system before executing the "boostrap" state.
 
-
+For those systems that are "Foreign/ANSIBLE" we should enable some "Migration to Minion" tab that allows the user to trigger the bootstrap states via "salt-ssh" to convert this Ansible system into a fully-featured minion.
 
 This is the bulk of the RFC. Explain the design in enough detail for somebody familiar with the product to understand, and for somebody familiar with the internals to implement.
 
@@ -205,13 +216,22 @@ This section is more like the next level of the Ansible integration in Uyuni. So
 This sections exposes lot of different possibilities in case that we really want to make Uyuni an UI for mantaining your playbooks and Ansible infrastructure. Maybe this is not really want we want for Uyuni, since there might be already better tools for this and it's opening a whole new world. In any case, some ideas that might be explored are:
 
 - Maintain your own Ansible Playbooks catalog in the Uyuni server: Playbook catalog (like Configuration State Channels)
-  ...
+  * This would require, of course UI and DB investment. The idea would be to maintain the Ansible catalog inside the Uyuni server and push the playbook directly to the controller or the Ansible systems.
+  * Some questions: Which inventory / hosts groups and Ansible controller to use here for running the playbooks? Uyuni server as the Ansible controller?
 
 - Ansible Playbooks with Forms
-  ...
+  * Similarly to what we currently have for Salt with "Formulas with Forms". Prefilled playbooks + some metadata to render the forms to filling the required information. This rendered playbook can be exposed via Salt fileserver as described above so the corresponding controller is able to fetch it.
+
+
+#### New UI tabs & pages
+
+- TBD
+
 
 # Drawbacks
 [drawbacks]: #drawbacks
+
+Allowing Ansible clients in Uyuni sounds great, but at the same time, we need to think that Uyuni and it's features are really based and tied to Salt. Allowing some basic integration, like collecting your Ansibles managed clients and expose them in Uyuni, operating your Ansible controller and some other things like easily migration to Salt minion are really cool and feasible featus, I think we should really think if we really want to make Uyuni a tool that allows you to build, maintain and operate your Ansible infrastructure from scratch.
 
 Why should we **not** do this?
 
