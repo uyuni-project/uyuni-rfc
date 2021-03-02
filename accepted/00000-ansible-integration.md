@@ -16,25 +16,42 @@ There are two main motivations for this:
 1. A user might have some investment in Ansible in the past but wants to switch to Uyuni now.
 This RFC would offer a transition path for that. The user can import the Ansible systems, start with the already existing playbooks, get familiar with Uyuni and then switch over. It is also be possible to manage clients with Salt and Ansible in parallel.
 2. Managing parts of the infrastructure in Ansible.
-If it is not possible or not wanted to move everything to Uyuni, it is possible to just keep using Ansible for the few clients that cannot be transitioned.
+If it is not possible or not wanted to move everything to Salt, it is possible to just keep using Ansible for the few clients that cannot be transitioned.
 
 This RFC is more focused on allowing users to import their existing Ansible environments into Uyuni, allow some basic operations, coexistence of Salt and Ansible managed infrastructure in Uyuni, eventually apply playbooks and also to provide an easy way to transition from Ansible to a fully-featured Salt minion managed system in Uyuni, rather than making Uyuni a top-featured UI to build your Ansible infrastructure from scratch.
-
-_Describe the problem you are trying to solve, and its constraints, without coupling them too closely to the solution you have in mind. If this RFC is not accepted, the motivation can be used to develop alternative solutions._
 
 
 # Detailed design
 [design]: #detailed-design
 
-There are two main parts/goals here, conceptually:
+There are three main parts/goals here, conceptually:
 
 1) Collect data from an Ansible controller (Inventory / SSH Keys / Playbooks, etc) and import the hosts in the inventory as ANSIBLE systems in Uyuni.
 2) Operate Ansible: Apply playbooks via controller node / Apply Salt commands & states directly to Ansible managed systems / Make Ansible system become a fully-featured Salt Minion.
 3) Maintain Ansible infrastructure: Own Uyuni Playbook catalog, revisions, formulas.
 
-## Collecting data from Ansible
+## Collecting data from an Ansible controller
 
-The premise here is that there is already an existing Ansible infrastructure somewhere and we want to import it into Uyuni. We're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
+1. Using Uyuni server as the Ansible controller
+
+On this approach, the Uyuni server is our Ansible controller. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible controller (in this case the Uyuni server).
+
+Since the Ansible inventory in the Uyuni server is empty, default at `/etc/ansible/hosts`, the user would add their Ansible managed hosts to the inventory and will take care of deploying the Ansible SSH keys to those systems, in order for Ansible to work. (For already registered systems, deploying the SSH key could be automated somehow)
+
+Assuming the Ansible inventory is properly created and SSH keys are deployed, the user can operate it from the command line, but Uyuni can also operate it via Salt runner call (since we're on the Uyuni server and not in a minion). Example:
+
+```console
+# salt-run salt.cmd ansible.playbooks name=example_playbook.yml
+```
+
+This means, playbooks can be triggered via CLI by the user, but also via "salt-api" so Uyuni is also easily able to trigger playbooks executions.
+
+Once we have a "Playbook catalog" in the UI, and Uyuni would trigger playbook executions we would need to implemente of course a new type of action: `ApplyPlaybook", which should expose the playbook to the Salt file_roots so it's available for Ansible when running.
+
+
+2. Adding external Ansible controllers:
+
+The premise here is that there is already an existing Ansible infrastructure somewhere and we want to import it into Uyuni. here we're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
 
 Therefore, there might be more than one Ansible controller host, or even the Uyuni server could act at some point as an Ansible controller. Since data sources, and type of sources (i.a. single host, AWX api) might be multiple, this RFC proposes an approach similarly to what Uyuni does for handling "Virtual Host Managers (VHM)". This means, using a Python tool, in this case called something like "ansible-gatherer", which is plugin-based (so easily allow implementing different sources of Ansible inventores). This tool would be called via an Uyuni Java schedule, like the "virtual-host-gatherer", passing the necessary information (parameters, type of host, etc) to reach the Ansible controller and collect the necessary information.
 
@@ -94,9 +111,9 @@ Of course, we need some new tables in the database, at least something like:
 "suseAnsibleControllerPlaybook" (controller_id, local_path, content?)
 ```
 
-And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also traditional entitlements. Here is the [SQL script](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/add_ansible_entitleme.sql) used for PoC demo. It's also needed to adapt the rhn databaste functions implemented in the DB.
+And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also for a potential "Management/ANSIBLE" (traditional client) entitlement. Here is the [SQL script](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/add_ansible_entitleme.sql) used for PoC demo. It's also needed to adapt the rhn databaste functions implemented in the DB.
 
-NOTE: The profile for a system with registered in Uyuni as "Foreign/ANSIBLE" does not look like as the one Salt/Traditional system, since most of the Uyuni features (channels, software profile, etc) are not implemented for neither "Foreign" nor "ANSIBLE" entitlements. In order to get the entire portfolio of Uyuni features for Salt minion, this "Foreign/ANSIBLE" systems would need to be transitioned to "Salt" minion.
+NOTE: The profile for a system with registered in Uyuni as "Foreign/ANSIBLE" does not look like as the one Salt/Traditional system, since most of the Uyuni features (channels, software profile, etc) are not implemented for neither "Foreign" nor "ANSIBLE" entitlements. In order to get the entire portfolio of Uyuni features for Salt minion, this "Foreign/ANSIBLE" systems would need to be transitioned to "Salt/ANSIBLE" minion.
 
 Notice also that the Ansible controller is not listed as systems list page, since there is not system entry for it, it would be shown in the respective new UI page for managing Ansible Controller.
 
