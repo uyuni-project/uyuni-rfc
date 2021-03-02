@@ -178,7 +178,7 @@ Option 1)
 ```yaml
 execute_ansible_playbook:
   ansible.playbooks:
-    - playbook: /some/path/in/my/ansible/controller/playbook_1.yaml
+    - name: /some/path/in/my/ansible/controller/playbook_1.yaml
 ```
 
 Option 2)
@@ -187,7 +187,7 @@ Option 2)
 ```yaml
 execute_ansible_playbook:
   ansible.playbooks:
-    - playbook: salt://ansible_playbooks/org_1/inventory-label/playbook-1.yaml
+    - name: salt://ansible_playbooks/org_1/inventory-label/playbook-1.yaml
 ```
 
 The option 1 is refers to executing a playbook which is already stored and maintained in the Ansible controller. On the other hand, option 2 would work in an scenario where the maintenance of the Playbooks are done in Uyuni, so we need to make the Ansible controller to get the generated playbook by Uyuni from the Salt file roots.
