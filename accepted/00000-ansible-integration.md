@@ -288,4 +288,6 @@ An alternative would be to use the API of AWX. While this would mean that all op
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-...
+* Where should we move from here? Full integration of Ansible features? Moving Ansible integration to Spacewalk core? Fully interfacing AWX?
+
+Objective of this RFC is only running Ansible playbooks form the Uyuni Server. We are not trying to replace Salt as the foundation of Uyuni but only adding Ansible as a sidecar.
