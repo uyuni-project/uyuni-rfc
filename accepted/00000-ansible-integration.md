@@ -246,11 +246,34 @@ This sections exposes lot of different possibilities in case that we really want
 
 - TBD
 
+# Defining a MVP
+[mvp]: #mvp
+
+### Step 1: Uyuni as your Ansible controller
+- Ansible is installed on the Uyuni server.
+- Ansible inventory, hosts are manually defined in the Uyuni server.
+- The user takes care of provide an Ansible SSH key which is accepted in the hosts from the Ansible inventory.
+- Inventory can be synced with Uyuni (add "Foreign/ANSIBLE" and "Salt/ANSIBLE", ...)
+- The user can operate Ansible via CLI.
+- Transition from "Foreign/ANSIBLE" to "Salt/ANSIBLE".
+
+### Step 2: Enhancing the UI
+- Playbook catalog
+- Remote commands for "Foreign/ANSIBLE" systems.
+- Improve "Visualization" features.
+
+### Step 3: Support multiple Ansible controller
+- Add "ansible-gatherer" to deal with multiple Ansible controllers
+- New UI pages and DB changes to deal with different controllers
+- Enhance "Playbook catalog" for multiple Ansible controllers.
+
+### Step 4:
+- Whatever comes next
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
-Allowing Ansible clients in Uyuni sounds great, but at the same time, we need to think that Uyuni and it's features are really based and tied to Salt. Allowing some basic integration, like collecting your Ansibles managed clients and expose them in Uyuni, operating your Ansible controller and some other things like easily migration to Salt minion are really cool and feasible featus, I think we should really think if we really want to make Uyuni a tool that allows you to build, maintain and operate your Ansible infrastructure from scratch.
+Allowing Ansible clients in Uyuni sounds great, but at the same time, we need to think that Uyuni and its features are really based and tied to Salt. Allowing some basic integration, like collecting your Ansibles managed clients and expose them in Uyuni, operating your Ansible controller and some other things like easily migration to Salt minion are really cool and feasible featus, I think we should really think if we want to make Uyuni a tool that allows you to build, maintain and operate your Ansible infrastructure from scratch.
 
 Why should we **not** do this?
 
