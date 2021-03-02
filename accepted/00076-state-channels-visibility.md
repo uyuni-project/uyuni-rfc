@@ -217,7 +217,6 @@ Without investigating deeply, the alternative would be redesigning the feature c
 
 ## What are the unknowns?
 1. Salt States coming from Formulas are not yet considered as part of this RFC
-2. This RFC is considering presenting all the sources of the Salt States for a given system. The RFC is **not** considering instead to implement a reverse-engineering to pick every Salt State from a given HighState and build the history of the specific source where it came from. This RFC is also **not** about tracing each line in the highstate to one of the states assigned to a system directly and/or indirectly from their sources.
 
 ## What can happen if Murphy's law holds true?
 1. No periculous path visible at the moment
