@@ -33,7 +33,8 @@ That said, in the current implementation there is no way to figure out which cha
 
 Users have a hard time figuring out those relationships, this RFC has the goal to make them more evidently visible in the UI.
 
-Note: in addition to what has been described so far, for what concerns the State Channels case, behind all the Salt States collected from the channels, there are also a bunch of default Salt States, the ones the server has to supply during the registration of a salt minion client, and during other management operations (such as channel - normal software channels - subscription, certificates, etc). Those are not *assigned* in any way because they are not part of any State Channel, they do just exists due to the logic implementation of a client registration using Salt. In the end, those are not visible Salt States anyway, and the System will be affected by them during those maintenance actions, so from the System perspective an additional source of Salt States could be defined as directly assigned: a non-manageable source behaving as a State Channel that will be named *internal management states*.
+Note: in addition to what has been described so far, for what concerns the State Channels case, behind all the Salt States collected from the channels, there are also a bunch of default Salt States, the ones the server has to supply during the registration of a salt minion client, and during other management operations (such as channel - normal software channels - subscription, certificates, etc). Those are not *assigned* in any way because they are not part of any State Channel, they do just exists due to the logic implementation of a client registration using Salt. In the end, those are not visible Salt States anyway, and the System will be affected by them during those maintenance actions, so from the System perspective an additional source of Salt States could be defined as directly assigned: a non-manageable source behaving as a State Channel that will be named *internal management states*. It must be mentioned that also States coming from Formulas will be included within these *internal states* because they are part of the mechanism for the System to be configured according to Formulas assigned.
+
 
 Adding the latter to the picture:
 1. `system --> channel`
@@ -216,7 +217,7 @@ Without investigating deeply, the alternative would be redesigning the feature c
 [unresolved]: #unresolved-questions
 
 ## What are the unknowns?
-1. Salt States coming from Formulas are not yet considered as part of this RFC
+1. No known unknown at the moment
 
 ## What can happen if Murphy's law holds true?
 1. No periculous path visible at the moment
