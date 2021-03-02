@@ -224,10 +224,6 @@ NOTE: So far, those systems that are registered as "Foreign/ANSIBLE" are not nec
 
 For those systems that are "Foreign/ANSIBLE" we should enable some "Migration to Minion" tab that allows the user to trigger the bootstrap states via "salt-ssh" to convert this Ansible system into a fully-featured minion.
 
-This is the bulk of the RFC. Explain the design in enough detail for somebody familiar with the product to understand, and for somebody familiar with the internals to implement.
-
-This section should cover architecture aspects and the rationale behind disruptive technical decisions (when applicable), as well as corner-cases and warnings. Whenever the new feature creates new user interactions, this section should include examples of how the feature will be used.
-
 
 ## Maintain your Ansible infrastructure using Uyuni
 This section is more like the next level of the Ansible integration in Uyuni. So far, we have been focus on visualize your Ansible infrastrucutre in Uyuni and so some basic operations, like triggering playbooks in the controller or migrate to minion.
@@ -292,4 +288,4 @@ An alternative would be to use the API of AWX. While this would mean that all op
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-* Where should we move from here? Full integration of Ansible features? Moving Ansible integration to Spacewalk core? Fully interfacing AWX?
+...
