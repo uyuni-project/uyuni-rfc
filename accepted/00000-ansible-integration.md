@@ -18,7 +18,7 @@ This RFC would offer a transition path for that. The user can import the Ansible
 2. Managing parts of the infrastructure in Ansible.
 If it is not possible or not wanted to move everything to Uyuni, it is possible to just keep using Ansible for the few clients that cannot be transitioned.
 
-This RFC is more focus on allowing users to import their existing Ansible environments into Uyuni, allow some basic operations, coexistance of Salt and Ansible managed infrastructure in Uyuni, eventually apply playbooks and also to provide an easy way to transition from Ansible to a fully-featured Salt minion managed system in Uyuni, rather than making Uyuni a top-featured UI to build your Ansible infrastructure from scratch.
+This RFC is more focused on allowing users to import their existing Ansible environments into Uyuni, allow some basic operations, coexistence of Salt and Ansible managed infrastructure in Uyuni, eventually apply playbooks and also to provide an easy way to transition from Ansible to a fully-featured Salt minion managed system in Uyuni, rather than making Uyuni a top-featured UI to build your Ansible infrastructure from scratch.
 
 _Describe the problem you are trying to solve, and its constraints, without coupling them too closely to the solution you have in mind. If this RFC is not accepted, the motivation can be used to develop alternative solutions._
 
