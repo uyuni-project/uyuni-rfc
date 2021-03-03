@@ -124,6 +124,12 @@ Notice also that the Ansible controller is not listed as systems list page, sinc
 * Ansible / Add new Ansible controller
 * Ansible / View Ansible controller information & and visualize playbooks (would also allow triggering playbooks via "salt-ssh" in the controller)
 
+or even create a new entry level on the menu as "Automation", something like:
+
+* Automation / Ansible / ...
+* Automation / Salt / ...
+* Automation / Remote commands
+
 ## Operating Ansible
 
 This part describes different expectations/features to implement in order to execute certain operation in your Ansible infrastructure.
