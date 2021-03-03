@@ -200,6 +200,8 @@ The option 1 is refers to executing a playbook which is already stored and maint
 
 The SSH credentials to use in both cases to reach the Ansible controller would be the same that "ansible-gatherer" is using.
 
+In case we allow "ansible-gatherer" to add an Ansible controller from a registered system, then playbooks execution can be triggered to the controller either using "salt-ssh" or via normal Salt minion job, depending on how the system is registered in Uyuni.
+
 
 ### Execute Salt commands & states to Ansible systems
 The "ansiblegate" module of Salt also allows "salt-ssh" to reuse an Ansible inventory to reach those systems that are being managed by Ansible and execute Salt commands on it.
