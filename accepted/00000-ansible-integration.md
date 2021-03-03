@@ -176,7 +176,7 @@ The execution of a given playbooks is done in the corresponding Ansible controll
 
 The playbooks available to apply on each Ansible controller, are the ones exposed by "ansible-gatherer" and ultimately, in the future, playbooks created and maintained in Uyuni (via future Ansible playbook catalog) that would be then pushed to the controller node.
 
-At the time of running a playbook from the Ansible controller, Uyuni is able to do it by reaching the controller and operating it using "salt-ssh". There are different approaches here:
+At the time of running a playbook from the Ansible controller, Uyuni is able to do it by reaching the controller and operating it using "salt-ssh" (in principle, the Ansible controller is not necessary a registered running minion). There are different approaches here:
 
 Option 1)
 - SaltSSH to Ansible controller located in Ansible controller) via Salt state (or execution module):
