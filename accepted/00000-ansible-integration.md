@@ -14,7 +14,7 @@ This RFC proposes how to integrate and manage your existing Ansible nodes in Uyu
 There are two main motivations for this:
 
 1. A user might have some investment in Ansible in the past but wants to switch to Uyuni now.
-This RFC would offer a transition path for that. The user can import the Ansible systems, start with the already existing playbooks, get familiar with Uyuni and then switch over. It is also be possible to manage clients with Salt and Ansible in parallel.
+This RFC would offer a transition path for that. The user can import the Ansible systems, start with the already existing playbooks, get familiar with Uyuni and then switch over. It is also possible to manage clients with Salt and Ansible in parallel.
 2. Managing parts of the infrastructure in Ansible.
 If it is not possible or not wanted to move everything to Salt, it is possible to just keep using Ansible for the few clients that cannot be transitioned.
 
