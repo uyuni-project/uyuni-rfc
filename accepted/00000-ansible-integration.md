@@ -46,7 +46,7 @@ Assuming the Ansible inventory is properly created and SSH keys are deployed, th
 
 This means, playbooks can be triggered via CLI by the user, but also via "salt-api" so Uyuni is also easily able to trigger playbooks executions.
 
-Once we have a "Playbook catalog" in the UI, and Uyuni would trigger playbook executions we would need to implemente of course a new type of action: `ApplyPlaybook", which should expose the playbook to the Salt file_roots so it's available for Ansible when running.
+Once we have a "Playbook catalog" in the UI, and Uyuni would trigger playbook executions we would need to implemente of course a new type of action: `ApplyPlaybook`, which should expose the playbook to the Salt file_roots so it's available for Ansible when running.
 
 
 2. Adding external Ansible controllers:
