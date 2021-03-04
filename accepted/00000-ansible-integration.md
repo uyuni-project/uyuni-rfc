@@ -31,9 +31,9 @@ There are three main parts/goals here, conceptually:
 3) Maintain Ansible infrastructure: Own Uyuni Playbook catalog, revisions, formulas.
 
 ## Collecting data from an Ansible controller
+[collecting-from-ansible]: #collecting-from-ansible
 
 1. Using Uyuni server as the Ansible controller
-[collecting-from-uyuni-server]: #collecting-from-uyuni-server
 
 On this approach, the Uyuni server is our Ansible controller. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible controller (in this case the Uyuni server).
 
@@ -136,7 +136,7 @@ or even create a new entry level on the menu as "Automation", something like:
 This part describes different expectations/features to implement in order to execute certain operation in your Ansible infrastructure.
 
 #### Run playbooks with Uyuni as the Ansible controller
-In this scenario, Ansible and the inventory is already located in the Uyuni server. As mentioned above, when [using Uyuni as your Ansible controller](#collecting-from-uyuni-server), the user can use Ansible CLI on the Uyuni server, and we can also make Uyuni to easily trigger the playbook execution via Salt API, using the "runner" client (which interacts with the Uyuni server itself even if not registered as minion), to call `salt.cmd` runner function to interfaces with `ansible.playbooks` function, which triggers the playbook execution.
+In this scenario, Ansible and the inventory is already located in the Uyuni server. As mentioned above, when [using Uyuni as your Ansible controller](#collecting-from-ansible), the user can use Ansible CLI on the Uyuni server, and we can also make Uyuni to easily trigger the playbook execution via Salt API, using the "runner" client (which interacts with the Uyuni server itself even if not registered as minion), to call `salt.cmd` runner function to interfaces with `ansible.playbooks` function, which triggers the playbook execution.
 
 #### Run playbooks in an Ansible controller node
 Each Ansible controller node contains an Ansible inventory together with all different playbooks and files used together with the playbooks. The targets for the different tasks of a playbook are defined inside the playbook yaml file itself and not externally like Salt does for the states.
