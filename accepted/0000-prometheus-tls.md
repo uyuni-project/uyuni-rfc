@@ -55,11 +55,14 @@ implementing following default configuration:
 * [Optional] Create intermediate certificate authority (CA) dedicated for monitoring.
 * [Optional] Create and deploy Prometheus server certificate signed by this CA.
 * Configure `tls_server_config` using this certificate.
-* Configure basic authentication accounts to map SUSE Manager credentials.
+* Configure basic authentication for administrator account.
 
 All these steps should be implemented in Salt prometheus-formula. Alternatively
 certificate generation and deployment could be moved to a new dedicated
 certificates formula.
+
+To simplify deployment, Prometheus administrator account credentials should be set
+statically in the prometheus-formula.
 
 ## Node exporter
 
