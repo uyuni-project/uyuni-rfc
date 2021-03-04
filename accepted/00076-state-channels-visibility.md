@@ -33,7 +33,9 @@ That said, in the current implementation there is no way to figure out which cha
 
 Users have a hard time figuring out those relationships, this RFC has the goal to make them more evidently visible in the UI.
 
-Note: in addition to what has been described so far, for what concerns the State Channels case, behind all the Salt States collected from the channels, there are also a bunch of default Salt States, the ones the server has to supply during the registration of a salt minion client, and during other management operations (such as channel - normal software channels - subscription, certificates, etc). Those are not *assigned* in any way because they are not part of any State Channel, they do just exists due to the logic implementation of a client registration using Salt. In the end, those are not visible Salt States anyway, and the System will be affected by them during those maintenance actions, so from the System perspective an additional source of Salt States could be defined as directly assigned: a non-manageable source behaving as a State Channel that will be named *internal management states*. It must be mentioned that also States coming from Formulas will be included within these *internal states* because they are part of the mechanism for the System to be configured according to Formulas assigned.
+Note: in addition to what has been described so far, for what concerns the State Channels case, behind all the Salt States collected from the channels, there are also a bunch of default Salt States, the ones the server has to supply during the registration of a salt minion client, and during other management operations (such as channel - normal software channels - subscription, certificates, etc). Those are not *assigned* in any way because they are not part of any State Channel, they do just exists due to the logic implementation of a client registration using Salt. In the end, those are not visible Salt States anyway, and the System will be affected by them during those maintenance actions, so from the System perspective an additional source of Salt States could be defined as directly assigned: a non-manageable source behaving as a State Channel that will be named *internal management states*.
+
+There is also one last source for States: Formulas. Formulas can be assigned to a System, as well as State Channels, directly or inherited from System Group.
 
 
 Adding the latter to the picture:
@@ -41,6 +43,8 @@ Adding the latter to the picture:
 2. `system --> group --> channel`
 3. `system --> org --> channel`
 4. `system --> internal states`
+5. `system --> formula`
+6. `system --> group --> formula`
 
 
 ## What are the use cases?
@@ -89,6 +93,18 @@ This RFC exclusively covers adding visibility to relationships of State Channels
 # Detailed design
 [design]: #detailed-design
 
+## "Where do my states come from?" Overview
+
+### `Systems > Details > States > Highstate`
+Before:
+![System Details Highstate BEFORE](images/state-channels-visibility/Systems_Details_States_Highstate_BEFORE.png)
+
+After:
+![System Details Highstate AFTER](images/state-channels-visibility/Systems_Details_States_Highstate_AFTER.png)
+
+
+## State Channels inheritance visibility
+
 ### `Home > My Organization > Configuration Channels`
 This page presents associations between an organization and both Configuration Channels and State Channels. All systems in this organization will inherit Channels selected here. This is a list of Configuration Channels and State Channels with the possibility of selecting/deselecting channels and Applying any changes.
 
@@ -99,13 +115,6 @@ Before:
 
 After:
 ![My Organization AFTER](images/state-channels-visibility/Home_MyOrganization_ConfigurationChannels_AFTER.png)
-
-### `Systems > Details > States > Highstate`
-Before:
-![System Details Highstate BEFORE](images/state-channels-visibility/Systems_Details_States_Highstate_BEFORE.png)
-
-After:
-![System Details Highstate AFTER](images/state-channels-visibility/Systems_Details_States_Highstate_AFTER.png)
 
 ### `Systems > Details > States > Configuration Channels`
 Before:
