@@ -32,7 +32,8 @@ There are three main parts/goals here, conceptually:
 
 ## Collecting data from an Ansible controller
 
-1. Using Uyuni server as the Ansible controller [collecting-from-uyuni-server]:(#collecting-from-uyuni-server)
+1. Using Uyuni server as the Ansible controller
+[collecting-from-uyuni-server]: #collecting-from-uyuni-server
 
 On this approach, the Uyuni server is our Ansible controller. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible controller (in this case the Uyuni server).
 
