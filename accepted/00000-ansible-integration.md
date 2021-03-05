@@ -32,11 +32,21 @@ There are three main parts/goals here, conceptually:
 
 ## Collecting data from an Ansible controller
 
-1. Using Uyuni server as the Ansible controller
+This section elaborates how Uyuni would do for gathering information for an Ansible controller. There are different scenarios that we can consider here:
 
-On this approach, the Uyuni server is our Ansible controller. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible controller (in this case the Uyuni server).
+1. Adding an external host Ansible controller:
 
-Since the Ansible inventory in the Uyuni server is empty, default at `/etc/ansible/hosts`, the user would add their Ansible managed hosts to the inventory and will take care of deploying the Ansible SSH keys to those systems, in order for Ansible to work. (For already registered systems, deploying the SSH key could be automated somehow)
+The premise here is that there is already an existing and configured Ansible infrastructure somewhere and we want to import it into Uyuni. This Ansible controller is not even a registered system in Uyuni. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible controller.
+
+Here we're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
+
+NOTE: Currently Ansible is not shipped in SLE15 any SP. In order to allow an SLE Ansible controller, we would need to ship Ansible in probably in SLE15 client tools.
+
+2. Using the Uyuni server as the Ansible controller:
+
+On this approach, the Uyuni server is our Ansible controller. We would need to provide the Ansible package to the SUSE Manager server channel.
+
+Since the Ansible inventory in the Uyuni server would be initially empty, default at `/etc/ansible/hosts`, the user would add their Ansible managed hosts to the inventory and will take care of deploying the Ansible SSH keys to those systems, in order for Ansible to work. (For already registered systems, deploying the SSH key could be automated somehow)
 
 Assuming the Ansible inventory is properly created and SSH keys are deployed, the user can operate it from the command line, but Uyuni can also operate it via Salt runner call (since we're on the Uyuni server and not in a minion). Example:
 
@@ -46,18 +56,17 @@ Assuming the Ansible inventory is properly created and SSH keys are deployed, th
 
 This means, playbooks can be triggered via CLI by the user, but also via "salt-api" so Uyuni is also easily able to trigger playbooks executions.
 
-Once we have a "Playbook catalog" in the UI, and Uyuni would trigger playbook executions we would need to implement of course a new type of action: `ApplyPlaybook`, which should expose the playbook to the Salt file_roots so it's available for Ansible when running.
+Once we have a "Playbook catalog" in the UI, and Uyuni would trigger playbook executions we would need to implement of course a new type of action: `ApplyPlaybook`, which should expose the playbook to the Salt "file_roots" so it's available for Ansible when running.
 
+3. Adding an Ansible controller from a registered minion:
 
-2. Adding external Ansible controllers:
-
-The premise here is that there is already an existing Ansible infrastructure somewhere and we want to import it into Uyuni. here we're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
-
-Therefore, there might be more than one Ansible controller host, or even the Uyuni server could act at some point as an Ansible controller. Since data sources, and type of sources (e.g. single host, AWX API) might be multiple, this RFC proposes an approach similarly to what Uyuni does for handling "Virtual Host Managers (VHM)". This means, using a Python tool, in this case called something like "ansible-gatherer", which is plugin-based (so easily allows implementing different sources of Ansible inventories). This tool would be called via an Uyuni Java schedule, like the "virtual-host-gatherer", passing the necessary information (parameters, type of host, etc) to reach the Ansible controller and collect the necessary information.
-
-This approach I think would also make some Python and UI code reusable from "Virtual Host Managers".
+This scenario refers to the posibility of adding an Ansible controller from a registered system. Similarly to the previous scenarios but in this case, the Ansible controller is a registered system in Uyuni.
 
 ### ansible-gatherer
+
+This is the component that takes care of collecting the inventory, host and playbooks from a given Ansible controller.
+
+Therefore, there might be more than one Ansible controller host, even the Uyuni server, proxy or a registered system, could act at some point as an Ansible controller. Since data sources, and type of sources (e.g. single host, AWX API) might be multiple, this RFC proposes an approach similarly to what Uyuni does for handling "Virtual Host Managers (VHM)". This means, using a Python tool, in this case called something like "ansible-gatherer", which is plugin-based (so easily allows implementing different sources of Ansible inventories). This tool would be called via an Uyuni Java schedule, like the "virtual-host-gatherer", passing the necessary information (parameters, type of host, etc) to reach the Ansible controller and collect the necessary information.
 
 - Python / Plugin-based (most skeleton reusable from virtual-host-gatherer implementation)
 - Example plugins:
@@ -134,9 +143,6 @@ or even create a new entry level on the menu as "Automation", something like:
 
 This part describes different expectations/features to implement in order to execute certain operation in your Ansible infrastructure.
 
-#### Run playbooks with Uyuni as the Ansible controller
-In this scenario, Ansible and the inventory is already located in the Uyuni server. As mentioned above, when [using Uyuni as your Ansible controller](#collecting-data-from-an-ansible-controller), the user can use Ansible CLI on the Uyuni server, and we can also make Uyuni to easily trigger the playbook execution via Salt API, using the "runner" client (which interacts with the Uyuni server itself even if not registered as minion), to call `salt.cmd` runner function to interfaces with `ansible.playbooks` function, which triggers the playbook execution.
-
 #### Run playbooks in an Ansible controller node
 Each Ansible controller node contains an Ansible inventory together with all different playbooks and files used together with the playbooks. The targets for the different tasks of a playbook are defined inside the playbook yaml file itself and not externally like Salt does for the states.
 
@@ -179,10 +185,12 @@ The execution of a given playbooks is done in the corresponding Ansible controll
 
 The playbooks available to apply on each Ansible controller, are the ones exposed by "ansible-gatherer" and ultimately, in the future, playbooks created and maintained in Uyuni (via future Ansible playbook catalog) that would be then pushed to the controller node.
 
-At the time of running a playbook from the Ansible controller, Uyuni is able to do it by reaching the controller and operating it using "salt-ssh" (in principle, the Ansible controller is not necessary a registered running minion). There are different approaches here:
+At the time of running a playbook from the Ansible controller, Uyuni is able to do it by reaching the controller and operating it using "salt-ssh" when it's an external host. If the controller is the Uyuni server or a registered minion we don't necessarily need to use "salt-ssh".
+
+Some examples here:
 
 Option 1)
-- SaltSSH to Ansible controller located in Ansible controller) via Salt state (or execution module):
+- SaltSSH to Ansible controller via Salt state (or execution module):
 
 ```yaml
 execute_ansible_playbook:
@@ -201,10 +209,9 @@ execute_ansible_playbook:
 
 The option 1 is refers to executing a playbook which is already stored and maintained in the Ansible controller. On the other hand, option 2 would work in an scenario where the maintenance of the Playbooks are done in Uyuni, so we need to make the Ansible controller to get the generated playbook by Uyuni from the Salt file roots.
 
+Of course, in case the Ansible controller is a registered minion or even the Uyuni server, we would not necessary require to execute Salt SSH in order to apply a playbook, just a normal Salt job or runner execution
+
 The SSH credentials to use in both cases to reach the Ansible controller would be the same that "ansible-gatherer" is using.
-
-In case we allow "ansible-gatherer" to add an Ansible controller from a registered system, then playbooks execution can be triggered to the controller either using "salt-ssh" or via normal Salt minion job, depending on how the system is registered in Uyuni.
-
 
 ### Execute Salt commands & states to Ansible systems
 The "ansiblegate" module of Salt also allows "salt-ssh" to reuse an Ansible inventory to reach those systems that are being managed by Ansible and execute Salt commands on it.
@@ -256,23 +263,27 @@ This sections exposes lot of different possibilities in case that we really want
 # Defining a MVP
 [mvp]: #mvp
 
-### Step 1: Uyuni as your Ansible controller
-- Ansible is installed on the Uyuni server.
-- Ansible inventory, hosts are manually defined in the Uyuni server.
-- The user takes care of provide an Ansible SSH key which is accepted in the hosts from the Ansible inventory.
+This is a suggestion of implementation roadmap:
+
+### Step 0: The basic: gathering from an Ansible controller
+- Implement "ansible-gatherer" to gather from external host (SSH key based).
+- UI to add Ansible controllers (reused from "Virtual Host Manager").
+- Push Ansible package to SLE15 clients tools to allow having SLE controllers.
 - Inventory can be synced with Uyuni (add "Foreign/ANSIBLE" and "Salt/ANSIBLE", ...)
-- The user can operate Ansible via CLI.
+
+### Step 1: Operating an Ansible controller
+- Trigger the playbooks from Ansible controller using "salt-ssh".
 - Transition from "Foreign/ANSIBLE" to "Salt/ANSIBLE".
 
-### Step 2: Enhancing the UI
-- Playbook catalog
+### Step 2: Enhancing the UI and introducing custom Playbook catalog
 - Remote commands for "Foreign/ANSIBLE" systems.
+- Uyuni Playbook catalog.
 - Improve "Visualization" features.
 
 ### Step 3: Support multiple Ansible controller
-- Add "ansible-gatherer" to deal with multiple Ansible controllers
-- New UI pages and DB changes to deal with different controllers
-- Enhance "Playbook catalog" for multiple Ansible controllers.
+- Enhance "ansible-gatherer" to deal with different sources of Ansible controllers
+- New UI pages and DB changes to deal with different controllers.
+- Enhance "Playbook catalog" for different sources of Ansible controllers.
 
 ### Step 4:
 - Whatever comes next
@@ -281,6 +292,10 @@ This sections exposes lot of different possibilities in case that we really want
 [drawbacks]: #drawbacks
 
 Allowing Ansible clients in Uyuni sounds great, but at the same time, we need to think that Uyuni and its features are really based and tied to Salt. Allowing some basic integration, like collecting your Ansibles managed clients and expose them in Uyuni, operating your Ansible controller and some other things like easily migration to Salt minion are really cool and feasible featus, I think we should really think if we want to make Uyuni a tool that allows you to build, maintain and operate your Ansible infrastructure from scratch.
+
+Other consideration are:
+
+- Issue with Salt and Ansible 2.9: https://github.com/ansible/ansible/issues/70357#issuecomment-685755182
 
 Why should we **not** do this?
 
@@ -299,6 +314,7 @@ An alternative would be to use the API of AWX. While this would mean that all op
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
+* Ansible version to ship with SLE?
 * Where should we move from here? Full integration of Ansible features? Moving Ansible integration to Spacewalk core? Fully interfacing AWX?
 
 Objective of this RFC is only running Ansible playbooks form the Uyuni Server. We are not trying to replace Salt as the foundation of Uyuni but only adding Ansible as a sidecar.
