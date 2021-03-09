@@ -93,6 +93,8 @@ This RFC exclusively covers adding visibility to relationships of State Channels
 # Detailed design
 [design]: #detailed-design
 
+## Part 1
+---
 ## "Where do my states come from?" Overview
 
 ### `Systems > Details > States > Highstate`
@@ -103,6 +105,29 @@ After:
 ![System Details Highstate AFTER](images/state-channels-visibility/Systems_Details_States_Highstate_AFTER.png)
 
 
+#### Implementation detail
+
+1. `system --> channel`
+2. `system --> group --> channel`
+3. `system --> org --> channel`
+
+State Channels assigned to a System or a System Group or an Organization are fetched by [this available method](https://github.com/uyuni-project/uyuni/blob/master/java/code/src/com/suse/manager/webui/controllers/StatesAPI.java#L234)
+
+
+4. `system --> internal states`
+
+Hardcoded and statically displayed: they will always occur and they are not inherited nor assigned, they are just meant to be applied to manage the System
+
+
+5. `system --> formula`
+6. `system --> group --> formula`
+
+Formulas associated to a System are fetched [throught the file system](https://github.com/uyuni-project/uyuni/blob/master/java/code/src/com/redhat/rhn/domain/formula/FormulaFactory.java#L376). The same approach is used for Formulas associated to a System Group [with this method](https://github.com/uyuni-project/uyuni/blob/master/java/code/src/com/redhat/rhn/domain/formula/FormulaFactory.java#L353)
+
+
+
+## Part 2
+---
 ## State Channels inheritance visibility
 
 ### `Home > My Organization > Configuration Channels`
