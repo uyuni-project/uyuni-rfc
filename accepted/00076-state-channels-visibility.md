@@ -10,6 +10,8 @@ The goal is to clarify which system **inherits** which State Channels, and why -
 
 *Note: everything discussed in this RFC applies to Salt clients only. Traditional clients do not inherit State Channels.*
 
+*Note2: Configuration Channels assigned to Salt clients are translated into Salt States in order to be applied to the System. Therefore within the current document whenever it is mentioned a State Channel it is meant to be Configuration or State Channel assigned to a Salt client.*
+
 # Motivation
 [motivation]: #motivation
 
