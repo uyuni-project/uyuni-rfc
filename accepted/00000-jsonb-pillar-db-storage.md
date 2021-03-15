@@ -99,6 +99,8 @@ index eeb2269f77..dae0b36204 100644
                  if ((self.as_list and (ret[nk] in crd)) or
 ```
 
+Tracked in [PR#59777](https://github.com/saltstack/salt/pull/59777).
+
 ## Maintaining consistency
 
 Responsibility to provide up to date data remains, as is the case today, on the component changing the data. That means, when information about minion is changed, then relevant pillar generator must be called to refresh the pillar in database.
@@ -126,72 +128,69 @@ In case of organization removal, enhance `delete_org` stored procedure to delete
 
 ## Performance impact
 
-I did a small scale test with 100 minions and 100 pillar refresh repetitions with following results:
+I did a small scale test with 1000 minions and 10 pillar refresh repetitions with following results:
 
 Command:
 
 ```bash
-time bash -c 'for i in `seq 1 100`;do salt "*" saltutil.pillar_refresh > /dev/null; done'
+time bash -c 'for i in `seq 1 100`;do salt "*" pillar.items > /dev/null; done'
 ```
 
 * both suma-minion.py and DB pillars active:
 
 ```
-real    4m40,897s
-user    1m52,634s
-sys     0m10,143s
+real    12m17,561s
+user    0m49,857s
+sys     0m3,089s
 ```
+
+  Connections to postgres up to 14
+
+  Postgres backends up to 7
+
 
 * only suma-minion.py pillar active:
 
 ```
-real    4m37,656s
-user    1m53,964s
-sys     0m10,080s
+real    11m11,658s
+user    0m49,353s
+sys     0m3,091s
 ```
+
+
+  Connections to postgres constant 2
+
+  Postgres backends constant 2
 
 
 * only DB pillar active:
 
 ```
-real    4m39,619s
-user    1m54,091s
-sys     0m10,101s
+real    11m24,243s
+user    0m48,982s
+sys     0m3,147s
 ```
 
 
-I also did another small scale test with 1000 minions and 10 pillar refresh repetitions with following results:
+  Connections to postgres up to 14
 
-Command:
-```bash
-time bash -c 'for i in `seq 1 10`;do salt "*" saltutil.pillar_refresh > /dev/null; done'
-```
+  Postgres backends up to 6
 
-* both DB pillar and `suma_minion.py` pillars active:
+
+Given the discrepancy between number of salt clients and opened connections to the database, I increased number of salt worker threads to test hypothesis that indeed number of salt threads is limiting number of connections to the database. Upon increasing salt worker threads to 28 I got following results:
 
 ```
-real    3m17,522s
-user    0m39,096s
-sys     0m2,260s
+real    11m29,790s
+user    0m47,978s
+sys     0m3,124s
 ```
 
-* when only `suma_minion.py` pillar was active:
+  Connections to postgres up to 44
 
-```
-real    3m22,705s
-user    0m40,239s
-sys     0m2,244s
-```
+  Postgres backends up to 14
 
-* when only DB pillar was active:
 
-```
-real    3m21,272s
-user    0m39,661s
-sys     0m2,320s
-```
-
-In conclusion I do not see very notable impact in this isolated scenario.
+In conclusion I do not see very notable impact in this isolated scenario. Number of opened connections is correlated with number of salt worker threads, this needs to be taking into account in case of tuning individual installations.
 
 # Drawbacks
 [drawbacks]: #drawbacks
