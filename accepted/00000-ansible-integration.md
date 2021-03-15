@@ -26,25 +26,25 @@ This RFC is more focused on allowing users to import their existing Ansible envi
 
 There are three main parts/goals here, conceptually:
 
-1) Collect data from an Ansible controller (Inventory / SSH Keys / Playbooks, etc) and import the hosts in the inventory as ANSIBLE systems in Uyuni.
-2) Operate Ansible: Apply playbooks via controller node / Apply Salt commands & states directly to Ansible managed systems / Make Ansible system become a fully-featured Salt Minion.
+1) Collect data from an Ansible control node (Inventory / SSH Keys / Playbooks, etc) and import the hosts in the inventory as ANSIBLE systems in Uyuni.
+2) Operate Ansible: Apply playbooks via control node node / Apply Salt commands & states directly to Ansible managed systems / Make Ansible system become a fully-featured Salt Minion.
 3) Maintain Ansible infrastructure: Own Uyuni Playbook catalog, revisions, formulas.
 
-## Collecting data from an Ansible controller
+## Collecting data from an Ansible control node
 
-This section elaborates how Uyuni would do for gathering information for an Ansible controller. There are different scenarios that we can consider here:
+This section elaborates how Uyuni would do for gathering information for an Ansible control node. There are different scenarios that we can consider here:
 
-1. Adding an external host Ansible controller:
+1. Adding an external host Ansible control node:
 
-The premise here is that there is already an existing and configured Ansible infrastructure somewhere and we want to import it into Uyuni. This Ansible controller is not even a registered system in Uyuni. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible controller.
+The premise here is that there is already an existing and configured Ansible infrastructure somewhere and we want to import it into Uyuni. This Ansible control node is not even a registered system in Uyuni. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible control node.
 
 Here we're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
 
-NOTE: Currently Ansible is not shipped in SLE15 any SP. In order to allow an SLE Ansible controller, we would need to ship Ansible in probably in SLE15 client tools.
+NOTE: Currently Ansible is not shipped in SLE15 any SP. In order to allow an SLE Ansible control node, we would need to ship Ansible in probably in SLE15 client tools.
 
-2. Using the Uyuni server as the Ansible controller:
+2. Using the Uyuni server as the Ansible control node:
 
-On this approach, the Uyuni server is our Ansible controller. We would need to provide the Ansible package to the SUSE Manager server channel.
+On this approach, the Uyuni server is our Ansible control node. We would need to provide the Ansible package to the SUSE Manager server channel.
 
 Since the Ansible inventory in the Uyuni server would be initially empty, default at `/etc/ansible/hosts`, the user would add their Ansible managed hosts to the inventory and will take care of deploying the Ansible SSH keys to those systems, in order for Ansible to work. (For already registered systems, deploying the SSH key could be automated somehow)
 
@@ -58,15 +58,15 @@ This means, playbooks can be triggered via CLI by the user, but also via "salt-a
 
 Once we have a "Playbook catalog" in the UI, and Uyuni would trigger playbook executions we would need to implement of course a new type of action: `ApplyPlaybook`, which should expose the playbook to the Salt "file_roots" so it's available for Ansible when running.
 
-3. Adding an Ansible controller from a registered minion:
+3. Adding an Ansible control node from a registered minion:
 
-This scenario refers to the posibility of adding an Ansible controller from a registered system. Similarly to the previous scenarios but in this case, the Ansible controller is a registered system in Uyuni.
+This scenario refers to the posibility of adding an Ansible control node from a registered system. Similarly to the previous scenarios but in this case, the Ansible control node is a registered system in Uyuni.
 
 ### ansible-gatherer
 
-This is the component that takes care of collecting the inventory, host and playbooks from a given Ansible controller.
+This is the component that takes care of collecting the inventory, host and playbooks from a given Ansible control node.
 
-Therefore, there might be more than one Ansible controller host, even the Uyuni server, proxy or a registered system, could act at some point as an Ansible controller. Since data sources, and type of sources (e.g. single host, AWX API) might be multiple, this RFC proposes an approach similarly to what Uyuni does for handling "Virtual Host Managers (VHM)". This means, using a Python tool, in this case called something like "ansible-gatherer", which is plugin-based (so easily allows implementing different sources of Ansible inventories). This tool would be called via an Uyuni Java schedule, like the "virtual-host-gatherer", passing the necessary information (parameters, type of host, etc) to reach the Ansible controller and collect the necessary information.
+Therefore, there might be more than one Ansible control node host, even the Uyuni server, proxy or a registered system, could act at some point as an Ansible control node. Since data sources, and type of sources (e.g. single host, AWX API) might be multiple, this RFC proposes an approach similarly to what Uyuni does for handling "Virtual Host Managers (VHM)". This means, using a Python tool, in this case called something like "ansible-gatherer", which is plugin-based (so easily allows implementing different sources of Ansible inventories). This tool would be called via an Uyuni Java schedule, like the "virtual-host-gatherer", passing the necessary information (parameters, type of host, etc) to reach the Ansible control node and collect the necessary information.
 
 - Python / Plugin-based (most skeleton reusable from virtual-host-gatherer implementation)
 - Example plugins:
@@ -82,7 +82,7 @@ Output example:
 
 ```json
 {
-	"inventory-label": "my-ansible-controller",
+	"inventory-label": "my-ansible-control-node",
         "hosts": [
 		"my-ansible-managed-system1.foo.bar",
 		"my-ansible-managed-system2.foo.bar",
@@ -115,23 +115,23 @@ Of course, we need some new tables in the database, at least something like:
 
 ```
 "suseAnsibleController" (label, type, org_1)
-"suseAnsibleControllerConfig" (controller_id, parameter, value)
-"suseAnsibleControllerSystem" (system_id, controller_id)
-"suseAnsibleControllerPlaybook" (controller_id, local_path, content?)
+"suseAnsibleControllerConfig" (control_node_id, parameter, value)
+"suseAnsibleControllerSystem" (system_id, control_node_id)
+"suseAnsibleControllerPlaybook" (control_node_id, local_path, content?)
 ```
 
 And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also for a potential "Management/ANSIBLE" (traditional client) entitlement. Here is the [SQL script](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/add_ansible_entitleme.sql) used for PoC demo. It's also needed to adapt the rhn databaste functions implemented in the DB.
 
 NOTE: The profile for a system with registered in Uyuni as "Foreign/ANSIBLE" does not look like as the one Salt/Traditional system, since most of the Uyuni features (channels, software profile, etc) are not implemented for neither "Foreign" nor "ANSIBLE" entitlements. In order to get the entire portfolio of Uyuni features for Salt minion, this "Foreign/ANSIBLE" systems would need to be transitioned to "Salt/ANSIBLE" minion.
 
-Notice also that the Ansible controller is not listed as systems list page, since there is not system entry for it, it would be shown in the respective new UI page for managing Ansible Controller.
+Notice also that the Ansible control node is not listed as systems list page, since there is not system entry for it, it would be shown in the respective new UI page for managing Ansible control nodes.
 
 #### New UI tabs & pages
 
 * Ansible
-* Ansible / Ansible Controllers list
-* Ansible / Add new Ansible controller
-* Ansible / View Ansible controller information & and visualize playbooks (would also allow triggering playbooks via "salt-ssh" in the controller)
+* Ansible / Ansible control nodes list
+* Ansible / Add new Ansible control node
+* Ansible / View Ansible control node information & and visualize playbooks (would also allow triggering playbooks via "salt-ssh" in the control node)
 
 or even create a new entry level on the menu as "Automation", something like:
 
@@ -143,8 +143,8 @@ or even create a new entry level on the menu as "Automation", something like:
 
 This part describes different expectations/features to implement in order to execute certain operation in your Ansible infrastructure.
 
-#### Run playbooks in an Ansible controller node
-Each Ansible controller node contains an Ansible inventory together with all different playbooks and files used together with the playbooks. The targets for the different tasks of a playbook are defined inside the playbook yaml file itself and not externally like Salt does for the states.
+#### Run playbooks in an Ansible control node node
+Each Ansible control node node contains an Ansible inventory together with all different playbooks and files used together with the playbooks. The targets for the different tasks of a playbook are defined inside the playbook yaml file itself and not externally like Salt does for the states.
 
 This is an example of Ansible playbook:
 
@@ -181,25 +181,25 @@ This is an example of Ansible playbook:
 
 As you can see, this playbook is defining different tasks to execute on different "hosts" groups. Those groups are of course defined in the Ansible inventory (default at /etc/ansible/hosts).
 
-The execution of a given playbooks is done in the corresponding Ansible controller, which contains the inventory and the hosts definition.
+The execution of a given playbooks is done in the corresponding Ansible control node, which contains the inventory and the hosts definition.
 
-The playbooks available to apply on each Ansible controller, are the ones exposed by "ansible-gatherer" and ultimately, in the future, playbooks created and maintained in Uyuni (via future Ansible playbook catalog) that would be then pushed to the controller node.
+The playbooks available to apply on each Ansible control node, are the ones exposed by "ansible-gatherer" and ultimately, in the future, playbooks created and maintained in Uyuni (via future Ansible playbook catalog) that would be then pushed to the control node node.
 
-At the time of running a playbook from the Ansible controller, Uyuni is able to do it by reaching the controller and operating it using "salt-ssh" when it's an external host. If the controller is the Uyuni server or a registered minion we don't necessarily need to use "salt-ssh".
+At the time of running a playbook from the Ansible control node, Uyuni is able to do it by reaching the control node and operating it using "salt-ssh" when it's an external host. If the control node is the Uyuni server or a registered minion we don't necessarily need to use "salt-ssh".
 
 Some examples here:
 
 Option 1)
-- SaltSSH to Ansible controller via Salt state (or execution module):
+- SaltSSH to Ansible control node via Salt state (or execution module):
 
 ```yaml
 execute_ansible_playbook:
   ansible.playbooks:
-    - name: /some/path/in/my/ansible/controller/playbook_1.yaml
+    - name: /some/path/in/my/ansible/control/node/playbook_1.yaml
 ```
 
 Option 2)
-- SaltSSH to Ansible controller to apply Salt state (playbook coming from Uyuni):
+- SaltSSH to Ansible control node to apply Salt state (playbook coming from Uyuni):
 
 ```yaml
 execute_ansible_playbook:
@@ -207,11 +207,11 @@ execute_ansible_playbook:
     - name: salt://ansible_playbooks/org_1/inventory-label/playbook-1.yaml
 ```
 
-The option 1 is refers to executing a playbook which is already stored and maintained in the Ansible controller. On the other hand, option 2 would work in an scenario where the maintenance of the Playbooks are done in Uyuni, so we need to make the Ansible controller to get the generated playbook by Uyuni from the Salt file roots.
+The option 1 is refers to executing a playbook which is already stored and maintained in the Ansible control node. On the other hand, option 2 would work in an scenario where the maintenance of the Playbooks are done in Uyuni, so we need to make the Ansible control node to get the generated playbook by Uyuni from the Salt file roots.
 
-Of course, in case the Ansible controller is a registered minion or even the Uyuni server, we would not necessary require to execute Salt SSH in order to apply a playbook, just a normal Salt job or runner execution
+Of course, in case the Ansible control node is a registered minion or even the Uyuni server, we would not necessary require to execute Salt SSH in order to apply a playbook, just a normal Salt job or runner execution
 
-The SSH credentials to use in both cases to reach the Ansible controller would be the same that "ansible-gatherer" is using.
+The SSH credentials to use in both cases to reach the Ansible control node would be the same that "ansible-gatherer" is using.
 
 ### Execute Salt commands & states to Ansible systems
 The "ansiblegate" module of Salt also allows "salt-ssh" to reuse an Ansible inventory to reach those systems that are being managed by Ansible and execute Salt commands on it.
@@ -219,10 +219,10 @@ The "ansiblegate" module of Salt also allows "salt-ssh" to reuse an Ansible inve
 Example:
 
 ```console
-# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p uyuni-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 grains.items
+# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p uyuni-ansible-control-node.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 grains.items
 ```
 
-On this example, we pass `roster=ansible` and then we pass the Ansible inventory as `roster_file`. With `-N` we set the Ansible group to target, in this case `webservers`. We use `ProxyCommand` here because we want the SSH connection jumps via the Ansible controller (in case some firewall). The SSH credentials for the final `webservers` would be taken from the Ansible inventory.
+On this example, we pass `roster=ansible` and then we pass the Ansible inventory as `roster_file`. With `-N` we set the Ansible group to target, in this case `webservers`. We use `ProxyCommand` here because we want the SSH connection jumps via the Ansible control node (in case some firewall). The SSH credentials for the final `webservers` would be taken from the Ansible inventory.
 
 Note that, in terms of performance, targetting Ansible systems using Salt means doing SSH connections via "salt-ssh".
 
@@ -231,7 +231,7 @@ Note that, in terms of performance, targetting Ansible systems using Salt means 
 Since we're able to reuse the inventory, it's easy to trigger the "bootstrap" (default or SSH) state in an Ansible managed system to easily onboard this system as fully-featured minion. This could be done with a "salt-ssh" call like:
 
 ```console
-# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p uyuni-ansible-controller.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 state.apply certs,bootstrap pillar='{"mgr_server": "uyuni-srv.tf.local", "minion_id": "uyuni-ansible-sles15sp1-2.tf.local"}'
+# salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p uyuni-ansible-control-node.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 state.apply certs,bootstrap pillar='{"mgr_server": "uyuni-srv.tf.local", "minion_id": "uyuni-ansible-sles15sp1-2.tf.local"}'
 ```
 
 In esence, we apply the same states that we do at the time of Boostrapping a new minion via the UI, passing the necessary information as pillar data.
@@ -244,16 +244,16 @@ For those systems that are "Foreign/ANSIBLE" we should enable some "Migration to
 
 
 ## Maintain your Ansible infrastructure using Uyuni
-This section is more like the next level of the Ansible integration in Uyuni. So far, we have been focus on visualize your Ansible infrastrucutre in Uyuni and so some basic operations, like triggering playbooks in the controller or migrate to minion.
+This section is more like the next level of the Ansible integration in Uyuni. So far, we have been focus on visualize your Ansible infrastrucutre in Uyuni and so some basic operations, like triggering playbooks in the control node or migrate to minion.
 
 This sections exposes lot of different possibilities in case that we really want to make Uyuni an UI for mantaining your playbooks and Ansible infrastructure. Maybe this is not really want we want for Uyuni, since there might be already better tools for this and it's opening a whole new world. In any case, some ideas that might be explored are:
 
 - Maintain your own Ansible Playbooks catalog in the Uyuni server: Playbook catalog (like Configuration State Channels)
-  * This would require, of course UI and DB investment. The idea would be to maintain the Ansible catalog inside the Uyuni server and push the playbook directly to the controller or the Ansible systems.
-  * Some questions: Which inventory / hosts groups and Ansible controller to use here for running the playbooks? Uyuni server as the Ansible controller?
+  * This would require, of course UI and DB investment. The idea would be to maintain the Ansible catalog inside the Uyuni server and push the playbook directly to the control node or the Ansible systems.
+  * Some questions: Which inventory / hosts groups and Ansible control node to use here for running the playbooks? Uyuni server as the Ansible control node?
 
 - Ansible Playbooks with Forms
-  * Similarly to what we currently have for Salt with "Formulas with Forms". Prefilled playbooks + some metadata to render the forms to filling the required information. This rendered playbook can be exposed via Salt fileserver as described above so the corresponding controller is able to fetch it.
+  * Similarly to what we currently have for Salt with "Formulas with Forms". Prefilled playbooks + some metadata to render the forms to filling the required information. This rendered playbook can be exposed via Salt fileserver as described above so the corresponding control node is able to fetch it.
 
 
 #### New UI tabs & pages
@@ -265,14 +265,14 @@ This sections exposes lot of different possibilities in case that we really want
 
 This is a suggestion of implementation roadmap:
 
-### Step 0: The basic: gathering from an Ansible controller
+### Step 0: The basic: gathering from an Ansible control node
 - Implement "ansible-gatherer" to gather from external host (SSH key based).
-- UI to add Ansible controllers (reused from "Virtual Host Manager").
-- Push Ansible package to SLE15 clients tools to allow having SLE controllers.
+- UI to add Ansible control nodes (reused from "Virtual Host Manager").
+- Push Ansible package to SLE15 clients tools to allow having SLE control nodes.
 - Inventory can be synced with Uyuni (add "Foreign/ANSIBLE" and "Salt/ANSIBLE", ...)
 
-### Step 1: Operating an Ansible controller
-- Trigger the playbooks from Ansible controller using "salt-ssh".
+### Step 1: Operating an Ansible control node
+- Trigger the playbooks from Ansible control node using "salt-ssh".
 - Transition from "Foreign/ANSIBLE" to "Salt/ANSIBLE".
 
 ### Step 2: Enhancing the UI and introducing custom Playbook catalog
@@ -280,10 +280,10 @@ This is a suggestion of implementation roadmap:
 - Uyuni Playbook catalog.
 - Improve "Visualization" features.
 
-### Step 3: Support multiple Ansible controller
-- Enhance "ansible-gatherer" to deal with different sources of Ansible controllers
-- New UI pages and DB changes to deal with different controllers.
-- Enhance "Playbook catalog" for different sources of Ansible controllers.
+### Step 3: Support multiple Ansible control node
+- Enhance "ansible-gatherer" to deal with different sources of Ansible control nodes
+- New UI pages and DB changes to deal with different control nodes.
+- Enhance "Playbook catalog" for different sources of Ansible control nodes.
 
 ### Step 4:
 - Whatever comes next
@@ -291,7 +291,7 @@ This is a suggestion of implementation roadmap:
 # Drawbacks
 [drawbacks]: #drawbacks
 
-Allowing Ansible clients in Uyuni sounds great, but at the same time, we need to think that Uyuni and its features are really based and tied to Salt. Allowing some basic integration, like collecting your Ansibles managed clients and expose them in Uyuni, operating your Ansible controller and some other things like easily migration to Salt minion are really cool and feasible featus, I think we should really think if we want to make Uyuni a tool that allows you to build, maintain and operate your Ansible infrastructure from scratch.
+Allowing Ansible clients in Uyuni sounds great, but at the same time, we need to think that Uyuni and its features are really based and tied to Salt. Allowing some basic integration, like collecting your Ansibles managed clients and expose them in Uyuni, operating your Ansible control node and some other things like easily migration to Salt minion are really cool and feasible featus, I think we should really think if we want to make Uyuni a tool that allows you to build, maintain and operate your Ansible infrastructure from scratch.
 
 Other consideration are:
 
