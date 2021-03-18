@@ -40,8 +40,6 @@ The premise here is that there is already an existing and configured Ansible inf
 
 Here we're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
 
-NOTE: Currently Ansible is not shipped in SLE15 any SP. In order to allow an SLE Ansible control node, we would need to ship Ansible in probably in SLE15 client tools.
-
 2. Using the Uyuni server as the Ansible control node:
 
 On this approach, the Uyuni server is our Ansible control node. We would need to provide the Ansible package to the SUSE Manager server channel.
@@ -288,6 +286,14 @@ This is a suggestion of implementation roadmap:
 ### Step 4:
 - Whatever comes next
 
+## Shipping Ansible for SLE15+
+
+At the time of writing this RFC, Ansible is not shipped in SLE15 any SP. In order to allow a posible Ansible control node running on SLE, we would need to ship Ansible probably in the SLE15 client tools channels.
+
+- Which version to ship? Probably Ansible 2.9, which is currently packaged for Leap, and we have it also in Factory: https://build.opensuse.org/package/show/openSUSE:Factory/ansible
+
+Considerations and other discussions about shipping Ansible in SLE, the support level, etc, can be discussed outside this RFC since it's out of the main focus of the general Ansible integration in Uyuni.
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
@@ -295,7 +301,7 @@ Allowing Ansible clients in Uyuni sounds great, but at the same time, we need to
 
 Other consideration are:
 
-- Issue with Salt and Ansible 2.9: https://github.com/ansible/ansible/issues/70357#issuecomment-685755182
+- Issue with Salt and Ansible 2.9: https://github.com/ansible/ansible/issues/70357#issuecomment-685755182 (fixed already by: https://github.com/saltstack/salt/pull/59746)
 
 Why should we **not** do this?
 
