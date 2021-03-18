@@ -36,7 +36,7 @@ This section elaborates how Uyuni would do for gathering information for an Ansi
 
 1. Adding an external host Ansible control node:
 
-The premise here is that there is already an existing and configured Ansible infrastructure somewhere and we want to import it into Uyuni. This Ansible control node is not even a registered system in Uyuni. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" entitlement means that host is being managed by an Ansible control node.
+The premise here is that there is already an existing and configured Ansible infrastructure somewhere and we want to import it into Uyuni. This Ansible control node is not even a registered system in Uyuni. The hosts defined on the inventory can be imported Uyuni and will be displayed as "Foreign/ANSIBLE" or "Salt/ANSIBLE", etc. The "ANSIBLE" system type means that host is being managed by an Ansible control node.
 
 Here we're **not** primarely focused on building a new Ansible managed infrastructure from scratch using Uyuni.
 
@@ -104,10 +104,10 @@ In short, we would gather, for instance:
 
 This would be stored under `/var/lib/spacewalk/ansible/inventory-label/` path in the Uyuni server. At the time of processing the inventory file by "ansible-gatherer", it needs to be tailored to adapt the path of the SSH keys to the local path in the Uyuni server. As done in script from Ansible Integration PoC [here](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/import_systems_from_ansible_controller.py).
 
-With this information, Java is able to proceed creating these systems in Uyuni, as "Foreign / ANSIBLE" entitled systems.
+With this information, Java is able to proceed creating these systems in Uyuni, as "Foreign / ANSIBLE" system type.
 
-- If any of those systems is already existing with "ANSIBLE" entitlement, then nothing to do
-- If the system is already registered but not with "ANSIBLE" entitlement, then add "ANSIBLE" entitlement.
+- If any of those systems is already existing with "ANSIBLE" system type, then nothing to do
+- If the system is already registered but not with "ANSIBLE" system type, then add "ANSIBLE" system type.
 
 Of course, we need some new tables in the database, at least something like:
 
@@ -118,9 +118,9 @@ Of course, we need some new tables in the database, at least something like:
 "suseAnsibleControllerPlaybook" (control_node_id, local_path, content?)
 ```
 
-And also create the new "ANSIBLE" entitlement, which should be an addon-entitlement compatible with Salt, Foreign and maybe also for a potential "Management/ANSIBLE" (traditional client) entitlement. Here is the [SQL script](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/add_ansible_entitleme.sql) used for PoC demo. It's also needed to adapt the rhn databaste functions implemented in the DB.
+And also create the new "ANSIBLE" system type, which should be an addon-system type compatible with Salt, Foreign and, in case this doesn't need any extra effors, maybe also for a potential "Management/ANSIBLE" (traditional client) system type. Here is the [SQL script](https://github.com/meaksh/uyuni-hacks/blob/master/scripts/ansible/add_ansible_entitleme.sql) used for PoC demo. It's also needed to adapt the rhn databaste functions implemented in the DB.
 
-NOTE: The profile for a system with registered in Uyuni as "Foreign/ANSIBLE" does not look like as the one Salt/Traditional system, since most of the Uyuni features (channels, software profile, etc) are not implemented for neither "Foreign" nor "ANSIBLE" entitlements. In order to get the entire portfolio of Uyuni features for Salt minion, this "Foreign/ANSIBLE" systems would need to be transitioned to "Salt/ANSIBLE" minion.
+NOTE: The profile for a system with registered in Uyuni as "Foreign/ANSIBLE" does not look like as the one Salt/Traditional system, since most of the Uyuni features (channels, software profile, etc) are not implemented for neither "Foreign" nor "ANSIBLE" system types. In order to get the entire portfolio of Uyuni features for Salt minion, this "Foreign/ANSIBLE" systems would need to be transitioned to "Salt/ANSIBLE" minion.
 
 Notice also that the Ansible control node is not listed as systems list page, since there is not system entry for it, it would be shown in the respective new UI page for managing Ansible control nodes.
 
@@ -234,7 +234,7 @@ Since we're able to reuse the inventory, it's easy to trigger the "bootstrap" (d
 
 In esence, we apply the same states that we do at the time of Boostrapping a new minion via the UI, passing the necessary information as pillar data.
 
-The Java part that reacts to the minion startup event needs to be adjusted to take care of the entitlement migration and proper minion onboarding when the system is "Foreign/ANSIBLE" and needs to transition to "Salt/ANSIBLE".
+The Java part that reacts to the minion startup event needs to be adjusted to take care of the system type migration and proper minion onboarding when the system is "Foreign/ANSIBLE" and needs to transition to "Salt/ANSIBLE".
 
 NOTE: So far, those systems that are registered as "Foreign/ANSIBLE" are not necessary been ever contacted by Uyuni yet, this means we do not have the real `machine-id`, which is not part of the Ansible inventory, and which needed to do a proper matching while onboarding the new minion. This means, before triggering the "Bootstrap" of an Ansible client, the `machine-id` needs to be properly set to the registered system. Easily done by(executing a command on the Ansible system before executing the "boostrap" state.
 
