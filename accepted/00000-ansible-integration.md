@@ -130,6 +130,7 @@ Notice also that the Ansible control node is not listed as systems list page, si
 * Ansible / Ansible control nodes list
 * Ansible / Add new Ansible control node
 * Ansible / View Ansible control node information & and visualize playbooks (would also allow triggering playbooks via "salt-ssh" in the control node)
+* Systems / Systems list / Ansible (show only Ansible systems and its control node)
 
 or even create a new entry level on the menu as "Automation", something like:
 
