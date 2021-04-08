@@ -99,6 +99,8 @@ execute_ansible_playbook:
     - name: /some/path/in/my/ansible/control/node/playbook_1.yaml
 ```
 
+We would need to create a new type of Action in Uyuni for "running a playbook". We want this action to appear in the system event history for the Ansible control node.
+
 
 ### Shipping Ansible for SLE15+
 
