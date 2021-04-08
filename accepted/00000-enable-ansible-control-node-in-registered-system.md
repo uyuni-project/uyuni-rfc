@@ -12,20 +12,23 @@ This RFC is describes how to manage an Ansible control node and integrate your A
 There are two main motivations for this:
 
 1. A user might have some investment in Ansible in the past but wants to switch to Uyuni now.
+
 This RFC would offer a transition path for that. The user can register their Ansible control node, play with the already existing playbooks, get familiar with Uyuni and then switch over. It is also possible to manage clients with Salt and Ansible in parallel.
+
 2. Managing parts of the infrastructure in Ansible.
+
 If it is not possible or not wanted to move everything to Salt, it is possible to just keep using Ansible for the few clients that cannot be transitioned.
 
 
 # Detailed design
 [design]: #detailed-design
 
-## Asumptions:
+### Asumptions:
 - In order to operate an Ansible control node, import the inventory or perform any other Ansible related task, the Ansible control node system **must** be already registered as Salt client (normal or SSH) in Uyuni.
 - For a registered system, we can enable "Ansible control node" system property. In the same way we're doing, i.a. for "Virtualization Host".
 
 
-## New system property: "Ansible control node"
+### New system property: "Ansible control node"
 
 We're creating a new "system type" in the database: "Ansible control node". When this property is set for a registered minion, the highstate will ensure:
 
@@ -42,16 +45,16 @@ This new "Ansible" tab in the System overview will:
 - A list of the available playbooks on this Ansible control node under a given path - this could be also be another page/subtab.
 - Ultimately, allow to trigger the execution of those playbooks via the UI
 
-* How to identify if a gathered Ansible managed system is already registered in Uyuni?
+#### How to identify if a gathered Ansible managed system is already registered in Uyuni?
 
 - At the time of collecting the Ansible inventory, we only know about the "fqdn" of the Ansible managed client, so only chance at this point if trying to match the new client with an already existing client with the same fqdn.
 
-* What happen if a gathered Ansible managed system is already registered as traditional client?
+#### What happen if a gathered Ansible managed system is already registered as traditional client?
 
 - TBD: In this case we do match the system and allow to trigger the bootstrap/migration to a Salt minion in an easy way.
 
 
-## Easy bootstrap of Ansible managed clients that are not yet registered as Salt minion
+### Easy bootstrap of Ansible managed clients that are not yet registered as Salt minion
 
 After collecting the inventory, and matching the existing registered systems, there are probably some Ansible managed clients that are not yet even registered in Uyuni at all. For these systems, via the "Ansible" tab of the registered Ansible control node, we allow to bootstrap a selection of them as Salt minion (or SSH minion), from None to All.
 
@@ -90,7 +93,7 @@ Another example of usage (without using the ansible roster/targetting):
 ```
 
 
-## Triggering playbook executions in an Ansible control node
+### Triggering playbook executions in an Ansible control node
 
 After exploring the Ansible control node, inventory and playbooks, we can allow Uyuni to trigger the execution of one of those playbooks via a simple Salt state to execute in that control node:
 
@@ -101,7 +104,7 @@ execute_ansible_playbook:
 ```
 
 
-## Shipping Ansible for SLE15+
+### Shipping Ansible for SLE15+
 
 At the time of writing this RFC, Ansible is not shipped in SLE15 any SP. In order to allow a posible Ansible control node running on SLE, we would need to ship Ansible probably in the SLE15 client tools channels.
 
