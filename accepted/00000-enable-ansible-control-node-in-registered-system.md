@@ -62,31 +62,27 @@ At this point, Uyuni doesn't know how to reach those systems, we only know their
 
 In order to bootstrap and trigger the registration of these systems, we have two alternatives:
 
-- Use "salt-ssh" from Uyuni directly to the "fqdns" of the Ansible managed clients:
+#### Use "salt-ssh" from Uyuni directly to the "fqdns" of the Ansible managed clients:
 
 * We previously need to fetch the corresponding SSH key that is used to connect to this particular host by Ansible.
 * Then we would reuse this key as SSH credentials to trigger the bootstrap on that host.
 * Downside: Uyuni needs to have direct access to the Ansible managed clients to bootstrap
 
-- Use "salt-ssh" from Uyuni using the Ansible control node as SSH proxy:
+#### Use "salt-ssh" from Uyuni using the Ansible control node as SSH proxy:
 
 * We do not necessary need to fetch the corresponding SSH key, but we need to have the Uyuni SaltSSH deployed on the Ansible control node to access it
 * The SSH key to connect the Ansible managed client referenced in the Ansible inventory is used to build the ProxyCommand to use in "salt-ssh".
 
-1) Collect the inventory and cache it locally in the server so it can be reused by "salt-ssh" from the Uyuni server.
-2) Fetch from the Ansible control node also the differents SSH keys defined as "ansible_ssh_private_key_file" in the inventory.
-3) Tailor the inventory so it can be reused to reach the Ansible managed system from the Uyuni server via "salt-ssh".
-
 NOTE: It needs to be clarified in the documentation that `ansible_ssh_private_key_file` needs to be defined in the Ansible inventory of your Ansible control node.
 
-Once we have this, we can trigger the bootstrap of those systems by calling "salt-ssh" like this:
+* Once we have this, we can trigger the bootstrap of those systems by calling "salt-ssh" like this:
 
 ```console
 # salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i /srv/susemanager/salt/salt_ssh/mgr_ssh_id -o StrictHostKeyChecking=no -o User=root -W %h:%p uyuni-ansible-control-node.tf.local"' --roster=ansible --roster-file=/var/cache/ansible/ansible-inventory.yaml -N webserver1 state.apply certs,bootstrap pillar='{"mgr_server": "uyuni-srv.tf.local", "minion_id": "uyuni-ansible-sles15sp1-2.tf.local"}'
 ```
 In esence, we apply the same states that we do at the time of Boostrapping a new minion via the UI, passing the necessary information as pillar data.
 
-Another example of usage (without using the ansible roster/targetting):
+* Another example of usage (without using the ansible roster/targetting):
 
 ```console
 # salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i PATH_TO_SALT_SSH_KEY_IN_THE_UYUNI_SERVER -o StrictHostKeyChecking=no -W %h:%p uyuni-stable-ansible-controller.tf.local /usr/bin/ssh -i PATH_TO_THE_SSH_KEY_IN_ANSIBLE_CONTROL_NODE uyuni-stable-ansible-opensuse152-2.tf.local" -o StrictHostKeyChecking=no' uyuni-stable-ansible-opensuse152-2.tf.local test.ping
