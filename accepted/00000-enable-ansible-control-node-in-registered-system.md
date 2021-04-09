@@ -41,9 +41,12 @@ This new "Ansible" tab in the System overview will:
 
 - Live collect the Ansible inventory from the system. (similar to what we do in the highstate page - live rendering). By default, the inventory if collected from "/etc/ansible/hosts" file, but this page should also allow to define an alternative location for the inventory. (This info can be mapped as pillar data, so can be consumed in the corresponding SLS file that collects the inventory)
 - Show the systems that are part of this Ansible control node inventory - grouped by onboarding status
-- Bootstrap a selection (from None to All) of the Ansible managed clients
+- Show also groups and variables defined in the Ansible inventory. At least we can show the raw inventory output.
+- Bootstrap a selection (from None to All) of the Ansible managed clients.
 - A list of the available playbooks on this Ansible control node under a given path - this could be also be another page/subtab.
 - Ultimately, allow to visualize and trigger the execution of those playbooks via the UI
+
+NOTE: An Ansible inventory file contains not only systems but also groups definition and variables assignments for hosts and groups. For a good UX we need to allow visualizing these groups/variables in the UI, so the user can know which hosts belongs to the groups that would eventually be used in the different playbooks.
 
 #### How to identify if a gathered Ansible managed system is already registered in Uyuni?
 
