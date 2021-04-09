@@ -54,13 +54,37 @@ This new "Ansible" tab in the System overview will:
 - TBD: In this case we do match the system and allow to trigger the bootstrap/migration to a Salt minion in an easy way.
 
 
+### Triggering playbook executions in an Ansible control node
+
+After exploring the Ansible control node, inventory and playbooks, we can allow Uyuni to trigger the execution of one of those playbooks via a simple Salt state to execute in that control node:
+
+```yaml
+execute_ansible_playbook:
+  ansible.playbooks:
+    - name: /some/path/in/my/ansible/control/node/playbook_1.yaml
+```
+
+We would need to create a new type of Action in Uyuni for "running a playbook". We want this action to appear in the system event history for the Ansible control node.
+
+
+### Shipping Ansible for SLE15+
+
+At the time of writing this RFC, Ansible is not shipped in SLE15 any SP. In order to allow a posible Ansible control node running on SLE, we would need to ship Ansible probably in the SLE15 client tools channels.
+
+- Which version to ship? Probably Ansible 2.9, which is currently packaged for Leap, and we have it also in Factory: https://build.opensuse.org/package/show/openSUSE:Factory/ansible
+
+Considerations and other discussions about shipping Ansible in SLE, the support level, etc, can be discussed outside this RFC since it's out of the main focus of the general Ansible integration in Uyuni.
+
+
+## Next Steps:
+
 ### Easy bootstrap of Ansible managed clients that are not yet registered as Salt minion
 
 After collecting the inventory, and matching the existing registered systems, there are probably some Ansible managed clients that are not yet even registered in Uyuni at all. For these systems, via the "Ansible" tab of the registered Ansible control node, we allow to bootstrap a selection of them as Salt minion (or SSH minion), from None to All.
 
 At this point, Uyuni doesn't know how to reach those systems, we only know their "fqdns" according to the Ansible inventory, but the Ansible inventory in the control node should contain information about how to reach them via ssh. The idea here is the following:
 
-In order to bootstrap and trigger the registration of these systems, we have two alternatives:
+In order to bootstrap and trigger the registration of these systems, we have few alternatives:
 
 #### Use "salt-ssh" from Uyuni directly to the "fqdns" of the Ansible managed clients:
 
@@ -88,27 +112,7 @@ In esence, we apply the same states that we do at the time of Boostrapping a new
 # salt-ssh --ssh-option='ProxyCommand="/usr/bin/ssh -i PATH_TO_SALT_SSH_KEY_IN_THE_UYUNI_SERVER -o StrictHostKeyChecking=no -W %h:%p uyuni-stable-ansible-controller.tf.local /usr/bin/ssh -i PATH_TO_THE_SSH_KEY_IN_ANSIBLE_CONTROL_NODE uyuni-stable-ansible-opensuse152-2.tf.local" -o StrictHostKeyChecking=no' uyuni-stable-ansible-opensuse152-2.tf.local test.ping
 ```
 
-
-### Triggering playbook executions in an Ansible control node
-
-After exploring the Ansible control node, inventory and playbooks, we can allow Uyuni to trigger the execution of one of those playbooks via a simple Salt state to execute in that control node:
-
-```yaml
-execute_ansible_playbook:
-  ansible.playbooks:
-    - name: /some/path/in/my/ansible/control/node/playbook_1.yaml
-```
-
-We would need to create a new type of Action in Uyuni for "running a playbook". We want this action to appear in the system event history for the Ansible control node.
-
-
-### Shipping Ansible for SLE15+
-
-At the time of writing this RFC, Ansible is not shipped in SLE15 any SP. In order to allow a posible Ansible control node running on SLE, we would need to ship Ansible probably in the SLE15 client tools channels.
-
-- Which version to ship? Probably Ansible 2.9, which is currently packaged for Leap, and we have it also in Factory: https://build.opensuse.org/package/show/openSUSE:Factory/ansible
-
-Considerations and other discussions about shipping Ansible in SLE, the support level, etc, can be discussed outside this RFC since it's out of the main focus of the general Ansible integration in Uyuni.
+Since the onboarding problem / massive onboarding, might raise some extra considerations, it would be desired to create an extra RFC to discuss the onboarding problem separately from this initial RFC.
 
 
 # Drawbacks
@@ -125,7 +129,11 @@ Why should we **not** do this?
 # Alternatives
 [alternatives]: #alternatives
 
-- What other designs/options have been considered? An alternative approach based on VHM/"ansible-gatherer" is discussed [in this other RFC](https://github.com/uyuni-project/uyuni-rfc/pull/53)
+- What other designs/options have been considered?
+
+  * An alternative approach based on VHM/"ansible-gatherer" is discussed [in this other RFC](https://github.com/uyuni-project/uyuni-rfc/pull/53)
+  In this alternative approach, the Ansible control node does not require to be a registered system in Uyuni to operate it.
+
 - What is the impact of not doing this?
 
 
