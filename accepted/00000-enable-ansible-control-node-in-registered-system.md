@@ -141,7 +141,12 @@ Why should we **not** do this?
 - What other designs/options have been considered?
 
   * An alternative approach based on VHM/"ansible-gatherer" is discussed [in this other RFC](https://github.com/uyuni-project/uyuni-rfc/pull/53)
-  In this alternative approach, the Ansible control node does not require to be a registered system in Uyuni to operate it.
+
+  Some relevant differences in this other approach are:
+    - The Ansible control node **does not require** to be a registered system in Uyuni.
+    - The Ansible control node can be of any type, not necessarily a supported OS in Uyuni. Even some external API.
+    - If the Ansible control node is replaced, it's not required to remove and re-register the system in Uyuni.
+    - More flexible approach. Cover more use cases, but it might increase support complexity.
 
 - What is the impact of not doing this?
 
