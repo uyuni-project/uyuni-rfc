@@ -148,6 +148,8 @@ Why should we **not** do this?
     - If the Ansible control node is replaced, it's not required to remove and re-register the system in Uyuni.
     - More general / flexible approach. Cover more use cases. It might increase support complexity.
 
+  This other RFC is not necessary an alternative but can be taken also into consideration as a future enhance of the Ansible integration that is proposed in the present RFC.
+
 - What is the impact of not doing this?
 
 
