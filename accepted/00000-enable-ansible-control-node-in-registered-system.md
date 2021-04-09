@@ -43,7 +43,7 @@ This new "Ansible" tab in the System overview will:
 - Show the systems that are part of this Ansible control node inventory - grouped by onboarding status
 - Bootstrap a selection (from None to All) of the Ansible managed clients
 - A list of the available playbooks on this Ansible control node under a given path - this could be also be another page/subtab.
-- Ultimately, allow to trigger the execution of those playbooks via the UI
+- Ultimately, allow to visualize and trigger the execution of those playbooks via the UI
 
 #### How to identify if a gathered Ansible managed system is already registered in Uyuni?
 
@@ -65,6 +65,12 @@ execute_ansible_playbook:
 ```
 
 We would need to create a new type of Action in Uyuni for "running a playbook". We want this action to appear in the system event history for the Ansible control node.
+
+Beside of listing the playbooks in the UI, we probably also want the user can display the content of the playbook (as readonly) before triggering it clicking the button. This can be done in live without storing any content in the DB:
+
+```console
+# salt ANSIBLE_CONTROL_NODE cp.get_file_str /path/to/the/playbook
+```
 
 
 ### Shipping Ansible for SLE15+
