@@ -67,16 +67,19 @@ For every root product we take the first channel we can find which does have a `
 We can take this as parent channel label for our new entry.
 
 As the channel label and name must be unique.
-We generate the label and name from the URL components:
+We can generate the label and name from the URL components:
 
     <Customer Account ID> <Product Identifier> <Product Version> "PTFs" ["Debuginfo"] <Product Architecture>
 
-The product tree uses suffixes for products which belongs to multiple root products to make label and name unique.
+The label is computed using the lowercase components joined with a dash ("-") and the name just joined with a space (" ").
+
+This can either be done by Uyuni Server or SCC. In case SCC use this algorithm it could set it as `repository name`
+joined with a dash ("-") and in `repository description` using spaces.
+
+The product tree uses additional suffixes for products which belongs to multiple root products to make label and name unique.
 The suffix is appended always after the architecture of the channel label.
 We can parse it from the entry we used to find the `parent channel label` and use it to enhance the component list.
 
-The label is computed using the lowercase components joined with a dash ("-") 
-and the name just joined with a space (" ").
 
 # Drawbacks
 [drawbacks]: #drawbacks
