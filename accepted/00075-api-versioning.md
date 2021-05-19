@@ -1,36 +1,54 @@
-# XMLRPC API Versioning
+# Clarify the XMLRPC API correct usage
 
-The primary purpose of this RFC is to improve the versioning of the
-(XMLRPC) API in Uyuni and SUSE Manager (SUMA).
+The primary goal of this RFC is to highlight the compatibility
+concerns of Uyuni and SUSE Manager (SUMA) API usage and suggest an
+improvement in this area.
 
 When the consumers use the API, there must be a way for them to make
 sure they call the endpoints correctly (they need to call an existing
 method with correct parameters and they also need to make some
-asspumptions on the return value structure).
+assumptions on the return value structure).
 
-An optional goal of this RFC is to provide better guidelines for
-writing scripts that consume the API in the `API > FAQ` section of the
-Uyuni/SUMA Web UI.
-
-
-## Exposed API information
-
-The current Uyuni/SUMA exposes the API information via the
-`api` namespace methods:
-
-- `getVersion` - the API version, e.g. `25`. This number grows with
-  time, but there are no strict rules about it.
-- `systemVersion` - the Uyuni server version (e.g. `4.2.0 Beta1` for
-  SUMA)
-
-Furthermore, the namespace also exposes a basic API introspection
-calls describing the structure of the call:
-- `getApiNamespaces` - all API namespaces
-- `getApiNamespaceCallList` - API methods of given namespace
-- `getApiCallList` - all API methods grouped by namespace
+TODO keep here? :
+The secondary goal is to provide better guidelines for writing scripts
+that consume the API in the `API > FAQ` section of the Uyuni/SUMA Web
+UI or in the documentation.
 
 
-## Problems
+# XMLRPC compatibility
+
+Uyuni/SUMA exposes the information about the API and its structure in
+3 places:
+
+1. Information about the versions via the `api` XMLRPC endpoint:
+   - `getVersion`: the API version, e.g. `25`. This number grows with
+   time, but there are no strict rules about it.
+   - `systemVersion`: the Uyuni server version (e.g. `4.2.0 Beta1` for
+   SUMA, `2021.05` for Uyuni)
+
+2. Furthermore, the `api` namespace also exposes a basic API
+   introspection calls describing the structure of the call:
+   - `getApiNamespaces`: all API namespaces
+   - `getApiNamespaceCallList`: API methods of given namespace
+     together with their parameter types, faults and return types
+   - `getApiCallList`: all API methods grouped by namespace
+
+3. Faults (retrospective): When the API consumers call a method in a
+   wrong way (incorrect parameters, missing method or namespace), they
+   get back an XMLRPC fault with code `-1`.  Note: This fault code is
+   not reserved solely to report the API calling mismatch cases, but
+   is used in other cases (see the`CustomInfoHandler.java` file in
+   Uyuni). For instance:
+  ```python
+  # Non-existing method/wrong method signature
+  <Fault -1: 'redstone.xmlrpc.XmlRpcFault: Could not find method: test in class: com.redhat.rhn.frontend.xmlrpc.ansible.AnsibleHandler with params: []'>
+
+  # Non-existing handler
+  <Fault -1: 'The specified handler cannot be found'>
+  ```
+
+
+## Existing approach and problems
 
 We must provide a sane way for users to write robust scripts that
 target various Uyuni/SUMA versions.
@@ -59,31 +77,7 @@ Tackling these problems has various solutions, described in the
 [Solutions](#solutions) section below.
 
 
-## API incompatibility handling on the client side
-
-When the API consumers call a method in a wrong way (incorrect
-parameters, missing method or namespace), they get back an XMLRPC
-fault with code `-1`.
-Note: This fault code is not reserved solely to report the API calling
-mismatch cases, but is used in other cases (see
-the`CustomInfoHandler.java` file in Uyuni).
-
-```python
-# Non-existing method/wrong method signature
-<Fault -1: 'redstone.xmlrpc.XmlRpcFault: Could not find method: test in class: com.redhat.rhn.frontend.xmlrpc.ansible.AnsibleHandler with params: []'>
-
-# Non-existing handler 
-<Fault -1: 'The specified handler cannot be found'>
-```
-
-They can use this fault in a basic recovery mechanism from errors
-caused by backwards-incompatible changes.
-
-
-Together: api version, api list introspection and recovery.
-
-
-## Breaking and non-breaking changes
+## Note on breaking and non-breaking changes
 
 The API mutates over time, in general there are 3 types of changes:
 
@@ -103,14 +97,15 @@ an existing namespace
 ## [Solutions]
 
 The following section contains a list of solutions to the problems
-mentioned above.
+mentioned above. Some of the the suggestions are only hypothetical,
+but they are included anyway, for the sake of completeness.
 
 
 ### Solution 1
 
-- Consider the API versions independent in Uyuni and SUSE
-  Manager. These are 2 different projects and version `X` has a
-  different contents and compatibility in Uyuni/SUMA.
+- Treat the API versions independent in Uyuni and SUSE Manager. These
+  are 2 different projects and version `X` has a different contents
+  and compatibility in Uyuni/SUMA.
 - Introduce an API "flavor" under a new `api.getFlavor` method, which
   returns the project name (e.g. `uyuni`/`suse-manager`) read from a
   config file.
@@ -133,21 +128,20 @@ mentioned above.
 - Trivial implementation on server side
 
 #### Cons
-- Tracking non-breaking changes (to differentiate between various
-  maintenance updates) is a bit more complex (need to use the API
-  introspection calls, e.g. `getApiCallList`).
+- Tracking non-breaking changes between various SUMA maintenance
+  updates is a bit more complex (need to use the API introspection
+  calls, e.g. `getApiCallList`).
 - Brings complexity to the API consumers and `spacecmd`. The scripts
   would need to check the flavor and the API version.
-  
+
 #### Usage instructions
 
 
-
-
 ### Solution 2: No flavor, use `systemVersion` instead
+
 In this case, the API must be stable within a Uyuni/SUMA minor
-version. (TODO @hustodemon: ask @moio/@mc i think this should be the
-case already).
+version. (TODO @hustodemon: ask @moio/@mc, but i think this should be
+the case already).
 
 The user scripts could then use the `api.systemVersion` instead of
 checking the flavor and API version.
@@ -165,12 +159,13 @@ checking the flavor and API version.
 
 
 ### Solution 3: Bump API version on any change in the API
+
 - Same as Solution 1, but the version gets bumped on any (even
 non-breaking) change within a product release or a maintenance update.
 - Brekaing API within a SUMA maintenance update is still forbidden.
 
 #### Pros & Cons
-- Trivial implementation on server side
+- Trivial implementation on the server side
 - Does not suffer from the first "Cons" of the Solution 1
 
 #### Cons
@@ -179,29 +174,45 @@ non-breaking) change within a product release or a maintenance update.
 
 
 ### Solution 4: Use a `major.minor` versioning scheme
+
 Bump the major version on breaking changes, break the minor one on
 non-breaking changes.
 
-TODO: enhance according to mc's comment!
+TODO: enhance according to mc's comment! Uyuni vs. SUMA backports
 
 Sol 1 + introspection has the same advantages.
-
-#### Uyuni vs. SUMA
-
 
 #### Pros
 - Consumers able to track non-breaking changes too
 
 #### Cons
-- frequent changes in minor version
-- does it solve the problem?
+- Frequent changes in minor version
+- Does it solve the problem?
 
 
-### Enhance the introspection calls
-They would provide complete info about the parameters and the structure.
-For each Map or Serializer in params.
+### Solution 5: Enhance the introspection calls
 
-## Enhance the reported exceptions
+They would provide complete info about the parameters and the
+structure. For each Map or Serializer in params and we would need to
+do our best to keep the documentation consintent and the client should
+be able to verify if the structure is the expected one prior to the
+call.
+
+
+### (Hypothetical) Solution 6: Enhance the reported exceptions
+
+When the client calls a method in a wrong way, they should get back a
+fault with an appropriate code (could vary for different cases like
+wrong parameter type or non-existing method).
+
+
+
+[1]: https://github.com/stevemeier/cefs/blob/master/errata-import.pl
+
+
+
+-------------------------------------------------------------------------
+WIP AREA BELOW
 
 ### Guidelines for writing API consuming applications
 - TODO: write a guide for external ppl about the recommended ways to use the api?
@@ -210,13 +221,17 @@ For each Map or Serializer in params.
   - pretty safe mode: use introspection
   - cowboy mode: don't use anything, just call it and catch exception
 
+- algorithm
+  - -1 handling
+    - + introspection
+      - + api version
+
 
 ## Process for deprecation and removal API methods
 - also breaking changes?
 
 # Unresolved questions
+- [ ] remove all TODO
 - [ ] decide which solution to take
   - [ ] decide if to implement the CI job
 - [ ] decide if to write the guidelines in th API > FAQ page
-
-[1]: https://github.com/stevemeier/cefs/blob/master/errata-import.pl
