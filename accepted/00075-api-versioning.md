@@ -186,21 +186,17 @@ integers (or a list of integers in general). The first number
 describes the major version, the second one describes the minor
 version.
 
-TODO START HERE
-Bump the major version on breaking changes (or alternatively with the
-product release), break the minor one on non-breaking changes.
+Bump the major version with the product release, bump the minor one on
+non-breaking changes.
 
-For the version we could use increase the major number just with every
-SUMA release and the minor number with every change to the API.
-
-After 4.2 release Uyuni would go to 26.01, 26.02, ....
-When we release SUMA 4.3 it would inherit the current Uyuni version at that time. Let's say 26.10.
-Uyuni would go to 27.01
-When we backport features which change the API, SUMA 4.3 would increase the minor version 26.11, 26.12, etc...
+The version bumping is described by this example:
+- After SUMA 4.2 release (API version is `25`) Uyuni bumps the version to `26.01`
+- On SUMA 4.3 release, the SUMA API version gets set to the current Uyuni API version at that time, e.g `26.10`
+- Uyuni API version gets increased to 27.01
+- On backporting features from Uyuni which change the API, SUMA 4.3 increases the minor version `26.11`, `26.12`, etc...
 
 
-TODO: enhance according to mc's comment! Uyuni vs. SUMA backports
-CI job with 3 checkboxes, exactly one must be crossed
+TODO: details about the CI watching job with 3 checkboxes, exactly one must be crossed (minor change, major change, skip)
 
 Sol 1 + introspection has the same advantages.
 
