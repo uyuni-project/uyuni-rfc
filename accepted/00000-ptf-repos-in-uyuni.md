@@ -26,9 +26,9 @@ It enhances the information from SCC with values required for Uyuni.
 
 Such an entry is defined by 3 values:
 
-- the product id
-- the product id of the root product
-- the repository id
+- the scc product id
+- the scc product id of the root product
+- the scc repository id
 
 The following values are set by the product tree:
 
@@ -52,9 +52,9 @@ To identify them as PTF repositories we can check if the path start with `PTF/Re
 
 If they are PTF repositories, we need to generate the missing values for the Channel mapping like this:
 
-- repository id: take it from the repository definition
-- product id: search for the product using `Product Identifier`, `Product Version`, and `Product Architecture` like specified in the URL
-- root product id: find all existing root products for the product id. We need to generate an entry for all of them
+- scc repository id: take it from the repository definition
+- scc product id: search for the product using `Product Identifier`, `Product Version`, and `Product Architecture` like specified in the URL
+- scc root product id: find all existing root products for the product id. We need to generate an entry for all of them
 
 The values for update tag and mandatory can be hard coded as they are the same 
 for all PTF repositories.
@@ -96,7 +96,7 @@ Downside:
 
 - when multiple organization credentials are used, we need to request and parse multiple product scopes which cost much more time.
 - we might need to do bigger changes in the backend as we need to adapt to getting only parts of the data.
-- dependency to other product development teams which slow down the development
+- dependency to other product development teams. Requires agreements to change other products as well
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
