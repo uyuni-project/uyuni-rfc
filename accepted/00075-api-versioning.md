@@ -1,9 +1,8 @@
-# Clarify the XMLRPC API correct usage
+# Improve the usage of XMLRPC API
 
 The primary goal of this RFC is to highlight the compatibility
-concerns of Uyuni and SUSE Manager (SUMA) API usage and suggest an
+concerns of Uyuni and SUSE Manager (SUMA) API usage and to suggest an
 improvement in this area.
-
 When the consumers use the API, there must be a way for them to make
 sure they call the endpoints correctly (they need to call an existing
 method with correct parameters and they also need to make some
@@ -15,7 +14,7 @@ that consume the API in the `API > FAQ` section of the Uyuni/SUMA Web
 UI or in the documentation.
 
 
-# XMLRPC compatibility
+## XMLRPC compatibility
 
 Uyuni/SUMA exposes the information about the API and its structure in
 3 places:
@@ -60,7 +59,7 @@ supported by the API version).
 
 A similar approach is taken by the `errata-import.pl` script by Steve
 Meier [1]. The script contains a list of supported versions and checks
-in runtime, whether the API version of the Uyuni/SUMA server is
+on runtime, whether the API version of the Uyuni/SUMA server is
 contained in this list.
 
 This works well, until the user needs to target both Uyuni and SUSE
@@ -94,18 +93,21 @@ an existing namespace
   returned by a method
 
 
-## [Solutions]
+## Solutions
 
 The following section contains a list of solutions to the problems
 mentioned above. Some of the the suggestions are only hypothetical,
 but they are included anyway, for the sake of completeness.
+Choosing an ultimate solution has a direct effect on the API consumers
+and we should choose the one, that minimizes the burden (TODO rephrase
+this horrible thing).
 
 
 ### Solution 1
 
 - Treat the API versions independent in Uyuni and SUSE Manager. These
   are 2 different projects and version `X` has a different contents
-  and compatibility in Uyuni/SUMA.
+  and compatibility in Uyuni and in SUMA.
 - Introduce an API "flavor" under a new `api.getFlavor` method, which
   returns the project name (e.g. `uyuni`/`suse-manager`) read from a
   config file.
@@ -113,10 +115,10 @@ but they are included anyway, for the sake of completeness.
 - Increasing API versions within a minor SUMA release is forbidden
   (e.g. SUMA 4.2 API is always backwards-compatible, otherwise it's
   a bug)!
-- We must write a CI job for watching introducing of breaking changes
-  (it detects and report back any changes in the `xmlrpc` java
-  package, unless a "API changes in this PR are non-breaking" checkbox
-  is checked by the PR author)
+- A CI job watches introducing of breaking changes (it detects and
+  report back any changes in the `xmlrpc` java package, unless a "API
+  changes in this PR are non-breaking" checkbox is checked by the PR
+  author)
 - Minor note: Uyuni would typically have higher version number than
   SUMA as the changes there are more frequent, but in some cases (a
   SUMA maintenance update gets released before a new Uyuni release),
@@ -139,6 +141,8 @@ but they are included anyway, for the sake of completeness.
 
 ### Solution 2: No flavor, use `systemVersion` instead
 
+Based on the [Solution 1](#solution-1)
+
 In this case, the API must be stable within a Uyuni/SUMA minor
 version. (TODO @hustodemon: ask @moio/@mc, but i think this should be
 the case already).
@@ -160,6 +164,8 @@ checking the flavor and API version.
 
 ### Solution 3: Bump API version on any change in the API
 
+Based on the [Solution 1](#solution-1)
+
 - Same as Solution 1, but the version gets bumped on any (even
 non-breaking) change within a product release or a maintenance update.
 - Brekaing API within a SUMA maintenance update is still forbidden.
@@ -175,10 +181,26 @@ non-breaking) change within a product release or a maintenance update.
 
 ### Solution 4: Use a `major.minor` versioning scheme
 
-Bump the major version on breaking changes, break the minor one on
-non-breaking changes.
+Currently, the API version is an integer. This solution uses 2
+integers (or a list of integers in general). The first number
+describes the major version, the second one describes the minor
+version.
+
+TODO START HERE
+Bump the major version on breaking changes (or alternatively with the
+product release), break the minor one on non-breaking changes.
+
+For the version we could use increase the major number just with every
+SUMA release and the minor number with every change to the API.
+
+After 4.2 release Uyuni would go to 26.01, 26.02, ....
+When we release SUMA 4.3 it would inherit the current Uyuni version at that time. Let's say 26.10.
+Uyuni would go to 27.01
+When we backport features which change the API, SUMA 4.3 would increase the minor version 26.11, 26.12, etc...
+
 
 TODO: enhance according to mc's comment! Uyuni vs. SUMA backports
+CI job with 3 checkboxes, exactly one must be crossed
 
 Sol 1 + introspection has the same advantages.
 
@@ -190,7 +212,7 @@ Sol 1 + introspection has the same advantages.
 - Does it solve the problem?
 
 
-### Solution 5: Enhance the introspection calls
+### (Hypothetical) Solution 5: Enhance the introspection calls
 
 They would provide complete info about the parameters and the
 structure. For each Map or Serializer in params and we would need to
@@ -205,6 +227,9 @@ When the client calls a method in a wrong way, they should get back a
 fault with an appropriate code (could vary for different cases like
 wrong parameter type or non-existing method).
 
+
+### (Very hypothetical) Solution 7: Discard Uyuni
+Consider Uyuni a rolling software and only support the latest one.
 
 
 [1]: https://github.com/stevemeier/cefs/blob/master/errata-import.pl
