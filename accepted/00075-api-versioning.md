@@ -91,11 +91,11 @@ method in an existing namespace
 2. shrinking (breaking): removing a namespace, removing a method from
 an existing namespace
 3. modifying (potentially breaking):
-  3.1 breaking: changing a signature of an existing method
-  3.2 breaking: changing a behavior of an existing method
-  3.3 non breaking: adding a new field in a structure accepted /
+  1. breaking: changing a signature of an existing method
+  2. breaking: changing a behavior of an existing method
+  3. non breaking: adding a new field in a structure accepted /
   returned by a method
-  3.4 breaking: removing a field in a structure accepted by a method /
+  4. breaking: removing a field in a structure accepted by a method /
   returned by a method
 
 
