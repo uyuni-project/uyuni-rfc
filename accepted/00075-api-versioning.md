@@ -1,8 +1,9 @@
 # Improve the usage of XMLRPC API
 
-The primary goal of this RFC is to highlight the compatibility
-concerns of Uyuni and SUSE Manager (SUMA) API usage and to suggest an
-improvement in this area.
+The primary goal of this RFC is to highlight the problems of writing
+client applications or scripts compatible with multiple versions of
+Uynui and SUSE Manager (SUMA) API and suggest a solution.
+
 When the consumers use the API, there must be a way for them to make
 sure they call the endpoints correctly (they need to call an existing
 method with correct parameters and they also need to make some
@@ -58,9 +59,11 @@ reacts accordingly (e.g. warns the user, that given operation is not
 supported by the API version).
 
 A similar approach is taken by the `errata-import.pl` script by Steve
-Meier [1]. The script contains a list of supported versions and checks
-on runtime, whether the API version of the Uyuni/SUMA server is
-contained in this list.
+Meier
+[1](https://github.com/stevemeier/cefs/blob/master/errata-import.pl). The
+script contains a list of supported versions and checks on runtime,
+whether the API version of the Uyuni/SUMA server is contained in this
+list.
 
 This works well, until the user needs to target both Uyuni and SUSE
 Manager in their scripts - the API version numbers are not consistent
@@ -93,14 +96,11 @@ an existing namespace
   returned by a method
 
 
-## Solutions
+## Solution proposals
 
 The following section contains a list of solutions to the problems
 mentioned above. Some of the the suggestions are only hypothetical,
-but they are included anyway, for the sake of completeness.
-Choosing an ultimate solution has a direct effect on the API consumers
-and we should choose the one, that minimizes the burden (TODO rephrase
-this horrible thing).
+but are included anyway, for the sake of completeness.
 
 
 ### Solution 1
@@ -115,10 +115,8 @@ this horrible thing).
 - Increasing API versions within a minor SUMA release is forbidden
   (e.g. SUMA 4.2 API is always backwards-compatible, otherwise it's
   a bug)!
-- A CI job watches introducing of breaking changes (it detects and
-  report back any changes in the `xmlrpc` java package, unless a "API
-  changes in this PR are non-breaking" checkbox is checked by the PR
-  author)
+- A CI job watches introducing of breaking changes (more details
+  below)
 - Minor note: Uyuni would typically have higher version number than
   SUMA as the changes there are more frequent, but in some cases (a
   SUMA maintenance update gets released before a new Uyuni release),
@@ -135,8 +133,6 @@ this horrible thing).
   calls, e.g. `getApiCallList`).
 - Brings complexity to the API consumers and `spacecmd`. The scripts
   would need to check the flavor and the API version.
-
-#### Usage instructions
 
 
 ### Solution 2: No flavor, use `systemVersion` instead
@@ -190,13 +186,14 @@ Bump the major version with the product release, bump the minor one on
 non-breaking changes.
 
 The version bumping is described by this example:
-- After SUMA 4.2 release (API version is `25`) Uyuni bumps the version to `26.01`
-- On SUMA 4.3 release, the SUMA API version gets set to the current Uyuni API version at that time, e.g `26.10`
+- After SUMA 4.2 release (API version is `25`) Uyuni bumps the version
+  to `26.01`
+- On SUMA 4.3 release, the SUMA API version gets set to the current
+  Uyuni API version at that time, e.g `26.10`
 - Uyuni API version gets increased to 27.01
-- On backporting features from Uyuni which change the API, SUMA 4.3 increases the minor version `26.11`, `26.12`, etc...
+- On backporting features from Uyuni which change the API, SUMA 4.3
+  increases the minor version `26.11`, `26.12`, etc...
 
-
-TODO: details about the CI watching job with 3 checkboxes, exactly one must be crossed (minor change, major change, skip)
 
 Sol 1 + introspection has the same advantages.
 
@@ -217,7 +214,7 @@ be able to verify if the structure is the expected one prior to the
 call.
 
 
-### (Hypothetical) Solution 6: Enhance the reported exceptions
+### Solution 6: Enhance the reported exceptions
 
 When the client calls a method in a wrong way, they should get back a
 fault with an appropriate code (could vary for different cases like
@@ -228,31 +225,65 @@ wrong parameter type or non-existing method).
 Consider Uyuni a rolling software and only support the latest one.
 
 
-[1]: https://github.com/stevemeier/cefs/blob/master/errata-import.pl
+## CI Job
+
+In order to minimize the risk of missing the increase of the API
+version, a CI job must be implemented, that reminds the PR author,
+when there is a change in the API code:
+
+- Introduce a new section in the Uyuni/SUMA Pull Request template with
+  a checkbox with this text "XMLRPC changes do not require API
+  version bump / Release engineer has been informed", unchecked by
+  default
+- If there are code changes in the `xmlrpc` java package and the
+  checkbox is unchecked, the CI bot raises an alert. The author of the
+  PR needs to:
+  - either make sure their changes are not breaking the API
+  - or inform interested people responsible for bumping the API version
+  and check the checkbox.
+
+When [Solution 4](#solution-4) is chosen, this needs to be adjusted to
+cover the minor version bump as well.
 
 
+## API usage guidelines
 
--------------------------------------------------------------------------
-WIP AREA BELOW
+The documentation about consuming the API should be enhanced according
+to chosen solution. The API users can choose the level of safety of
+calling the API and consider the risks themselves:
 
-### Guidelines for writing API consuming applications
-- TODO: write a guide for external ppl about the recommended ways to use the api?
-  - super safe mode: use introspection + version check
-    - should be case for spacecmd -> TODO: guide for devels?
-  - pretty safe mode: use introspection
-  - cowboy mode: don't use anything, just call it and catch exception
+TODO: adjust the following to the chosen solution. The following text
+is just a skeleton that needs to be ehnanced.
 
-- algorithm
-  - -1 handling
-    - + introspection
-      - + api version
+### Level 0: No checking
+API consumers do not check anything and call the method directly. In
+case of failure, they process the xmlrpc fault with the code `-1` and
+report an error in their script.
+
+
+### Level 1: Check the signature
+Prior to making an API call, the consumer needs to check, if the
+method signature matches their expectation using one of the API
+introspection methods described in the [XMLRPC
+compatibility](#xmlrpc-compatibility) section.
+
+This approach does not rule out backwards-incompatible changes
+described in the point 3.4 in the note on [breaking and non-breaking
+changes](#note-on-breaking-and-non-breaking-changes).
+
+
+### Level 2: Check the version and flavor
+The safest way is to use check the API version.
 
 
 ## Process for deprecation and removal API methods
-- also breaking changes?
+
+TODO: Part of this RFC or not?
+Additionally, a clear process for breaking the API in a controlled way
+must be defined.
+
 
 # Unresolved questions
 - [ ] remove all TODO
-- [ ] decide which solution to take
-  - [ ] decide if to implement the CI job
-- [ ] decide if to write the guidelines in th API > FAQ page
+- [ ] decide which solution to take, move other to "alternative solutions"
+- [ ] decide if to write the guidelines (in the API > FAQ page or docs)
