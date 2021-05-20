@@ -2,7 +2,8 @@
 
 The primary goal of this RFC is to highlight the problems of writing
 client applications or scripts compatible with multiple versions of
-Uynui and SUSE Manager (SUMA) API and suggest a solution.
+Uynui and SUSE Manager (SUMA) API and suggest an improvement in this
+area.
 
 When the consumers use the API, there must be a way for them to make
 sure they call the endpoints correctly (they need to call an existing
@@ -21,12 +22,12 @@ Uyuni/SUMA exposes the information about the API and its structure in
 3 places:
 
 1. Information about the versions via the `api` XMLRPC endpoint:
-   - `getVersion`: the API version, e.g. `25`. This number grows with
+   - `getVersion`: the API version, e.g. `25`. This integer grows with
    time, but there are no strict rules about it.
    - `systemVersion`: the Uyuni server version (e.g. `4.2.0 Beta1` for
    SUMA, `2021.05` for Uyuni)
 
-2. Furthermore, the `api` namespace also exposes a basic API
+2. Furthermore, the `api` namespace also exposes basic API
    introspection calls describing the structure of the call:
    - `getApiNamespaces`: all API namespaces
    - `getApiNamespaceCallList`: API methods of given namespace
@@ -35,18 +36,19 @@ Uyuni/SUMA exposes the information about the API and its structure in
 
 3. Faults (retrospective): When the API consumers call a method in a
    wrong way (incorrect parameters, missing method or namespace), they
-   get back an XMLRPC fault with code `-1`.  Note: This fault code is
+   get back an XMLRPC fault with code `-1`.
+   For instance:
+   ```python
+   # Non-existing method/wrong method signature
+   <Fault -1: 'redstone.xmlrpc.XmlRpcFault: Could not find method: test in class: com.redhat.rhn.frontend.xmlrpc.ansible.AnsibleHandler with params: []'>
+
+   # Non-existing handler
+   <Fault -1: 'The specified handler cannot be found'>
+   ```
+   Note: This fault code is
    not reserved solely to report the API calling mismatch cases, but
    is used in other cases (see the`CustomInfoHandler.java` file in
-   Uyuni). For instance:
-  ```python
-  # Non-existing method/wrong method signature
-  <Fault -1: 'redstone.xmlrpc.XmlRpcFault: Could not find method: test in class: com.redhat.rhn.frontend.xmlrpc.ansible.AnsibleHandler with params: []'>
-
-  # Non-existing handler
-  <Fault -1: 'The specified handler cannot be found'>
-  ```
-
+   Uyuni).
 
 ## Existing approach and problems
 
@@ -287,3 +289,4 @@ must be defined.
 - [ ] remove all TODO
 - [ ] decide which solution to take, move other to "alternative solutions"
 - [ ] decide if to write the guidelines (in the API > FAQ page or docs)
+- [ ] make sure the links work
