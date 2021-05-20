@@ -79,18 +79,18 @@ a robust client application that thorougly checks the API version can
 use an API method in a wrong way.
 
 Tackling these problems has various solutions, described in the
-[Solutions](#solutions) section below.
+[Solution proposals](#solution-proposals) section below.
 
 
 ## Note on breaking and non-breaking changes
 
 The API mutates over time, in general there are 3 types of changes:
 
-1. not breaking - growing: adding a new namespace, introducing a new
+1. growing (not breaking): adding a new namespace, introducing a new
 method in an existing namespace
-2. breaking - shrinking: removing a namespace, removing a method from
+2. shrinking (breaking): removing a namespace, removing a method from
 an existing namespace
-3. potentially breaking - modifying:
+3. modifying (potentially breaking):
   3.1 breaking: changing a signature of an existing method
   3.2 breaking: changing a behavior of an existing method
   3.3 non breaking: adding a new field in a structure accepted /
@@ -257,6 +257,7 @@ calling the API and consider the risks themselves:
 
 TODO: adjust the following to the chosen solution. The following text
 is just a skeleton that needs to be ehnanced.
+TODO: mention also that levels are not mutually exclusive
 
 ### Level 0: No checking
 API consumers do not check anything and call the method directly. In
@@ -277,6 +278,7 @@ changes](#note-on-breaking-and-non-breaking-changes).
 
 ### Level 2: Check the version and flavor
 The safest way is to use check the API version.
+
 
 
 ## Process for deprecation and removal API methods
