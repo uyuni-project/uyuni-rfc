@@ -158,7 +158,7 @@ checking the flavor and API version.
   handled correctly by implementing various, possibly error-prone
   comparators in their code.
 - Same problem with tracking non-breaking changes like in the
-  Solution 1.
+  [Solution 1](#solution-1).
 
 
 ### Solution 3: Bump API version on any change in the API
@@ -171,7 +171,7 @@ non-breaking) change within a product release or a maintenance update.
 
 #### Pros & Cons
 - Trivial implementation on the server side
-- Does not suffer from the first "Cons" of the Solution 1
+- Does not suffer from the first "Cons" of the [Solution 1](#solution-1)
 
 #### Cons
 - Brings complexity to the API consumers and `spacecmd`. The scripts
@@ -198,14 +198,14 @@ The version bumping is described by this example:
   increases the minor version `26.11`, `26.12`, etc...
 
 
-Sol 1 + introspection has the same advantages.
-
 #### Pros
-- Consumers able to track non-breaking changes too
+- Consumers able to track non-breaking changes easily (same as
+  [Solution 3](#solution-3)
 
 #### Cons
-- Frequent changes in minor version
-- Does it solve the problem?
+- Frequent changes in minor version could mean more burden on
+  developers and release engineers. A [CI job](#ci-job) needs to be
+  present to ease this.
 
 
 ### (Hypothetical) Solution 5: Enhance the introspection calls
@@ -224,8 +224,19 @@ fault with an appropriate code (could vary for different cases like
 wrong parameter type or non-existing method).
 
 
-### (Very hypothetical) Solution 7: Discard Uyuni
-Consider Uyuni a rolling software and only support the latest one.
+### (Hypothetical) Solution 7: Discard Uyuni
+Go wild and declare Uyuni API unstable - i.e. users cannot make any
+assumptions based on the API Version. They should always target the
+newest Uyuni release in their scripts (and they are responsible for
+updating them).
+
+#### Pros
+- Scripts using the API could use API version for checking agains SUMA
+  -> no needed change on `spacecmd`.
+- No need for introducing the API "flavor"
+
+####
+- Hostile against Uyuni users
 
 
 ## CI Job
@@ -259,7 +270,7 @@ TODO: adjust the following to the chosen solution. The following text
 is just a skeleton that needs to be ehnanced.
 TODO: mention also that levels are not mutually exclusive
 
-### Level 0: No checking
+### Level 0: Retrospective checking
 API consumers do not check anything and call the method directly. In
 case of failure, they process the xmlrpc fault with the code `-1` and
 report an error in their script.
@@ -272,13 +283,12 @@ introspection methods described in the [XMLRPC
 compatibility](#xmlrpc-compatibility) section.
 
 This approach does not rule out backwards-incompatible changes
-described in the point 3.4 in the note on [breaking and non-breaking
+described in the point 3.iv in the note on [breaking and non-breaking
 changes](#note-on-breaking-and-non-breaking-changes).
 
 
 ### Level 2: Check the version and flavor
 The safest way is to use check the API version.
-
 
 
 ## Process for deprecation and removal API methods
