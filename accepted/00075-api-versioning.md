@@ -40,7 +40,8 @@ Uyuni/SUMA exposes the information about the API and its structure in
    For instance:
    ```python
    # Non-existing method/wrong method signature
-   <Fault -1: 'redstone.xmlrpc.XmlRpcFault: Could not find method: test in class: com.redhat.rhn.frontend.xmlrpc.ansible.AnsibleHandler with params: []'>
+   <Fault -1: 'redstone.xmlrpc.XmlRpcFault: Could not find method:
+   test in class: com.redhat.rhn.frontend.xmlrpc.ansible.AnsibleHandler with params: []'>
 
    # Non-existing handler
    <Fault -1: 'The specified handler cannot be found'>
