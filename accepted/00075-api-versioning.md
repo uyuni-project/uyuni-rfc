@@ -1,4 +1,8 @@
-# Improve the usage of XMLRPC API
+- Feature Name: Improve the 3rd party usage of XMLRPC API
+- Start Date: 2021-05-20
+- RFC PR:
+
+# Summary and motivation
 
 The primary goal of this RFC is to highlight the problems of writing
 client applications or scripts compatible with multiple versions of
@@ -73,10 +77,11 @@ Manager in their scripts - the API version numbers are not consistent
 (API version `25` in Uyuni is currently not the same as version `25`
 in SUMA).
 
+TODO: Remove this probably. This described a buggy scenario.
 Second problem of this approach emerges, when the product developers
 forget to bump the API version on breaking changes. In this case, even
-a robust client application that thorougly checks the API version can
-use an API method in a wrong way.
+a client application that solely relies on checking the API version
+can use an API method in a wrong way.
 
 Tackling these problems has various solutions, described in the
 [Solution proposals](#solution-proposals) section below.
@@ -200,7 +205,7 @@ The version bumping is described by this example:
 
 #### Pros
 - Consumers able to track non-breaking changes easily (same as
-  [Solution 3](#solution-3)
+  [Solution 3](#solution-3-bump-api-version-on-any-change-in-the-api))
 
 #### Cons
 - Frequent changes in minor version could mean more burden on
@@ -222,21 +227,6 @@ call.
 When the client calls a method in a wrong way, they should get back a
 fault with an appropriate code (could vary for different cases like
 wrong parameter type or non-existing method).
-
-
-### (Hypothetical) Solution 7: Discard Uyuni
-Go wild and declare Uyuni API unstable - i.e. users cannot make any
-assumptions based on the API Version. They should always target the
-newest Uyuni release in their scripts (and they are responsible for
-updating them).
-
-#### Pros
-- Scripts using the API could use API version for checking agains SUMA
-  -> no needed change on `spacecmd`.
-- No need for introducing the API "flavor"
-
-####
-- Hostile against Uyuni users
 
 
 ## CI Job
@@ -298,7 +288,7 @@ Additionally, a clear process for breaking the API in a controlled way
 must be defined.
 
 
-# Unresolved questions
+# TODO
 - [ ] remove all TODO
 - [ ] decide which solution to take, move other to "alternative solutions"
 - [ ] decide if to write the guidelines (in the API > FAQ page or docs)
