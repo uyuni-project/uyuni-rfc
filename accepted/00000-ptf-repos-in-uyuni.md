@@ -21,7 +21,7 @@ With Uyuni we should provide the possibility to mirror the content of these repo
 # Detailed design
 [design]: #detailed-design
 
-## How to generating the Channels from the SCC Data
+## How to generate the Channels from the SCC Data
 
 The mapping of SCC repositories to Uyuni Channels is done via a prepared product tree file which contains the definitions for all products and its repositories.
 It enhances the information from SCC with values required for Uyuni.
@@ -177,29 +177,29 @@ Therefor it is important that they get not installed on any system where just th
 The general PTF design has 3 key points.
 
 1. A new ptf package to install the PTF.
-
-As this will be possible for SUSE OSes we need to check if such a package
-can also be created for non SUSE OSes.
-
-- RHEL like OSes. As they also use rpm, it should be possible. We should check if RHEL 7 support the special kind of `Requires` dependencies and if yum and dnf behave like libzypp.
-- Ubuntu and Debian. This needs some extra research if this is possible
+   
+   As this will be possible for SUSE OSes we need to check if such a package
+   can also be created for non SUSE OSes.
+   
+   - RHEL like OSes. As they also use rpm, it should be possible. We should check if RHEL 7 support the special kind of `Requires` dependencies and if yum and dnf behave like libzypp.
+   - Ubuntu and Debian. This needs some extra research if this is possible
 
 2. "All packages providing ptf() get blacklisted by the solver"
-
-This will not be the case for non SUSE operating system.
-For SUSE operating systems this will work on solver level, but not in the Uyuni Web UI.
-
-One possible solution could be, that we check for the special provides Header of packages and keep them away from calculation for possible update candidates.
-Something similar is done for ["Retracted Patches"](https://github.com/uyuni-project/uyuni-rfc/blob/master/accepted/00074-retracted-updates-support.md) already.
-
-Another idea is to provide special CLM filter.
+   
+   This will not be the case for non SUSE operating system.
+   For SUSE operating systems this will work on solver level, but not in the Uyuni Web UI.
+   
+   One possible solution could be, that we check for the special provides Header of packages and keep them away from calculation for possible update candidates.
+   Something similar is done for ["Retracted Patches"](https://github.com/uyuni-project/uyuni-rfc/blob/master/accepted/00074-retracted-updates-support.md) already.
+   
+   Another idea is to provide special CLM filter.
 
 3. "Self destructing Packages"
-
-While on SUSE OSes this would work out of the box, we need to implement something for non SUSE OSes.
-We could write a state which automatically uninstall all packages which `Provides: self-destruct-pkg()`.
-This would be limited to salt managed systems, but keeping a ptf package installed is not a problem.
-This is just a cleanup step which is not strictly required.
+   
+   While on SUSE OSes this would work out of the box, we need to implement something for non SUSE OSes.
+   We could write a state which automatically uninstall all packages which `Provides: self-destruct-pkg()`.
+   This would be limited to salt managed systems, but keeping a ptf package installed is not a problem.
+   This is just a cleanup step which is not strictly required.
 
 
 # Drawbacks
