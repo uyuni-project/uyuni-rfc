@@ -59,7 +59,7 @@ If they are PTF repositories, we need to generate the missing values for the Cha
 The values for update tag and mandatory can be hard coded as they are the same 
 for all PTF repositories.
 
-- update tag: empty
+- update tag: empty [1]
 - mandatory: false
 
 As we need to generate entries for all existing root products we can iterate over all we found.
@@ -102,3 +102,43 @@ Downside:
 [unresolved]: #unresolved-questions
 
 - None so far
+
+# Appendix
+[appendix]: #appendix
+
+1. Update Tag
+
+When SUSE starts an incident which requires a patch, the developer submit the affected package sources to the buildservice.
+They get build under an (internal) incident id. After QA, when the fix should be released it could happen that multiple update channels are affected.
+Example "salt":
+
+- salt, salt-minion, ... belongs to sle-module-basesystem15-SP2-Updates
+- salt-master, salt-api, ... belongs to sle-module-server-application15-SP2-Updates.
+
+But the `id` in the updateinfo (patch) must be unique. The buildservice has for every release channel an id_template configured which take care for making it unique.
+The id_templates for this example are defined as:
+
+- `SUSE-SLE-Module-Basesystem-15-SP2-%Y-%C`
+- `SUSE-SLE-Module-Server-Applications-15-SP2-%Y-%C`
+
+where `%Y` will be exchanged with the current Year and `%C` is a counter.
+It is guarantied that the counter result in the same number for one incident.
+
+When Uyuni now import the patches from different channels we could import them as single patches.
+This would result in a lot more patches in the DB as really exists and it could happen that users clone/use only "parts" of a fix if they select only 1 and not all for the action they want to do.
+
+The update tag identifies the part of the ID Template which make it unique and try to "rollback" the split made by the buildservice when releasing the patch.
+The Update Tag in the example case are:
+
+- SLE-Module-Basesystem
+- SLE-Module-Server-Applications
+
+During reposync this part is cutted away from the ID. Both patches would end up with the ID `SUSE-15-SP2-%Y-%C`.
+The reposync process search in the DB if an errata with this ID already exists.
+If yes, it merges the details together. In the DB we have now only 1 errata.
+
+When we re-generate the metadata, we add the update tag again to the resulting updateinfo metadata.
+
+This explains also why the "update tag" must not change.
+If it would change we cannot find already imported errata and would duplicate everything.
+
