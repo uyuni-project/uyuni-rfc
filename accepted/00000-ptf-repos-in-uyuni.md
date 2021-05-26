@@ -178,11 +178,14 @@ The general PTF design has 3 key points.
 
 1. A new ptf package to install the PTF.
    
-   As this will be possible for SUSE OSes we need to check if such a package
-   can also be created for non SUSE OSes.
+   The "boolean dependencies" are supported in `rpm` since version 4.13.
+   This would work for SLE15+ and RHEL8+.
+   Other OSes needs a different solution.
    
-   - RHEL like OSes. As they also use rpm, it should be possible. We should check if RHEL 7 support the special kind of `Requires` dependencies and if yum and dnf behave like libzypp.
-   - Ubuntu and Debian. This needs some extra research if this is possible
+   While SUSE is working on ideas which might cover SLE12, there might be no solution for non SUSE OSes.
+   This topic is only valid for SUSE Manager shipping Client Tools (e.g. salt) for RHEL, Ubuntu and Debian.
+   We could just use normal hard dependencies without checking if the package is installed. In most cases
+   there are no optional packages involved which might or might not be installed.
 
 2. "All packages providing ptf() get blacklisted by the solver"
    
@@ -192,7 +195,7 @@ The general PTF design has 3 key points.
    One possible solution could be, that we check for the special provides Header of packages and keep them away from calculation for possible update candidates.
    Something similar is done for ["Retracted Patches"](https://github.com/uyuni-project/uyuni-rfc/blob/master/accepted/00074-retracted-updates-support.md) already.
    
-   Another idea is to provide special CLM filter.
+   Another idea is to provide special CLM filter together with a best practice docs. This should be handled in a separate RFC.
 
 3. "Self destructing Packages"
    
@@ -206,6 +209,7 @@ The general PTF design has 3 key points.
 [drawbacks]: #drawbacks
 
 - we are guessing the values. Some, like the channel label, are sensitive and must not be changed. We have to be sure that the rules and the structure never changes.
+- ptf handling for non SUSE OSes will not be as nice as for SUSE OSes.
 
 # Alternatives
 [alternatives]: #alternatives
