@@ -72,16 +72,9 @@ script contains a list of supported versions and checks on runtime,
 whether the API version of the Uyuni/SUMA server is contained in this
 list.
 
-This works well, until the user needs to target both Uyuni and SUSE
-Manager in their scripts - the API version numbers are not consistent
-(API version `25` in Uyuni is currently not the same as version `25`
-in SUMA).
-
-TODO: Remove this probably. This described a buggy scenario.
-Second problem of this approach emerges, when the product developers
-forget to bump the API version on breaking changes. In this case, even
-a client application that solely relies on checking the API version
-can use an API method in a wrong way.
+This works well, until the user needs to target both Uyuni and SUSE Manager in
+their scripts - the API version numbers are not consistent (API version `25` in
+Uyuni does not need to be the identical to the version `25` in SUMA).
 
 Tackling these problems has various solutions, described in the
 [Solution proposals](#solution-proposals) section below.
@@ -211,6 +204,7 @@ The version bumping is described by this example:
 - Frequent changes in minor version could mean more burden on
   developers and release engineers. A [CI job](#ci-job) needs to be
   present to ease this.
+- Checking for "flavor" is still needed.
 
 
 ### (Hypothetical) Solution 5: Enhance the introspection calls
@@ -220,6 +214,9 @@ structure. For each Map or Serializer in params and we would need to
 do our best to keep the documentation consintent and the client should
 be able to verify if the structure is the expected one prior to the
 call.
+
+#### Cons
+- Does not cover possible semantic changes in the API calls implementation.
 
 
 ### Solution 6: Enhance the reported exceptions
