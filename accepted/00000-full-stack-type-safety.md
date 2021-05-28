@@ -1,10 +1,10 @@
-- Feature Name: WIP Full Stack Type Safety
+- Feature Name: Full Stack Type Safety
 - Start Date: 2021-05-28
 
 # Summary
 [summary]: #summary
 
-Add type safety to frontend and backend communications to achieve full stack type safety across the whole project.
+Add type safety to frontend and backend communications to achieve type safety across the whole project.
 
 # Motivation
 [motivation]: #motivation
@@ -44,9 +44,9 @@ if (result.badExample) {
 
 The general workflow for using this approach would be to add a step to the backend build process which generates a type declaration file as shown above. There are existing tools which provide this functionality, I've considered evaluating them out of scope for the time being. The generated file can be added to the frontend project scope and the type definitions can be used accordingly where needed. This change can be adopted gradually over time.  
 
-An alternative option would be to try to automatically annotate requests. It's unclear whether this is realistically implementable, but I've included it for pink dreams and completeness sake.  
+An alternative option would be to try to automatically annotate requests. It's unclear whether this is realistically implementable, but I've included it for pink dreams' and completeness sake.  
 
-This relies on a [suggested Typescript feature](https://github.com/microsoft/TypeScript/issues/41160) that's not approved and might not be approved. In addition to the Typescript limitation, it would also be necessary to find a way to map request URLs to corresponding types which might not be technically feasible.  
+This relies on a [suggested Typescript feature](https://github.com/microsoft/TypeScript/issues/41160) that's not approved and might not be approved. In addition to the Typescript limitation, it would also be necessary to find a way to map request URLs to corresponding types which might not be technically realistic.  
 
 ```ts
 // Types generated similar to the above option
@@ -81,14 +81,14 @@ If type annotation can't be automated, finding the correct types manually would 
 
 Implementing automatic annotations based on overloads or similar may be infeasible for performance reasons, this is not something I have seen another project implement at this scale before, in large part because Typescript added some of the tools to make this possible only fairly recently.  
 
-Type names will need to be consistent and uniquely identifiable. Depending on the tooling we use this may pose considerable challenges. Based on the use case, similar entity names crop up in many different contexts and disambiguating them may be difficult or downright infeasible without renaming one or the other if the tooling doesn't specifically consider this. Scoping and other similar solutions can help here, but this is largely implementation specific.  
+Type names will need to be consistent and uniquely identifiable. Depending on the tooling we use this may pose considerable challenges. Based on the use case, similar entity names crop up in many different contexts and disambiguating them may be difficult or downright impossible without renaming one or the other if the tooling doesn't specifically consider this. Scoping and other similar solutions can help here, but this is largely implementation specific.  
 
-Implementing strict type safety can make quick prototyping harder. Depending on the implementation and the developer's workflow, having the frontend build error out on backend changes may hamper fast iterative development. This can be overcome by manually annotating the type to be `any` on the frontend side while prototyping.  
+Implementing type safety across the full stack can make quick prototyping harder. Depending on the implementation and the developer's workflow, having the frontend build error out on backend changes may hamper fast iterative development. This can be overcome by manually annotating the type to be `any` on the frontend side while prototyping.  
 
 # Alternatives
 [alternatives]: #alternatives
 
-The easiest alternative is to keep things as they are and fix any related bugs as they come up. Depending on the implementation, the effort to implement full stack type safety can be considerable and it may be easier to reactively fix bugs rather than proactively try to avoid them.  
+The easiest alternative is to keep things as they are and fix any related bugs as they come up. Depending on the implementation, the effort to reach full stack type safety can be considerable, and it may be easier to reactively fix bugs rather than proactively try to avoid them.  
 
 It is also possible to manually write the types we expect to receive and use them today. Those are highly susceptible to rot though, since a developer making a change in the backend code may not be aware of these annotations in the frontend or might not find them.  
 
