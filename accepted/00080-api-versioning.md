@@ -4,24 +4,20 @@
 
 # Summary and motivation
 
-The primary goal of this RFC is to highlight the problems of writing
+The main goal of this RFC is to highlight the problems of writing
 client applications or scripts compatible with multiple versions of
 Uynui and SUSE Manager (SUMA) API and suggest an improvement in this
-area.
-
-When the consumers use the API, there must be a way for them to make
-sure they call the endpoints correctly (they need to call an existing
-method with correct parameters and they also need to make some
-assumptions on the return value structure).
-
-TODO keep here? :
-The secondary goal is to provide better guidelines for writing scripts
-that consume the API in the `API > FAQ` section of the Uyuni/SUMA Web
-UI or in the documentation.
+area - when the consumers use the API, there must be a way for them to
+make sure they call the endpoints correctly (they need to call an
+existing method with correct parameters and they also need to make
+some assumptions on the return value structure).
 
 
-## XMLRPC compatibility
+## Note on XMLRPC structure exposition
+[note-xmlrpc]: #note-xmlrpc
 
+Before describing the main problem, it is important to understand how
+the information about API is exposed to clients.
 Uyuni/SUMA exposes the information about the API and its structure in
 3 places:
 
@@ -55,10 +51,24 @@ Uyuni/SUMA exposes the information about the API and its structure in
    is used in other cases (see the`CustomInfoHandler.java` file in
    Uyuni).
 
-## Existing approach and problems
 
-We must provide a sane way for users to write robust scripts that
-target various Uyuni/SUMA versions.
+## The problem
+
+The main problem is the difficulty of writing the API consuming applications
+that:
+
+- can be agnostic to the server product flavor (they can target both Uyuni and
+  SUMA)
+- can target multiple versions of the product (e.g. SUMA 4.0, 4.1 and 4.2)
+- can use the features introduced in maintenance updates of SUMA (e.g. a feature
+  was not present in 4.1, but was introduced in a 4.1 maintenance update)
+
+so that the application handles exceptional cases gracefully (e.g. displays a
+meaningful warning to the user, in case the feature does not exist in the API).
+
+### Existing approach
+
+Some applications already try to address the problem:
 
 In the `spacecmd` tool, this is done by API version check endpoint
 (`api.getVersion` above). The logic simply checks the API version and
@@ -80,21 +90,84 @@ Tackling these problems has various solutions, described in the
 [Solution proposals](#solution-proposals) section below.
 
 
-## Note on breaking and non-breaking changes
+## Solution
 
-The API mutates over time, in general there are 3 types of changes:
+The proposed solution is to enhance the documentation with the guidelines of
+writing the API consuming scripts that target multiple product versions.
 
-1. growing (not breaking): adding a new namespace, introducing a new
-method in an existing namespace
-2. shrinking (breaking): removing a namespace, removing a method from
-an existing namespace
-3. modifying (potentially breaking):
-    1. breaking: changing a signature of an existing method
-    2. breaking: changing a behavior of an existing method
-    3. non breaking: adding a new field in a structure accepted /
-       returned by a method
-    4. breaking: removing a field in a structure accepted by a method /
-       returned by a method
+Moreover, we also need to improve the API introspection calls.
+
+Last task is to exactly define the semantics of the API version number and the
+rules for its increasing.
+
+
+### Enhancing the documentation
+
+Following sections of the documentation must be enhanced.
+
+#### API > FAQ
+
+We should introduce 3 ways of consuming the API:
+1. (relaxed) check errors after call
+2. (stricter) check the method existence via introspection
+3. (strictest) check the method existence via introspection and exact product
+   flavor/version
+
+This should give the users the possibility of choosing the balance between the
+100% reliability and ease of writing the script (TODO reword). Also say, that
+these methods are sorted by purism (TODO).
+
+
+#### 1. Check errors after call
+Do not perform any checks before calling the API. Only handle the error code,
+when calling a method fails and notify the user about the error. The error code
+signaling the absence of given method/signature must be enhanced (see below).
+
+Checking errors after call should be a good practice for the client applications
+and should be used in the following methods too (TODO reword).
+
+
+#### 2. Check the method existence via introspection
+Before making a call, check if the desired API method-signature combination
+exists. This check can be done using the [existing methods](#note-xmlrpc) or with the new 
+[single method introspection](#single-method-introspection).
+
+The advantage of this method is that it can warn the user before making the
+actual call - UI apps (TODO).
+
+Cons: semantic changes.
+
+
+#### 3. Check the method existence via introspection and exact product flavor/version
+This is the safest and the most complicated option. In addition to the checks
+made in the previous section, also check the the flavor and the API version.
+All these checks make sure that the API call is present and has the desired
+semantics defined in the product flavor and version.
+
+
+#### API > Script Examples
+
+
+### Improving the API introspection
+- improve the error code
+- [single-method-introspection]: #single-method-introspection: introduce the single method for introspection
+- introduce the flavor
+
+
+### Bumping the API version
+Just breaking or each release? Analyze both
+
+
+- only rely on intro + fault code
+
+- semantic changes:
+  - ignore: shouldn't happen!
+  - Pau?
+
+- ci bot - yes or no?
+
+- bumping: only the major version
+- flavor: yes, minimal effort
 
 
 ## Solution proposals
@@ -102,6 +175,18 @@ an existing namespace
 The following section contains a list of solutions to the problems
 mentioned above. Some of the the suggestions are only hypothetical,
 but are included anyway, for the sake of completeness.
+
+
+
+
+### Solution 0.1 (Pau)
+Per-method-signature version.
+
+#### Pros
+- Tracking of semantic changes
+
+#### Cons
+- Effort with tracking the changes (CI bot should minimize this)
 
 
 ### Solution 1
