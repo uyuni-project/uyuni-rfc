@@ -4,34 +4,32 @@
 
 # Summary and motivation
 
-The main goal of this RFC is to highlight the problems of writing
-client applications or scripts compatible with multiple versions of
-Uynui and SUSE Manager (SUMA) API and suggest an improvement in this
-area - when the consumers use the API, there must be a way for them to
-make sure they call the endpoints correctly (they need to call an
-existing method with correct parameters and they also need to make
-some assumptions on the return value structure).
+The main goal of this RFC is to highlight the problems of writing client
+applications or scripts compatible with multiple versions of Uynui and SUSE
+Manager (SUMA) API and suggest an improvement in this area - when the consumers
+use the API, there must be a way for them to make sure they call the endpoints
+correctly (they need to call an existing method with correct parameters and they
+also need to make some assumptions on the return value structure).
 
 
 ## Note on XMLRPC structure exposition
 [note-xmlrpc]: #note-xmlrpc
 
-Before describing the main problem, it is important to understand how
-the information about API is exposed to clients.
-Uyuni/SUMA exposes the information about the API and its structure in
-3 places:
+Before describing the main problem, it is important to understand how the
+information about API is exposed to clients.  Uyuni/SUMA exposes the information
+about the API and its structure in 3 places:
 
 1. Information about the versions via the `api` XMLRPC endpoint:
-   - `getVersion`: the API version, e.g. `25`. This integer grows with
-   time, but there are no strict rules about it.
-   - `systemVersion`: the Uyuni server version (e.g. `4.2.0 Beta1` for
-   SUMA, `2021.05` for Uyuni)
+   - `getVersion`: the API version, e.g. `25`. This integer grows with time, but
+   there are no strict rules about it.
+   - `systemVersion`: the Uyuni server version (e.g. `4.2.0 Beta1` for SUMA,
+   `2021.05` for Uyuni)
 
-2. Furthermore, the `api` namespace also exposes basic API
-   introspection calls describing the structure of the call:
+2. Furthermore, the `api` namespace also exposes basic API introspection calls
+   describing the structure of the call:
    - `getApiNamespaces`: all API namespaces
-   - `getApiNamespaceCallList`: API methods of given namespace
-     together with their parameter types, faults and return types
+   - `getApiNamespaceCallList`: API methods of given namespace together with
+     their parameter types, faults and return types
    - `getApiCallList`: all API methods grouped by namespace
 
 3. Faults (retrospective): When the API consumers call a method in a
@@ -60,11 +58,10 @@ that:
 - can be agnostic to the server product flavor (they can target both Uyuni and
   SUMA)
 - can target multiple versions of the product (e.g. SUMA 4.0, 4.1 and 4.2)
-- can use the features introduced in maintenance updates of SUMA (e.g. a feature
-  was not present in 4.1, but was introduced in a 4.1 maintenance update)
-
-so that the application handles exceptional cases gracefully (e.g. displays a
-meaningful warning to the user, in case the feature does not exist in the API).
+- can use the features introduced in maintenance updates of SUMA (a feature was
+  not present in 4.1, but was introduced in a 4.1 maintenance update)
+- handle exceptional cases gracefully (e.g. display a meaningful warning to the
+  user, in case the feature does not exist in the API).
 
 ### Existing approach
 
@@ -114,7 +111,7 @@ We should introduce 3 ways of consuming the API:
    flavor/version
 
 This should give the users the possibility of choosing the balance between the
-correctness and ease of writing the script.
+total correctness and ease of writing the script.
 
 ##### 1. Check errors post-mortem
 Do not perform any checks before calling the API. Only handle the error code,
@@ -126,19 +123,17 @@ should be used in the following methods too.
 
 ##### 2. Check the method existence via introspection
 Before making a call, check if the desired API method-signature combination
-exists. This check can be done using the [existing methods](#note-xmlrpc) or with the new 
-[single method introspection](#single-method-introspection).
+exists. This check can be done using the [existing methods](#note-xmlrpc) or
+with the new [single method introspection](#single-method-introspection).
 
 The advantage of this method is that it can warn the user before making the
-actual call (one possible use case would be UI apps building on top of the API).
-
+actual call (one possible use case would be UI apps built on top of the API).
 
 ##### 3. Check the method existence via introspection and exact product flavor/version
 This is the safest and the most complicated way. In addition to the checks made
 in the previous section, also check the the flavor and the API version. All
 these checks make sure that the API call is present and has the desired
 semantics defined in the product flavor and version.
-
 
 #### API > Script Examples
 Examples showing usage of the 3 ways of consuming the API described above should
@@ -152,19 +147,24 @@ These areas of the introspection must be implemented:
 #### Error code for non-existing method/signature
 When calling a non-existing method/signature combination, the API reports a
 fault with code `-1`. As of time of writing this document, this error code is
-used to signal other faults too (see the the `SystemHandler.java` file).
+used to signal other faults too (see the the `CustomInfoHandler.java` file).
 
 This needs to be solved by:
 - visiting the current occurences of `-1` fault code in the existing handlers
-  containing "business methods" (e.g. `SystemHandler.java`) and make them use
-  meaningful codes (see the `exception_ranges.txt` document in the codebase)
+  containing "business methods" (e.g. `CustomInfoHandler.java`) and make them
+  use meaningful codes (see the `exception_ranges.txt` document in the codebase)
 - reserving a new code for the absence of method/signature combination and
   making the existing XMLRPC code use it
 
 #### Introduce a single method introspection method
 In addition to [existing introspection methods](#note-xmlrpc), implement
-a new call in the `api` namespace for checking, whether a method with signature
-exists in a namespace: `apiCallExists(namespace, method, parameters_varargs)`.
+a call in the `api` namespace for checking, whether a method with signature
+exists in a namespace:
+`apiCallExists(namespace, method, parameters_varargs)`.
+
+The same can already be achieved (although in a bit more complicated way) with
+already-existing introspection methods, but this method would be more
+convenient.
 
 #### Introduce the API flavor endpoint
 Introduce a new method under the `api` namespace returning the product flavor
@@ -195,7 +195,7 @@ and print a warning in the server logs, in case a `@Deprecated` method is
 called (TODO very questionable).
 
 
-## Appendix: CI Job
+## Appendix: CI automation job
 
 In order to minimize the risk of missing the increase of the API
 version, a CI job must be implemented, that reminds the PR author,
