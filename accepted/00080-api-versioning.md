@@ -24,7 +24,7 @@ about the API and its structure in 3 places:
    - `systemVersion`: the server version (e.g. `4.2.0 Beta1` for SUMA, `2021.05`
    for Uyuni)
 
-2. Furthermore, the `api` namespace also exposes basic API introspection calls
+2. Furthermore, the `api` namespace also exposes basic API <a name="intro-calls">introspection calls</a>
    describing the structure of the call:
    - `getApiNamespaces`: all API namespaces
    - `getApiNamespaceCallList`: API methods of given namespace together with
@@ -123,9 +123,8 @@ should be used in the following methods too.
 
 ##### 2. Check the method existence via introspection
 Before making a call, check if the desired API method-signature combination
-exists. This check can be done using the [existing
-methods](#note-on-xmlrpc-structure-exposition) or with the new [single method
-introspection](#introduce-a-single-method-introspection-method).
+exists. This check can be done using the [existing methods](#intro-calls) or
+with the new [single method introspection](#introduce-a-single-method-introspection-method).
 
 The advantage of this method is that it can warn the user before making the
 actual call (one possible use case would be UI apps built on top of the API).
@@ -160,7 +159,7 @@ This needs to be solved by:
 
 #### Introduce a single method introspection method
 In addition to
-[existing introspection methods](#note-on-xmlrpc-structure-exposition),
+[existing introspection methods](#intro-calls),
 implement a call in the `api` namespace for checking, whether a method with
 signature exists in a namespace:
 `apiCallExists(namespace, method, parameters_varargs)`.
