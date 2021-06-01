@@ -13,7 +13,6 @@ also need to make some assumptions on the return value structure).
 
 
 ## Note on XMLRPC structure exposition
-[note-xmlrpc]: #note-xmlrpc
 
 Before describing the main problem, it is important to understand how the
 information about API is exposed to clients.  Uyuni/SUMA exposes the information
@@ -124,8 +123,9 @@ should be used in the following methods too.
 
 ##### 2. Check the method existence via introspection
 Before making a call, check if the desired API method-signature combination
-exists. This check can be done using the [existing methods](#note-xmlrpc) or
-with the new [single method introspection](#single-method-introspection).
+exists. This check can be done using the [existing
+methods](#note-on-xmlrpc-structure-exposition) or with the new [single method
+introspection](#introduce-a-single-method-introspection-method).
 
 The advantage of this method is that it can warn the user before making the
 actual call (one possible use case would be UI apps built on top of the API).
@@ -159,9 +159,10 @@ This needs to be solved by:
   making the existing XMLRPC code use it
 
 #### Introduce a single method introspection method
-In addition to [existing introspection methods](#note-xmlrpc), implement
-a call in the `api` namespace for checking, whether a method with signature
-exists in a namespace:
+In addition to
+[existing introspection methods](#note-on-xmlrpc-structure-exposition),
+implement a call in the `api` namespace for checking, whether a method with
+signature exists in a namespace:
 `apiCallExists(namespace, method, parameters_varargs)`.
 
 The same can already be achieved (although in a bit more complicated way) with
