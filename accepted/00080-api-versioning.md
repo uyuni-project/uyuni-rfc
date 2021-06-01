@@ -82,24 +82,24 @@ script contains a list of supported versions and checks on runtime,
 whether the API version of the Uyuni/SUMA server is contained in this
 list.
 
-This works well, until the user needs to target both Uyuni and SUSE Manager in
-their scripts - the API version numbers are not consistent (API version `25` in
-Uyuni does not need to be the identical to the version `25` in SUMA).
-
-Tackling these problems has various solutions, described in the
-[Solution proposals](#solution-proposals) section below.
+This method has 2 problems:
+1. targetting both Uyuni and SUSE is hard (the API version numbers are not
+consistent (API version `25` in Uyuni does not need to be the identical to the
+version `25` in SUMA)).
+2. currently, there is no defined rule to increase the API version. Sometimes
+the API is modified, but the version stays unchanged.
 
 
 ## Solution
 
-The proposed solution is to enhance the documentation with the guidelines of
-writing the API consuming scripts that target multiple product versions.
+The proposed solution is
+- to enhance the documentation with the guidelines of writing the API consuming
+  scripts that target multiple product versions
+- to improve the API introspection calls
+- to exactly define the semantics of the API version number and the rules for
+  its increasing
 
-Moreover, we also need to improve the API introspection calls.
-
-Last task is to exactly define the semantics of the API version number and the
-rules for its increasing.
-
+These steps are described in the further sections in greater detail.
 
 ### Enhancing the documentation
 
@@ -114,204 +114,88 @@ We should introduce 3 ways of consuming the API:
    flavor/version
 
 This should give the users the possibility of choosing the balance between the
-100% reliability and ease of writing the script (TODO reword). Also say, that
-these methods are sorted by purism (TODO).
+correctness and ease of writing the script.
 
-
-#### 1. Check errors after call
+##### 1. Check errors post-mortem
 Do not perform any checks before calling the API. Only handle the error code,
 when calling a method fails and notify the user about the error. The error code
 signaling the absence of given method/signature must be enhanced (see below).
 
-Checking errors after call should be a good practice for the client applications
-and should be used in the following methods too (TODO reword).
+Checking errors after call is a good practice for the client applications and
+should be used in the following methods too.
 
-
-#### 2. Check the method existence via introspection
+##### 2. Check the method existence via introspection
 Before making a call, check if the desired API method-signature combination
 exists. This check can be done using the [existing methods](#note-xmlrpc) or with the new 
 [single method introspection](#single-method-introspection).
 
 The advantage of this method is that it can warn the user before making the
-actual call - UI apps (TODO).
-
-Cons: semantic changes.
+actual call (one possible use case would be UI apps building on top of the API).
 
 
-#### 3. Check the method existence via introspection and exact product flavor/version
-This is the safest and the most complicated option. In addition to the checks
-made in the previous section, also check the the flavor and the API version.
-All these checks make sure that the API call is present and has the desired
+##### 3. Check the method existence via introspection and exact product flavor/version
+This is the safest and the most complicated way. In addition to the checks made
+in the previous section, also check the the flavor and the API version. All
+these checks make sure that the API call is present and has the desired
 semantics defined in the product flavor and version.
 
 
 #### API > Script Examples
+Examples showing usage of the 3 ways of consuming the API described above should
+be added to this section.
 
 
 ### Improving the API introspection
-- improve the error code
-- [single-method-introspection]: #single-method-introspection: introduce the single method for introspection
-- introduce the flavor
+
+These areas of the introspection must be implemented:
+
+#### Error code for non-existing method/signature
+When calling a non-existing method/signature combination, the API reports a
+fault with code `-1`. As of time of writing this document, this error code is
+used to signal other faults too (see the the `SystemHandler.java` file).
+
+This needs to be solved by:
+- visiting the current occurences of `-1` fault code in the existing handlers
+  containing "business methods" (e.g. `SystemHandler.java`) and make them use
+  meaningful codes (see the `exception_ranges.txt` document in the codebase)
+- reserving a new code for the absence of method/signature combination and
+  making the existing XMLRPC code use it
+
+#### Introduce a single method introspection method
+In addition to [existing introspection methods](#note-xmlrpc), implement
+a new call in the `api` namespace for checking, whether a method with signature
+exists in a namespace: `apiCallExists(namespace, method, parameters_varargs)`.
+
+#### Introduce the API flavor endpoint
+Introduce a new method under the `api` namespace returning the product flavor
+(Uyuni/SUMA).
 
 
 ### Bumping the API version
-Just breaking or each release? Analyze both
+The version of the API is bumped when a breaking change is introduced that
+cannot tracked by introspection, which involves the following:
+- changing a behavior of an existing method
+- removing or adding a field in a structure accepted by a method / returned by a
+  method
+- changing the fault thrown by a method (changing a fault code, throwing new
+  faults or removing a fault)
+
+All other changes shall be tracked by the introspection methods.
+
+A CI automation job shall be written to ease tracking of such changes.
 
 
-- only rely on intro + fault code
+## WIP: Process for deprecation and removal API methods
 
-- semantic changes:
-  - ignore: shouldn't happen!
-  - Pau?
-
-- ci bot - yes or no?
-
-- bumping: only the major version
-- flavor: yes, minimal effort
+TODO: Part of this RFC or not?
+Additionally, a clear process for breaking the API in a controlled way
+must be defined. A deprecation warning should be added to the xmlrpc
+doc. Additionally, we could add an annotation to the java method in the handler
+and print a warning in the server logs, in case a `@Deprecated` method is
+called (TODO very questionable).
 
 
-## Solution proposals
-
-The following section contains a list of solutions to the problems
-mentioned above. Some of the the suggestions are only hypothetical,
-but are included anyway, for the sake of completeness.
-
-
-
-
-### Solution 0.1 (Pau)
-Per-method-signature version.
-
-#### Pros
-- Tracking of semantic changes
-
-#### Cons
-- Effort with tracking the changes (CI bot should minimize this)
-
-
-### Solution 1
-
-- Treat the API versions independent in Uyuni and SUSE Manager. These
-  are 2 different projects and version `X` has a different contents
-  and compatibility in Uyuni and in SUMA.
-- Introduce an API "flavor" under a new `api.getFlavor` method, which
-  returns the project name (e.g. `uyuni`/`suse-manager`) read from a
-  config file.
-- Only "bump" the API versions on breaking changes.
-- Increasing API versions within a minor SUMA release is forbidden
-  (e.g. SUMA 4.2 API is always backwards-compatible, otherwise it's
-  a bug)!
-- A CI job watches introducing of breaking changes (more details
-  below)
-- Minor note: Uyuni would typically have higher version number than
-  SUMA as the changes there are more frequent, but in some cases (a
-  SUMA maintenance update gets released before a new Uyuni release),
-  this doesn't need to be true.
-- API Consumers would need to introduce a check for the flavor in
-  their scripts.
-
-#### Pros
-- Trivial implementation on server side
-
-#### Cons
-- Tracking non-breaking changes between various SUMA maintenance
-  updates is a bit more complex (need to use the API introspection
-  calls, e.g. `getApiCallList`).
-- Brings complexity to the API consumers and `spacecmd`. The scripts
-  would need to check the flavor and the API version.
-
-
-### Solution 2: No flavor, use `systemVersion` instead
-
-Based on the [Solution 1](#solution-1)
-
-In this case, the API must be stable within a Uyuni/SUMA minor
-version. (TODO @hustodemon: ask @moio/@mc, but i think this should be
-the case already).
-
-The user scripts could then use the `api.systemVersion` instead of
-checking the flavor and API version.
-
-#### Pros
-- No implementation needed on the server side
-
-#### Cons
-- Version format: the scripts need to consider various corner cases
-  (`4.2.0 RC2`, `2021.05`) and would need to make sure they are
-  handled correctly by implementing various, possibly error-prone
-  comparators in their code.
-- Same problem with tracking non-breaking changes like in the
-  [Solution 1](#solution-1).
-
-
-### Solution 3: Bump API version on any change in the API
-
-Based on the [Solution 1](#solution-1)
-
-- Same as Solution 1, but the version gets bumped on any (even
-non-breaking) change within a product release or a maintenance update.
-- Brekaing API within a SUMA maintenance update is still forbidden.
-
-#### Pros & Cons
-- Trivial implementation on the server side
-- Does not suffer from the first "Cons" of the [Solution 1](#solution-1)
-
-#### Cons
-- Brings complexity to the API consumers and `spacecmd`. The scripts
-  would need to check the flavor and the API version.
-
-
-### Solution 4: Use a `major.minor` versioning scheme
-
-Currently, the API version is an integer. This solution uses 2
-integers (or a list of integers in general). The first number
-describes the major version, the second one describes the minor
-version.
-
-Bump the major version with the product release, bump the minor one on
-non-breaking changes.
-
-The version bumping is described by this example:
-- After SUMA 4.2 release (API version is `25`) Uyuni bumps the version
-  to `26.01`
-- On SUMA 4.3 release, the SUMA API version gets set to the current
-  Uyuni API version at that time, e.g `26.10`
-- Uyuni API version gets increased to 27.01
-- On backporting features from Uyuni which change the API, SUMA 4.3
-  increases the minor version `26.11`, `26.12`, etc...
-
-
-#### Pros
-- Consumers able to track non-breaking changes easily (same as
-  [Solution 3](#solution-3-bump-api-version-on-any-change-in-the-api))
-
-#### Cons
-- Frequent changes in minor version could mean more burden on
-  developers and release engineers. A [CI job](#ci-job) needs to be
-  present to ease this.
-- Checking for "flavor" is still needed.
-
-
-### (Hypothetical) Solution 5: Enhance the introspection calls
-
-They would provide complete info about the parameters and the
-structure. For each Map or Serializer in params and we would need to
-do our best to keep the documentation consintent and the client should
-be able to verify if the structure is the expected one prior to the
-call.
-
-#### Cons
-- Does not cover possible semantic changes in the API calls implementation.
-
-
-### Solution 6: Enhance the reported exceptions
-
-When the client calls a method in a wrong way, they should get back a
-fault with an appropriate code (could vary for different cases like
-wrong parameter type or non-existing method).
-
-
-## CI Job
+## Appendix: CI Job
 
 In order to minimize the risk of missing the increase of the API
 version, a CI job must be implemented, that reminds the PR author,
@@ -327,51 +211,3 @@ when there is a change in the API code:
   - either make sure their changes are not breaking the API
   - or inform interested people responsible for bumping the API version
   and check the checkbox.
-
-When [Solution 4](#solution-4) is chosen, this needs to be adjusted to
-cover the minor version bump as well.
-
-
-## API usage guidelines
-
-The documentation about consuming the API should be enhanced according
-to chosen solution. The API users can choose the level of safety of
-calling the API and consider the risks themselves:
-
-TODO: adjust the following to the chosen solution. The following text
-is just a skeleton that needs to be ehnanced.
-TODO: mention also that levels are not mutually exclusive
-
-### Level 0: Retrospective checking
-API consumers do not check anything and call the method directly. In
-case of failure, they process the xmlrpc fault with the code `-1` and
-report an error in their script.
-
-
-### Level 1: Check the signature
-Prior to making an API call, the consumer needs to check, if the
-method signature matches their expectation using one of the API
-introspection methods described in the [XMLRPC
-compatibility](#xmlrpc-compatibility) section.
-
-This approach does not rule out backwards-incompatible changes
-described in the point 3.iv in the note on [breaking and non-breaking
-changes](#note-on-breaking-and-non-breaking-changes).
-
-
-### Level 2: Check the version and flavor
-The safest way is to use check the API version.
-
-
-## Process for deprecation and removal API methods
-
-TODO: Part of this RFC or not?
-Additionally, a clear process for breaking the API in a controlled way
-must be defined.
-
-
-# TODO
-- [ ] remove all TODO
-- [ ] decide which solution to take, move other to "alternative solutions"
-- [ ] decide if to write the guidelines (in the API > FAQ page or docs)
-- [ ] make sure the links work
