@@ -6,7 +6,7 @@
 
 The main goal of this RFC is to highlight the problems of writing client
 applications or scripts compatible with multiple versions of Uynui and SUSE
-Manager (SUMA) API and suggest an improvement in this area - when the consumers
+Manager (SUMA) API and suggest an improvement in this area. When the consumers
 use the API, there must be a way for them to make sure they call the endpoints
 correctly (they need to call an existing method with correct parameters and they
 also need to make some assumptions on the return value structure).
@@ -22,8 +22,8 @@ about the API and its structure in 3 places:
 1. Information about the versions via the `api` XMLRPC endpoint:
    - `getVersion`: the API version, e.g. `25`. This integer grows with time, but
    there are no strict rules about it.
-   - `systemVersion`: the Uyuni server version (e.g. `4.2.0 Beta1` for SUMA,
-   `2021.05` for Uyuni)
+   - `systemVersion`: the server version (e.g. `4.2.0 Beta1` for SUMA, `2021.05`
+   for Uyuni)
 
 2. Furthermore, the `api` namespace also exposes basic API introspection calls
    describing the structure of the call:
@@ -84,7 +84,8 @@ This method has 2 problems:
 consistent (API version `25` in Uyuni does not need to be the identical to the
 version `25` in SUMA)).
 2. currently, there is no defined rule to increase the API version. Sometimes
-the API is modified, but the version stays unchanged.
+the API is modified, but the version stays unchanged, which makes it impossible
+to track a feature presence.
 
 
 ## Solution
@@ -105,10 +106,10 @@ Following sections of the documentation must be enhanced.
 #### API > FAQ
 
 We should introduce 3 ways of consuming the API:
-1. (relaxed) check errors after call
+1. (relaxed) check errors post-mortem
 2. (stricter) check the method existence via introspection
-3. (strictest) check the method existence via introspection and exact product
-   flavor/version
+3. (strictest) check the method existence via introspection and check exact
+   product flavor/version
 
 This should give the users the possibility of choosing the balance between the
 total correctness and ease of writing the script.
@@ -129,7 +130,7 @@ with the new [single method introspection](#single-method-introspection).
 The advantage of this method is that it can warn the user before making the
 actual call (one possible use case would be UI apps built on top of the API).
 
-##### 3. Check the method existence via introspection and exact product flavor/version
+##### 3. Check the method existence via introspection and check exact product flavor/version
 This is the safest and the most complicated way. In addition to the checks made
 in the previous section, also check the the flavor and the API version. All
 these checks make sure that the API call is present and has the desired
@@ -142,12 +143,13 @@ be added to this section.
 
 ### Improving the API introspection
 
-These areas of the introspection must be implemented:
+These areas of the introspection must be addressed:
 
 #### Error code for non-existing method/signature
-When calling a non-existing method/signature combination, the API reports a
-fault with code `-1`. As of time of writing this document, this error code is
-used to signal other faults too (see the the `CustomInfoHandler.java` file).
+Currently, when calling a non-existing method/signature combination, the API
+reports a fault with code `-1`. As of time of writing this document, this error
+code is used to signal other faults too (see the the `CustomInfoHandler.java`
+file).
 
 This needs to be solved by:
 - visiting the current occurences of `-1` fault code in the existing handlers
@@ -163,8 +165,7 @@ exists in a namespace:
 `apiCallExists(namespace, method, parameters_varargs)`.
 
 The same can already be achieved (although in a bit more complicated way) with
-already-existing introspection methods, but this method would be more
-convenient.
+already-existing introspection methods, but this method is more convenient.
 
 #### Introduce the API flavor endpoint
 Introduce a new method under the `api` namespace returning the product flavor
@@ -203,7 +204,7 @@ when there is a change in the API code:
 
 - Introduce a new section in the Uyuni/SUMA Pull Request template with
   a checkbox with this text "XMLRPC changes do not require API
-  version bump / Release engineer has been informed", unchecked by
+  version bump or release engineer has been informed", unchecked by
   default
 - If there are code changes in the `xmlrpc` java package and the
   checkbox is unchecked, the CI bot raises an alert. The author of the
