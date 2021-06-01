@@ -187,9 +187,9 @@ All other changes shall be tracked by the introspection methods.
 A CI automation job shall be written to ease tracking of such changes.
 
 
-## WIP: Process for deprecation and removal API methods
+## Unresolved questions
 
-TODO: Part of this RFC or not?
+Q: Shall we document the process for deprecation and removal API methods?
 Additionally, a clear process for breaking the API in a controlled way
 must be defined. A deprecation warning should be added to the xmlrpc
 doc. Additionally, we could add an annotation to the java method in the handler
