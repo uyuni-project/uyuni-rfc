@@ -176,7 +176,7 @@ Introduce a new method under the `api` namespace returning the product flavor
 The version of the API is bumped when a breaking change is introduced that
 cannot tracked by introspection, which involves the following:
 - changing a behavior of an existing method
-- removing or adding a field in a structure accepted by a method / returned by a
+- removing a field in a structure accepted by a method / returned by a
   method
 - changing the fault thrown by a method (changing a fault code, throwing new
   faults or removing a fault)
