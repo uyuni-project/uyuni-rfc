@@ -192,7 +192,9 @@ Command:
 time bash -c 'for i in `seq 1 10`;do time salt "*" pillar.items >/dev/null;salt "*" test.ping > /dev/null;echo "== Round $i done"; done'       
 ```
 
-Results are part of the PR discussion.
+Results:
+
+![Comparison of different pillar access methods](images/performance-pillars.png)
 
 
 ### Impact of increased worker threads on database connections
