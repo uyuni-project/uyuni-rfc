@@ -83,31 +83,9 @@ Added `category` VARCHAR is there to provide easer manipulation and understandin
 
 ## Salt access
 
-Salt ecosystem needs a way how to access these pillars. For this salt provides mechanism of external pillar, particularly [salt.pillar.postgres module](https://docs.saltproject.io/en/latest/ref/pillar/all/salt.pillar.postgres.html):
+Salt ecosystem needs a way how to access these pillars. For this salt provides mechanism of external pillar, particularly [salt.pillar.postgres module](https://docs.saltproject.io/en/latest/ref/pillar/all/salt.pillar.postgres.html).
+Accessing database can be done in one query, however that would need a change in `sql_base.py` in salt because currently it supports only one `%s` replacement for minion id.
 
-```yaml
-postgres:
-  db: susemanager
-  host: localhost
-  pass: spacewalk
-  port: 5432
-  user: spacewalk
-
-ext_pillar:
-  - postgres:
-      - query: "SELECT pillar from suseSaltPillars WHERE server_id is NULL AND group_id is NULL AND org_id is NULL"
-        as_json: True
-      - query: "SELECT pillar from suseSaltPillars WHERE org_id = (SELECT org_id FROM rhnServer AS S LEFT JOIN suseMinionInfo AS M on S.id = M.server_id WHERE M.minion_id = %s)"
-        as_json: True
-      - query: "SELECT pillar from suseSaltPillars WHERE group_id IN (SELECT server_group_id FROM rhnServerGroupMembers AS G LEFT JOIN suseMinionInfo AS M ON G.server_id = M.server_id WHERE M.minion_id = %s)"
-        as_json: True
-      - query: "SELECT pillar from suseSaltPillars WHERE server_id = (SELECT server_id FROM suseMinionInfo AS M WHERE M.minion_id = %s)"
-        as_json: True
-```
-
-Salt automatically merge results from these queries, latest with the highest priority.
-
-Alternatively this can be done in one query, however that would need a change in `sql_base.py` in salt because currently it supports only one `%s` replacement for minion id.
 This limitation can be solved by using postgres function and then call just function from the external pillar:
 
 ```sql
@@ -144,6 +122,32 @@ ext_pillar:
       - query: "SELECT suse_minion_pillars(%s)"
         as_json: True
 ```
+
+
+
+Alternatively database can be accessed using multiple queries, however with some performance hit:
+
+```yaml
+postgres:
+  db: susemanager
+  host: localhost
+  pass: spacewalk
+  port: 5432
+  user: spacewalk
+
+ext_pillar:
+  - postgres:
+      - query: "SELECT pillar from suseSaltPillars WHERE server_id is NULL AND group_id is NULL AND org_id is NULL"
+        as_json: True
+      - query: "SELECT pillar from suseSaltPillars WHERE org_id = (SELECT org_id FROM rhnServer AS S LEFT JOIN suseMinionInfo AS M on S.id = M.server_id WHERE M.minion_id = %s)"
+        as_json: True
+      - query: "SELECT pillar from suseSaltPillars WHERE group_id IN (SELECT server_group_id FROM rhnServerGroupMembers AS G LEFT JOIN suseMinionInfo AS M ON G.server_id = M.server_id WHERE M.minion_id = %s)"
+        as_json: True
+      - query: "SELECT pillar from suseSaltPillars WHERE server_id = (SELECT server_id FROM suseMinionInfo AS M WHERE M.minion_id = %s)"
+        as_json: True
+```
+
+Salt automatically merge results from these queries, latest with the highest priority.
 
 ### Upstream changes needed
 
