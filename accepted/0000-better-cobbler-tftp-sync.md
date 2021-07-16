@@ -10,7 +10,7 @@ More optimized TFTP syncing for Cobbler proxies. Switching from push to pull.
 # Motivation
 [motivation]: #motivation
 
-For large scale installations Cobbler has proven to be a possible bottleneck. One of the problems is the Cobbler sync that, when using it in conjunction with proxies, also pushes the TFTP folder to the proxies. For installations with just one proxy and around 130 profiles the whole process can easily take up to 15 minutes. Not all of that is due to TFTP sync, but a good chunk of it and might force clients into a reboot, since information are not yet updated.
+For large scale installations Cobbler has proven to be a possible bottleneck. One of the problems is the Cobbler sync that, when using it in conjunction with proxies, also pushes the TFTP folder to the proxies. For installations with just one proxy and around 130 profiles the whole process can easily take up to 15 minutes. Not all of that is due to TFTP sync, but a good chunk of it is. Note also that clients might require unnecessary reboots in case they are booting during the sync, since TFTP information is not updated atomically.
 
 # Detailed design
 [design]: #detailed-design
