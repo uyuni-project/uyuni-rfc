@@ -158,14 +158,17 @@ We need to adapt this feature to consider the new `cloudrmt` authentication mech
   - basic authentication can be defined on repo URL (`https://user:pass@host/repo/url/`)
   - authentication header location is an implementation detail
     - One idea is concatenate in URL as query string parameter and adapt reposync extract and use it
+    - another possibility is using the existing mechanism, which reads from a configuration file: https://github.com/uyuni-project/uyuni/pull/2136
 
 Url to be used should be the one pointing to the cloud RMT server, saved in previous step, instead the one defined in table `susesccrepository`.
 
 ### Implementation steps - reposync
 
 Reposync is already able to deal with the basic authentication mechanism (defined in repository URL).
-However needs to be adapted to handle the http authentication header.
-How the header is passed from table `susesccrepositoryauth` to `rhncontentsource` and how is consume by reposync is an implementation detail, as defined in the previous step. We need to maintain this table separation because reposync already have several different mechanism relaying on this separation.
+Http authentication headers can be read from a configuration file, specified per repository.
+Has mentioned before we need to decide how to deal with this header, if reuse the existing mechanism of implement a new one based on the database. How the header is passed from table `susesccrepositoryauth` to `rhncontentsource` and how is consume by reposync is an implementation detail.
+
+We need to maintain this table separation because reposync already have several different mechanisms relaying on this separation.
 
 
 # Drawbacks
