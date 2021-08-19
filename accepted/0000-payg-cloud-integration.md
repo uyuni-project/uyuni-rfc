@@ -129,7 +129,7 @@ After we get all repositories information from the PAYG instance, for each repos
 Repositories are identified by its URL. We can extract repository endpoint from PAYG machine and find the corresponding repository in Uyuni database. Note that the cloud RMT server have a url prefix `/repo/` which we need to remove before compare.
 
 Example:
-- URL on PAYG instance: `https:\\host/repo/SUSE/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
+- URL on PAYG instance: `https://host/repo/SUSE/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
 - URL uyuni database (suseSccRepository table): `https://updates.suse.com/SUSE/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
 
 Query to be executed: `select id from susesccrepository where url like '%SUSE/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/';`
