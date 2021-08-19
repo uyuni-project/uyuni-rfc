@@ -85,7 +85,7 @@ Those credentials are stored in plain text `/etc/zypp/credentials.d/<repo_name>`
 
 #### RMT Server IP
 RMT server domain name are not registered in DNS server, and the IP is specified on the `/etc/hosts` file of the PAYG instance.
-We can call the command `getent hosts <SMT_HOST_NAME>` to retrieve the IP address, which will cope with future changes to this mechanism.
+We can call the command `getent hosts <RMT_HOST_NAME>` to retrieve the IP address, which will cope with future changes to this mechanism.
 
 #### RMT Certificate
 RMT server https certificate is signed by suse, is added to the PAYG instance.
