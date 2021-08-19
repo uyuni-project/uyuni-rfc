@@ -84,7 +84,7 @@ Plain HTTP authentication credentials are required to access the repositories.
 Those credentials are stored in plain text `/etc/zypp/credentials.d/<repo_name>` and can simply be read by root.
 
 #### RMT Server IP
-RMR server domain name are not registered in DNS server, and the IP is specified on the `/etc/hosts` file of the PAYG instance.
+RMT server domain name are not registered in DNS server, and the IP is specified on the `/etc/hosts` file of the PAYG instance.
 We can call the command `getent hosts <SMT_HOST_NAME>` to retrieve the IP address, which will cope with future changes to this mechanism.
 
 #### RMT Certificate
