@@ -93,7 +93,7 @@ We can load the certificate from `/usr/share/pki/trust/anchors/registration_serv
 ### Remotely run data extraction script
 
 Uyuni sever should open an ssh connection to the PAYG machine, execute the data extraction script, and retrieve the result in JSON format.
-Should have support to receive the needed ssh parameters in the web UI (similar to what we have on system bootstrap) or from XML-RPC API.
+Uyuni should have support to receive the needed ssh parameters in the web UI (similar to the system bootstrap page) or via the XML-RPC API.
 SSH authentication with basic auth and client certificate should be possible.
 
 For this implementation we will use JSCH library, similar to what is being used in `SSHPushWorker` class.
