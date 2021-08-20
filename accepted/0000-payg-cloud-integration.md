@@ -54,7 +54,7 @@ With this solution the expected user flow would be:
 ## Retrieving authentication data from PAYG instance
 
 A script will be created which could be run on a PAYG instance to extract all needed data to access RMT repos the instance has access to.
-Data needs from the extraction tool:
+Data retrieved by the extraction tool:
   - repository URL
   - authentication headers
   - HTTP authentication credential
