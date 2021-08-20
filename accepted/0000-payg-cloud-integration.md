@@ -61,7 +61,7 @@ Data retrieved by the extraction tool:
   - RMT hosts name and IP address
   - RMT https certificate
 
-This script can be remotely executed from uyuni and retrieved data in a json format.
+Uyuni will execute this script on the pay-as-you-go client via SSH and retrieved data will be in JSON format.
 
 ### Data extraction script
 
