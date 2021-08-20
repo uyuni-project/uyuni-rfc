@@ -27,7 +27,7 @@ At the moment Uyuni can syncronize repositores from:
 Presently, it is not possible to sync content from a SUSE-operated Cloud RMT Server, because:
   - a Uyuni Server does not come with "tokens" (unlike PAYG instances, see above)
   - Uyuni does not know how to pass them to RMT Servers
-  - we do not know which repositories are served via such RMT Servers
+  - Uyuni Server do not know which repositories are served via such RMT Servers
 
 Since Uyuni cannot contact the cloud RMT servers the only option for users is to contact SUSE and get one SCC account which allows to synchronize content from the SCC CDN.
 The process for this is not straightforward and adds excessive complexity to users and SUSE teams.
