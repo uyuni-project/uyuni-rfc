@@ -87,7 +87,7 @@ RMT server domain name are not registered in DNS server, and the IP is specified
 We can call the command `getent hosts <RMT_HOST_NAME>` to retrieve the IP address, which will cope with future changes to this mechanism.
 
 #### RMT Certificate
-RMT server https certificate is signed by suse, is added to the PAYG instance.
+All PAYG instances connect to RMT servers via https, and their certificates are signed by SUSE, and added to the PAYG instance at creation.
 We can load the certificate from `/usr/share/pki/trust/anchors/registration_server_<RMT_IP_REPLACE_DOT_WITH_UNDERSCORE>.pem`.
 
 ### Remotely run data extraction script
