@@ -196,3 +196,5 @@ Possible security impact of having repository metadata publicly accessible.
 - What happens and how to deal if the PAYG instance we loaded the data from get terminated or stopped?
 
 - Should we have a UI showing all the PAYG authentications registered and allow user to remove existing ones?
+
+- In case of multiple options, what should be preferred? I think it also depends on where Uyuni Server is running. If it is running in the cloud, the local RMT servers should be preferred, while if the Server is running outside of the Cloud, SCC should be preferred.
