@@ -194,6 +194,7 @@ Possible security impact of having repository metadata publicly accessible.
 [unresolved]: #unresolved-questions
 
 - What happens and how to deal if the PAYG instance we loaded the data from get terminated or stopped?
+  - Possible approach is remove the affected cloudrmt auth configs from the Server. Channels will be kept with all the existing content and assigned server will still see it. But no new updates will added to the channels.
 
 - Should we have a UI showing all the PAYG authentications registered and allow user to remove existing ones?
 
