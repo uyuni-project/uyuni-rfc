@@ -124,7 +124,7 @@ Cloud RMT https certificate is also returned by the data extraction tool and on 
 
 After we get all repositories information from the PAYG instance, for each repository we will need to:
 
-#### Find internal suse Scc repository ID
+#### Find internal SUSE SCC repository ID
 
 Repositories are identified by its URL. We can extract repository endpoint from PAYG machine and find the corresponding repository in Uyuni database. Note that the cloud RMT server have a url prefix `/repo/` which we need to remove before compare.
 
