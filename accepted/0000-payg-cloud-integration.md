@@ -67,7 +67,7 @@ Uyuni will execute this script on the pay-as-you-go client via SSH and retrieved
 
 Next we will explain how this data can be obtain in the PAYG instance.
 
-#### URL and authenticatio header
+#### URL and authentication header
 PAYG instances come with the `cloud-regionsrv-client` package, which provides a zypper plugin (`/usr/lib/zypp/plugins/urlresolver/susecloud`) that takes Cloud-specific crypto and configuration files from the instance and computes:
   - each repository full URL, including the hostname of the nearest RMT server
   - the special authentication header
