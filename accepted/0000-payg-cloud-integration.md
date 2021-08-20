@@ -65,7 +65,6 @@ Uyuni will execute this script on the pay-as-you-go client via SSH and retrieved
 
 ### Data extraction script
 
-This will be a python script which can be executed locally on the PAYG instance and extract all the needed data (mentioned above) returning it in json format.
 Next we will explain how this data can be obtain in the PAYG instance.
 
 #### URL and authenticatio header
