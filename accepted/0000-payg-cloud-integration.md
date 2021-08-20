@@ -39,7 +39,7 @@ The goal for this RFC is to propose a solution to simplify this process and allo
 [design]: #detailed-design
 
 Our solution will be based on the following steps:
-  - Connect to PAYG instance, extract authentication data to uyuni server
+  - Connect to a PAYG instance, extract authentication data to Uyuni server
   - Teach Uyuni how to use PAYG authentication data to reposync product repositories
 
 With this solution the expected user flow would be:
