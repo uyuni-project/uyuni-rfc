@@ -72,7 +72,7 @@ PAYG instances come with the `cloud-regionsrv-client` package, which provides a 
   - each repository full URL, including the hostname of the nearest RMT server
   - a special authentication header
 
-Since zypper plugins are standalone executable and communicate via a simple text protocol on stdin/stdout:
+Since zypper plugins are standalone executables and communicate via a simple text protocol on stdin/stdout:
 https://github.com/openSUSE/zypp-plugin/blob/master/python/zypp_plugin.py
 
 we can call such a zypper plugin ("impersonating zypper") to compute URLs and headers in a trivial and cross-Cloud way.
