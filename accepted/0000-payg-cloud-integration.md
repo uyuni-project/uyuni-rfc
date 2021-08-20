@@ -167,7 +167,7 @@ Reposync is already able to deal with the basic authentication mechanism (define
 Http authentication headers can be read from a configuration file, specified per repository.
 Has mentioned before we need to decide how to deal with this header, if reuse the existing mechanism of implement a new one based on the database. How the header is passed from table `susesccrepositoryauth` to `rhncontentsource` and how is consume by reposync is an implementation detail.
 
-We need to maintain this table separation because reposync already have several different mechanisms relaying on this separation.
+We need to maintain this table separation because reposync already have several different mechanisms relying on this separation.
 
 
 # Drawbacks
