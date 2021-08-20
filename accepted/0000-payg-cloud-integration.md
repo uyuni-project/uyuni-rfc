@@ -105,7 +105,7 @@ For this implementation we will use JSCH library, similar to what is being used 
 Uyuni will create vendor channels for the PAYG integration. The advantage would be that if such vendor channels had the correct channel label, then mgr-sync would link them to the appropriate products at next `mgr-sync` time, allowing CVE Audit, Product Migration and other features requiring correct product data to work correctly.
 
 Uyuni always gets all products meta information from SCC: which products exists and all repositories assigned.
-These products are only showed in the products setup wizard page if an authentication mechanism for the repositories is available, meaning user have access to it.
+These products are only showed in the products setup wizard page if an authentication mechanism for the repositories is available, meaning users have access to it.
 
 The proposed solution will implement a new authentication mechanism on uyuni (named `cloudrmt`, for example) to deal with cloud RMT server authentication. With this approach we will be able to reuse the existing product/channel management features.
 
