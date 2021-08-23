@@ -47,7 +47,7 @@ With this solution the expected user flow would be:
   - Provide to Uyuni ssh information to connect to the pay-as-you-go instance
     - uyuni will extract data from the pay-as-you-go instance
     - product of the pay-as-you-go instance will then be displayed on the Products Setup Wizard
-  - Import product from the products setup wizard
+  - Import product using existing "add products" feature (available at UI, API and cmd)
     - all channels will be added
     - reposync will be able to download all needed data fro cloud RMT server
   - Bootstrap pay-as-you-go instances using one of the existing methods
