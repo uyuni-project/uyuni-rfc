@@ -206,7 +206,10 @@ Supported operations:
 
 We could define a uyuni/suse manager pay-as-you-go image with access to all cloud RMT repositories.
 It would be possible to syncronize any product directly from cloud in a more simple and straightforward way.
-Drawbacks: User will have access to repository and product he is not paying for.
+
+**Drawbacks:**
+- User will have access to repository and product he is not paying for.
+- Will not be suitable for scenarios were Uyuni is on-perm but managing cloud instances
 
 ## Reposync only metadata
 
