@@ -117,7 +117,7 @@ The proposed solution will implement a new authentication mechanism on uyuni (na
 
 To access the cloud RMT server uyuni server needs to know is IP address (which is not registered in DNS) and trust the server certificate.
 
-Cloud RMT IP needs to be added to `/ets/hosts` on uyuni server. IP and hostname are returned by the data extraction script.
+The current Public Cloud setup requires changing `/etc/hosts` to reach the correct RMT server. This might not be possible if ever Uyuni is delivered as containers. In the constext of this RFC implementation we will follow the same approach a update `/etc/hosts` on Uyuni server.
 
 Cloud RMT https certificate is also returned by the data extraction tool and on uyuni server we need to:
   - add the certificate to folder `/etc/pki/trust/anchors/<label>`
