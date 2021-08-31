@@ -47,7 +47,7 @@ They must be generated out of existing data.
 As SCC needs to crawl the buildservice to find all the existing PTF repositories, they agreed on a path structure to map the repositories to the products.
 The defined path is:
 
-    PTF/Release/<Customer Account ID>/<Product Identifier>/<Product Version>/<Product Architecture>/ptf[_debug]/
+    PTF/Release/<Customer Account ID>/<Product Identifier>/<Product Version>/<Product Architecture>/ptf/
 
 When Uyuni is listing the repositories available for an organizations, it may find repositories which `id` is not known in the complete product tree.
 To identify them as PTF repositories we can check if the path start with `PTF/Release`.
@@ -74,7 +74,7 @@ We can take this as parent channel label for our new entry.
 As the channel label and name must be unique.
 We can generate the label and name from the URL components:
 
-    <Customer Account ID> <Product Identifier> <Product Version> "PTFs" ["Debuginfo"] <Product Architecture>
+    <Customer Account ID> <Product Identifier> <Product Version> "PTFs" <Product Architecture>
 
 The label is computed using the lowercase components joined with a dash ("-") and the name just joined with a space (" ").
 
@@ -85,6 +85,8 @@ The product tree uses additional suffixes for products which belongs to multiple
 The suffix is appended always after the architecture of the channel label.
 We can parse it from the entry we used to find the `parent channel label` and use it to enhance the component list.
 
+Debuginfo packages will not be shipped in a separate channel.
+
 
 ## Test Package Channels
 
@@ -94,7 +96,7 @@ The customer need to test them and report positive result before SUSE make an of
 TEST packages should only be installed on dedicated test systems.
 Therefor it is important that they get not installed on any system where just the version of the TEST package is higher than the installed one.
 
-Current idea is, that TEST packages will go into a different channel. Probably the last directory will be names "test" and "test_debug".
+Current idea is, that TEST packages will go into a different channel. Probably the last directory will be names "test".
 We would use the same rules as for PTF Channels and adjust the name and label.
 
 
