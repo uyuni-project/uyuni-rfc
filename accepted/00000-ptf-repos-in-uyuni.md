@@ -15,7 +15,7 @@ The resulting packages are the last released maintenance update plus a patch whi
 
 PTFs are made for dedicated customers. This means every customer has different PTF repositories, with different content and fixes for different service requests.
 
-With Uyuni we should provide the possibility to mirror the content of these repositories and let the customer use it for there clients.
+With Uyuni we should provide the possibility to mirror the content of these repositories and let the customer use it for their clients.
 
 
 # Detailed design
