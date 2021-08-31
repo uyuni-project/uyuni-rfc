@@ -96,7 +96,7 @@ The customer need to test them and report positive result before SUSE make an of
 TEST packages should only be installed on dedicated test systems.
 Therefor it is important that they get not installed on any system where just the version of the TEST package is higher than the installed one.
 
-Current idea is, that TEST packages will go into a different channel. Probably the last directory will be names "test".
+Current idea is, that TEST packages will go into a different channel. Probably the last directory will be named "test".
 We would use the same rules as for PTF Channels and adjust the name and label.
 
 
