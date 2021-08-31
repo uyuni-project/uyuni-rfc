@@ -104,7 +104,9 @@ We would use the same rules as for PTF Channels and adjust the name and label.
 [drawbacks]: #drawbacks
 
 - we are guessing the values. Some, like the channel label, are sensitive and must not be changed. We have to be sure that the rules and the structure never changes.
-- ptf handling for non SUSE OSes will not be as nice as for SUSE OSes.
+- ptf handling for non SUSE OSes will not be as nice as for SUSE OSes. To make this feature working smooth on a SUSE system, we are about to patch the package solver.
+  This is not possible for non SUSE OSes. We need to find out how good our support for it can be, with an unchanged solver. Possibly Uyuni UI might show different
+  options then the commandline tool of the target system.
 
 # Alternatives
 [alternatives]: #alternatives
