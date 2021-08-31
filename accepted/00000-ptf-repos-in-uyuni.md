@@ -23,7 +23,7 @@ With Uyuni we should provide the possibility to mirror the content of these repo
 
 ## How to generate the Channels from the SCC Data
 
-The mapping of SCC repositories to Uyuni Channels is done via a prepared product tree file which contains the definitions for all products and its repositories.
+The mapping of SCC repositories to Uyuni Channels is done via a prepared product tree file which contains definitions for all products and their repositories.
 It enhances the information from SCC with values required for Uyuni.
 
 Such an entry is defined by 3 values:
