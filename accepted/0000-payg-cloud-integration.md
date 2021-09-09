@@ -18,7 +18,7 @@ To check repository accessibility RMT Servers have plugins which use Cloud-speci
 [motivation]: #motivation
 
 Uyuni needs to load repository data from external sources to provide it to the registered machines.
-At the moment Uyuni can syncronize repositores from:
+At the moment Uyuni can synchronize repositories from:
   - the SCC CDN
   - a plain RMT Server ("from-mirror setup", still requires connection to SCC)
   - a plain directory exported from an RMT Server ("disconnected setup")
@@ -40,20 +40,59 @@ The goal for this RFC is to propose a solution to simplify this process and allo
 [design]: #detailed-design
 
 Our solution will be based on the following steps:
-  - Connect to a pay-as-you-go instance, extract authentication data to Uyuni server
-  - Teach Uyuni how to use pay-as-you-go authentication data to reposync product repositories
-  - Manage existing pay-as-you-go ssh connections data saved on Uyuni
+  - Manage pay-as-you-go ssh connections data saved on Uyuni
+    - Register pay-as-you-go ssh connections data
+    - Update existing ssh connections data
+    - Delete pay-as-you-go ssh connections data
+  - Develop a new taskomatic task and job schedule to:
+    - Retrieve repositories and authentication data from the pay-as-you-go instance
+    - Register repositories and authentication data on the database
+  - Teach Uyuni reposync how cloud RMT authentication data to synchronize product repositories
+
 
 With this solution the expected user flow would be:
   - Provide to Uyuni ssh information to connect to the pay-as-you-go instance
-    - uyuni will extract data from the pay-as-you-go instance
-    - product of the pay-as-you-go instance will then be displayed on the Products Setup Wizard
-  - Import product using existing "add products" feature (available at UI, API and cmd)
-    - all channels will be added
-    - reposync will be able to download all needed data fro cloud RMT server
-  - Bootstrap pay-as-you-go instances using one of the existing methods
+    - uyuni will save this information on the database
+    - start a single job execution to synchronize repositories and cloud RMT authentication data
+    - product loaded from the pay-as-you-go instance will be displayed on the Products Setup Wizard after the task finishes
+  - Import product using existing "add products" feature (available at UI, API, and cmd)
+    - reposync will be able to download all needed data from cloud RMT server
+  - Bootstrap instances using one of the existing methods
 
-## Retrieving authentication data from pay-as-you-go instance
+## Manage pay-as-you-go ssh connection data
+
+User should be able to register and manage ssh connection data to pay-as-you-go instances from where uyuni should extract repository information and authentication data. Users should be able to manage this data using the web UI or the XML-RPC API.
+
+Supported operations:
+  - Add new ssh connection data for pay-as-you-go
+    - should trigger an execution of the taskomatic task to extract data from the payg-as-you-go instance
+  - Remove ssh connection data
+    - Associated data in `suseCredentials` and `susesccrepositoryauth` should also be removed
+  - Update ssh connection data
+
+Data to be saved:
+  - machine hostname
+  - ssh port
+  - ssh username
+  - ssh password
+  - ssh client certificate
+  - ssh client certificate password
+  - bastion hostname
+  - bastion ssh port
+  - bastion ssh username
+  - bastion ssh password
+  - bastion ssh client certificate
+  - bastion ssh client certificate password
+
+## Taskomatic task
+
+RMT authentication data have a time to live (TTL). For this reason, we need to load new authentication data from the pay-as-you-go instance periodically. For that, a new taskomatic job and schedule need to be developed to:
+  - Connect to pay-as-you-go instance and retrieve the authentication data
+  - Update existing data on Uyuni server
+
+Task schedule frequency is an implementation detail but it should cope with the requirements of all cloud providers. For example, Azure cloud RMT tokens have a TTL of 20 minutes.
+
+### Retrieving authentication data from pay-as-you-go instance
 
 A script will be created which could be run on a pay-as-you-go instance to extract all needed data to access RMT repos the instance has access to.
 Data retrieved by the extraction tool:
@@ -64,10 +103,6 @@ Data retrieved by the extraction tool:
   - RMT https certificate
 
 Uyuni will execute this script on the pay-as-you-go client via SSH and retrieved data will be in JSON format.
-
-### Data extraction script
-
-Next we will explain how this data can be obtain in the pay-as-you-go instance.
 
 #### URL and authentication header
 Pay-as-you-go instances come with the `cloud-regionsrv-client` package, which provides a zypper plugin (`/usr/lib/zypp/plugins/urlresolver/susecloud`) that takes Cloud-specific crypto and configuration files from the instance and computes:
@@ -102,9 +137,7 @@ For this implementation we will use JSCH library, similar to what is being used 
 
 Ssh connection data to the pay-as-you-go instance will be saved on Uyuni database. This data is needed to refresh repository authentication data periodically.
 
-## Teaching Uyuni how to use cloud RMT
-
-### Context
+### Store authentication data from pay-as-you-go instance
 
 Uyuni will create vendor channels for the pay-as-you-go integration. The advantage would be that if such vendor channels had the correct channel label, then mgr-sync would link them to the appropriate products at next `mgr-sync` time, allowing CVE Audit, Product Migration and other features requiring correct product data to work correctly.
 
@@ -113,7 +146,7 @@ These products are only showed in the products setup wizard page if an authentic
 
 The proposed solution will implement a new authentication mechanism on uyuni (named `cloudrmt`, for example) to deal with cloud RMT server authentication. With this approach we will be able to reuse the existing product/channel management features.
 
-### Implementation steps - Cloud RMT server access
+#### Implementation step - Cloud RMT server access
 
 To access the cloud RMT server uyuni server needs to know is IP address (which is not registered in DNS) and trust the server certificate.
 
@@ -123,11 +156,11 @@ Cloud RMT https certificate is also returned by the data extraction tool and on 
   - add the certificate to folder `/etc/pki/trust/anchors/<label>`
   - run command `update-ca-certificates`
 
-### Implementation steps - Register new pay-as-you-go repositories
+#### Implementation step - Register new pay-as-you-go repositories
 
 After we get all repositories information from the pay-as-you-go instance, for each repository we will need to:
 
-#### Find internal SUSE SCC repository ID
+##### Find internal SUSE SCC repository ID
 
 Repositories are identified by its URL. We can extract repository endpoint from pay-as-you-go machine and find the corresponding repository in Uyuni database. Note that the cloud RMT server have a url prefix `/repo/` which we need to remove before compare.
 
@@ -139,7 +172,7 @@ Query to be executed: `select id from susesccrepository where url like '%SUSE/Pr
 
 The query above will return the internal suse scc repository ID, to be used in next step.
 
-#### Insert repository authentication data
+##### Save repository authentication data
 
 - If not exists, add a new entry to table `susecredentials`, with the new authentication type `cloudrmt`, containing the repository basic authentication credentials.
   - URL: RMT server base URL
@@ -156,17 +189,15 @@ Example of RMT base URL:
 - Sub-string used to search repository on `susSccrespository` table: `/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
 - Repository base URL to save on `suseCredentials` table: `https://host/repo`
 
+## Add product
 
-### Implementation steps - Add product with setup wizard
+When a product is added in the setup wizard table `rhncontentsource` is populated according to the authentication mechanism defined in table `susesccrepositoryauth`. The url saved to `rhncontentsource` depends on the authentication method in use.
 
-When a product is added in the setup wizard table `rhncontentsource` is populated according to the authentication mechanism defined in table `susesccrepositoryauth` using the repository url defined in table `susesccrepository`.
+For the new `cloudrmt` authentication method the url should be composed as:
+- Concatenation of base URL from `suseCredentials` with the url path from `susesccrepository`
+- Authentication will use the same mechanism as basic authentication, where id of `suseCredentials` is passed as query string in the repository URL
 
-We need to adapt this feature to consider the new `cloudrmt` authentication mechanism. URL that will be inserted in `rhncontentsource` will have the following rules:
-  - Concatenation of base URL from `suseCredentials` with the url path from `susesccrepository`
-  - Authentication will use the same mechanism as basic authentication, where id of `suseCredentials` is passed as query string in the repository URL
-
-
-### Implementation steps - reposync
+## Teach reposync on how to use Cloud RMT authentication mechanism
 
 Reposync is already able to deal with the basic authentication mechanism. It receives the id of a `suseCredentials` record and loads the basic authentication data.
 This mechanism will be enhanced to consider also the new column with the authentication headers. The following changes need to be implemented:
@@ -178,25 +209,6 @@ This mechanism will be enhanced to consider also the new column with the authent
 
 Another mechanism for [authentication headers](https://github.com/uyuni-project/uyuni/pull/2136) is already in place which loads headers from a configuration file. We should analyze if it can be merged with the new implementation.
 
-
-### Implementation steps - Refresh repository authentication data
-
-RMT authentication data have a time to live (TTL). For this reason, we need to load new authentication data from the pay-as-you-go instance periodically. For that, a new taskomatic job needs to be defined to:
-  - Connect to pay-as-you-go instance and retrieve the authentication data
-  - Update existing data on Uyuni server
-
-
-## Manage ssh connection data to pay-as-you-go instance
-
-Since ssh connection data to pay-as-you-go instances are saved on Uyuni database a mechanism to manage it needs to be provided.
-Uyuni should have support to manage this data using the web UI or XML-RPC API.
-
-Supported operations:
-  - Remove ssh connection data
-    - Associated data in `suseCredentials` and `susesccrepositoryauth` should also be removed
-  - Update ssh connection data
-
-
 # Drawbacks
 [drawbacks]: #drawbacks
 
@@ -206,7 +218,7 @@ Supported operations:
 ## Uyuni/SUSE manager pay-as-you-go
 
 We could define a uyuni/suse manager pay-as-you-go image with access to all cloud RMT repositories.
-It would be possible to syncronize any product directly from cloud in a more simple and straightforward way.
+It would be possible to synchronize any product directly from cloud in a more simple and straightforward way.
 
 **Drawbacks:**
 - User will have access to repository and product he is not paying for.
