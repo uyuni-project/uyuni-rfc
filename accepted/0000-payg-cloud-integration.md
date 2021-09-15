@@ -40,13 +40,13 @@ The goal for this RFC is to propose a solution to simplify this process and allo
 [design]: #detailed-design
 
 Our solution will be based on the following steps:
-  - Manage pay-as-you-go ssh connections data saved on Uyuni
+  - Manage pay-as-you-go ssh connections data on Uyuni
     - Register pay-as-you-go ssh connections data
     - Update existing ssh connections data
     - Delete pay-as-you-go ssh connections data
   - Develop a new taskomatic task and job schedule to:
     - Retrieve repositories and authentication data from the pay-as-you-go instance
-    - Register repositories and authentication data on the database
+    - Register repositories and authentication data on Uyuni
   - Teach Uyuni reposync how cloud RMT authentication data to synchronize product repositories
 
 
@@ -54,14 +54,16 @@ With this solution the expected user flow would be:
   - Provide to Uyuni ssh information to connect to the pay-as-you-go instance
     - uyuni will save this information on the database
     - start a single job execution to synchronize repositories and cloud RMT authentication data
-    - product loaded from the pay-as-you-go instance will be displayed on the Products Setup Wizard after the task finishes
+    - product loaded from the pay-as-you-go instance will be available to import after the task finishes
   - Import product using existing "add products" feature (available at UI, API, and cmd)
     - reposync will be able to download all needed data from cloud RMT server
-  - Bootstrap instances using one of the existing methods
+  - Bootstrap instances using the existing methods
 
 ## Manage pay-as-you-go ssh connection data
 
-User should be able to register and manage ssh connection data to pay-as-you-go instances from where uyuni should extract repository information and authentication data. Users should be able to manage this data using the web UI or the XML-RPC API.
+User should be able to register and manage ssh connection data to pay-as-you-go instances.
+Connecting to those instances, uyuni should extract repository information and authentication data.
+Users should be able to manage ssh connection data using the web UI or the XML-RPC API.
 
 Supported operations:
   - Add new ssh connection data for pay-as-you-go
@@ -69,6 +71,7 @@ Supported operations:
   - Remove ssh connection data
     - Associated data in `suseCredentials` and `susesccrepositoryauth` should also be removed
   - Update ssh connection data
+  - List existing ssh connection data
 
 Data to be saved:
   - machine hostname
@@ -86,7 +89,8 @@ Data to be saved:
 
 ## Taskomatic task
 
-RMT authentication data have a time to live (TTL). For this reason, we need to load new authentication data from the pay-as-you-go instance periodically. For that, a new taskomatic job and schedule need to be developed to:
+RMT authentication data have a time to live (TTL). For this reason, we need refresh authentication data from the pay-as-you-go instance periodically.
+For that, a new taskomatic job and schedule need to be developed to:
   - Connect to pay-as-you-go instance and retrieve the authentication data
   - Update existing data on Uyuni server
 
@@ -95,14 +99,14 @@ Task schedule frequency is an implementation detail but it should cope with the 
 ### Retrieving authentication data from pay-as-you-go instance
 
 A script will be created which could be run on a pay-as-you-go instance to extract all needed data to access RMT repos the instance has access to.
-Data retrieved by the extraction tool:
+The returned data should be:
   - repository URL
   - authentication headers
   - HTTP authentication credential
   - RMT hosts name and IP address
   - RMT https certificate
 
-Uyuni will execute this script on the pay-as-you-go client via SSH and retrieved data will be in JSON format.
+Uyuni will execute this script on the pay-as-you-go client via SSH and retrieved data in JSON format.
 
 #### URL and authentication header
 Pay-as-you-go instances come with the `cloud-regionsrv-client` package, which provides a zypper plugin (`/usr/lib/zypp/plugins/urlresolver/susecloud`) that takes Cloud-specific crypto and configuration files from the instance and computes:
@@ -117,7 +121,7 @@ https://gist.github.com/moio/b064c1d8cb91a00fd4545f3625ee3911
 
 #### HTTP auth credentials
 Plain HTTP authentication credentials are required to access the repositories.
-Those credentials are stored in plain text `/etc/zypp/credentials.d/<repo_name>` and can simply be read by root.
+Those credentials are stored in plain text `/etc/zypp/credentials.d/<repo_name>` and can be read by root.
 
 #### RMT Server IP
 RMT server domain name are not registered in DNS server, and the IP is specified on the `/etc/hosts` file of the pay-as-you-go instance.
@@ -134,8 +138,6 @@ Uyuni should have support to receive the needed ssh parameters in the web UI (si
 SSH authentication with basic auth and client certificate should be possible.
 
 For this implementation we will use JSCH library, similar to what is being used in `SSHPushWorker` class.
-
-Ssh connection data to the pay-as-you-go instance will be saved on Uyuni database. This data is needed to refresh repository authentication data periodically.
 
 ### Store authentication data from pay-as-you-go instance
 
@@ -162,7 +164,7 @@ After we get all repositories information from the pay-as-you-go instance, for e
 
 ##### Find internal SUSE SCC repository ID
 
-Repositories are identified by its URL. We can extract repository endpoint from pay-as-you-go machine and find the corresponding repository in Uyuni database. Note that the cloud RMT server have a url prefix `/repo/` which we need to remove before compare.
+Repositories are identified by its URL. We can extract repository endpoint from pay-as-you-go machine and find the corresponding repository in Uyuni database. Note that the cloud RMT server have a url path have a prefix `/repo/` which we need to remove before compare.
 
 Example:
 - URL on pay-as-you-go instance: `https://host/repo/SUSE/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
@@ -191,7 +193,7 @@ Example of RMT base URL:
 
 ## Add product
 
-When a product is added in the setup wizard table `rhncontentsource` is populated according to the authentication mechanism defined in table `susesccrepositoryauth`. The url saved to `rhncontentsource` depends on the authentication method in use.
+When a product is added the table `rhncontentsource` is populated according to the authentication mechanism defined in table `susesccrepositoryauth`. The url saved to `rhncontentsource` depends on the authentication method in use.
 
 For the new `cloudrmt` authentication method the url should be composed as:
 - Concatenation of base URL from `suseCredentials` with the url path from `susesccrepository`
@@ -203,11 +205,9 @@ Reposync is already able to deal with the basic authentication mechanism. It rec
 This mechanism will be enhanced to consider also the new column with the authentication headers. The following changes need to be implemented:
   - Modify method [`_url_with_repo_credentials`](https://github.com/uyuni-project/uyuni/blob/master/backend/satellite_tools/reposync.py#L1785) to also load and return the http authentication headers from table `suseCredentials`
   - Enhance [repository plugins](https://github.com/uyuni-project/uyuni/tree/master/backend/satellite_tools/repo_plugins) to receive http headers
-  - Enhance reposync [zypper plugin](https://github.com/uyuni-project/uyuni/blob/master/backend/satellite_tools/spacewalk-extra-http-headers) to receive http header. We have two implementation options:
-    - Add http headers to zypper `.repo` file as extra field. Verify if the implementation is possible and doesn't impact zypper command.
-    - Write the headers to a temporary file in the same location of zypper `.repo` file
+  - Enhance reposync [zypper plugin](https://github.com/uyuni-project/uyuni/blob/master/backend/satellite_tools/spacewalk-extra-http-headers) to receive http header. Header will be written to a temporary file in the same location of zypper `.repo` file.
 
-Another mechanism for [authentication headers](https://github.com/uyuni-project/uyuni/pull/2136) is already in place which loads headers from a configuration file. We should analyze if it can be merged with the new implementation.
+Another mechanism for [authentication headers](https://github.com/uyuni-project/uyuni/pull/2136) is already in place which loads headers from a configuration file. We should cope with this implementation and merger header loaded form both locations.
 
 # Drawbacks
 [drawbacks]: #drawbacks
