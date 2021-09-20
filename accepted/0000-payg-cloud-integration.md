@@ -30,7 +30,7 @@ Presently, it is not possible to sync content from a SUSE-operated Cloud RMT Ser
   - an Uyuni Server does not know which repositories are served via such RMT Servers
   - an Uyuni Server does not know for which repos/products users are entitled for - which pay-as-you-go instances of which products they are running
 
-Since Uyuni cannot contact the cloud RMT servers the only option for users is to contact SUSE and get one SCC account which allows to synchronize content from the SCC CDN.
+Since Uyuni cannot contact the Cloud RMT servers the only option for users is to contact SUSE and get one SCC subscription which allows them to synchronize content from the SCC CDN.
 The process for this is not straightforward and adds excessive complexity to users and SUSE teams.
 
 The goal for this RFC is to propose a solution to simplify this process and allow Uyuni to synchronize content directly from RMT cloud servers in a user friendly way.
