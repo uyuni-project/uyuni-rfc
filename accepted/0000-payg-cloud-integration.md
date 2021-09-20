@@ -17,7 +17,7 @@ To check repository accessibility RMT Servers have plugins which use Cloud-speci
 # Motivation
 [motivation]: #motivation
 
-Uyuni needs to load repository data from external sources to provide it to the registered machines.
+Uyuni needs to load repository data from external sources to provide it to the registered clients.
 At the moment Uyuni can synchronize repositories from:
   - the SCC CDN
   - a plain RMT Server ("from-mirror setup", still requires connection to SCC)
