@@ -4,14 +4,14 @@
 # Summary
 [summary]: #summary
 
-In the three major Public Clouds (AWS, GCP and Azure), SUSE:
+In the three major public cloud providers (AWS, GCP and Azure), SUSE:
  - provides customized pay-as-you-go-specific product images (eg. SLES, SLES for SAP...)
  - operates per-region RMT Servers mirroring repositories for products available as pay-as-you-go
 
-Pay-as-you-go instances all come with Cloud-specific "tokens" that authorizes the specific instance to download specific products from SUSE-operated RMT Servers. Pay-as-you-go instances are registered to the closest RMT Server at launch time (region/Server name is auto-determined).
+Pay-as-you-go instances all come with public cloud-specific "tokens" that authorizes the specific instance to download specific products from SUSE-operated RMT Servers. Pay-as-you-go instances are registered to the closest RMT Server at launch time (region/Server name is auto-determined).
 
 At update time, a zypper plugin forwards such "token" to the RMT Server via custom headers.
-To check repository accessibility RMT Servers have plugins which use Cloud-specific internal APIs to check whether the "token" is valid and which products it is entitled to.
+To check repository accessibility RMT Servers have plugins which use public cloud-specific internal APIs to check whether the "token" is valid and which products it is entitled to.
 
 
 # Motivation
@@ -24,16 +24,16 @@ At the moment Uyuni server can synchronize repositories from:
   - a plain directory exported from an RMT Server ("disconnected setup")
   - a custom repository
 
-Presently, it is not possible to sync content from a SUSE-operated Cloud RMT Server, because:
+Presently, it is not possible to sync content from a SUSE-operated public cloud RMT Server, because:
   - an Uyuni Server does not come with "tokens" (unlike pay-as-you-go instances, see above)
   - an Uyuni Server does not know how to pass them to RMT Servers
   - an Uyuni Server does not know which repositories are served via such RMT Servers
   - an Uyuni Server does not know for which repos/products users are entitled for - which pay-as-you-go instances of which products they are running
 
-Since the Uyuni server cannot contact the Cloud RMT servers the only option for users is to contact SUSE and get one SCC subscription which allows them to synchronize content from the SCC CDN.
+Since the Uyuni server cannot contact the public cloud RMT servers the only option for users is to contact SUSE and get one SCC subscription which allows them to synchronize content from the SCC CDN.
 The process for this is not straightforward and adds excessive complexity to users and SUSE teams.
 
-The goal for this RFC is to propose a solution to simplify this process and allow Uyuni server to synchronize content directly from RMT Cloud servers in a self-serviceable way.
+The goal for this RFC is to propose a solution to simplify this process and allow Uyuni server to synchronize content directly from RMT public cloud servers in a self-serviceable way.
 
 
 # Detailed design
@@ -47,16 +47,16 @@ Our solution will be based on the following steps:
   - Develop a new taskomatic task and job schedule to:
     - Retrieve repositories and authentication data from the pay-as-you-go instance
     - Register repositories and authentication data on Uyuni server
-  - Teach Uyuni reposync how cloud RMT authentication data to synchronize product repositories
+  - Teach Uyuni reposync how public cloud RMT authentication data to synchronize product repositories
 
 
 With this solution the expected user flow would be:
   - Provide to Uyuni server ssh information to connect to the pay-as-you-go instance
     - uyuni server will save this information on the database
-    - start a single job execution to synchronize repositories and cloud RMT authentication data
+    - start a single job execution to synchronize repositories and public cloud RMT authentication data
     - product loaded from the pay-as-you-go instance will be available to import after the task finishes
   - Import product using existing "add products" feature (available at UI, API, and cmd)
-    - reposync will be able to download all needed data from cloud RMT server
+    - reposync will be able to download all needed data from public cloud RMT server
   - Bootstrap instances using the existing methods
 
 ## Manage pay-as-you-go ssh connection data
@@ -95,7 +95,7 @@ For that, a new taskomatic job and schedule need to be developed to:
   - Connect to pay-as-you-go instance and retrieve the authentication data
   - Update existing data on Uyuni server
 
-Task schedule frequency is an implementation detail but it should cope with the requirements of all cloud providers. For example, Azure cloud RMT tokens have a TTL of 20 minutes.
+Task schedule frequency is an implementation detail but it should cope with the requirements of all public cloud providers. For example, Azure public cloud, RMT tokens have a TTL of 20 minutes.
 
 ### Retrieving authentication data from pay-as-you-go instance
 
@@ -110,14 +110,14 @@ The returned data should be:
 The Uyuni server will execute this script on the pay-as-you-go client via SSH and retrieved data in JSON format.
 
 #### URL and authentication header
-Pay-as-you-go instances come with the `cloud-regionsrv-client` package, which provides a zypper plugin (`/usr/lib/zypp/plugins/urlresolver/susecloud`) that takes Cloud-specific crypto and configuration files from the instance and computes:
+Pay-as-you-go instances come with the `cloud-regionsrv-client` package, which provides a zypper plugin (`/usr/lib/zypp/plugins/urlresolver/susecloud`) that takes public cloud-specific crypto and configuration files from the instance and computes:
   - each repository full URL, including the hostname of the nearest RMT server
   - a special authentication header
 
 Since zypper plugins are standalone executables and communicate via a simple text protocol on stdin/stdout:
 https://github.com/openSUSE/zypp-plugin/blob/master/python/zypp_plugin.py
 
-we can call such a zypper plugin ("impersonating zypper") to compute URLs and headers in a trivial and cross-Cloud way.
+we can call such a zypper plugin ("impersonating zypper") to compute URLs and headers in a trivial and cross-cloud way.
 https://gist.github.com/moio/b064c1d8cb91a00fd4545f3625ee3911
 
 #### HTTP auth credentials
@@ -147,15 +147,15 @@ Uyuni server will create vendor channels for the pay-as-you-go integration. The 
 Uyuni server always gets all products meta information from SCC: which products exists and all repositories assigned.
 These products are only showed in the products setup wizard page if an authentication mechanism for the repositories is available, meaning users have access to it.
 
-The proposed solution will implement a new authentication mechanism on uyuni server (named `cloudrmt`, for example) to deal with cloud RMT server authentication. With this approach we will be able to reuse the existing product/channel management features.
+The proposed solution will implement a new authentication mechanism on uyuni server (named `cloudrmt`, for example) to deal with public cloud RMT server authentication. With this approach we will be able to reuse the existing product/channel management features.
 
-#### Implementation step - Cloud RMT server access
+#### Implementation step - Public cloud RMT server access
 
-To access the cloud RMT server uyuni server needs to know is IP address (which is not registered in DNS) and trust the server certificate.
+To access the public cloud RMT server uyuni server needs to know is IP address (which is not registered in DNS) and trust the server certificate.
 
-The current Public Cloud setup requires changing `/etc/hosts` to reach the correct RMT server. This might not be possible if ever Uyuni server is delivered as containers. In the context of this RFC implementation we will follow the same approach a update `/etc/hosts` on Uyuni server.
+The current public cloud setup requires changing `/etc/hosts` to reach the correct RMT server. This might not be possible if ever Uyuni server is delivered as containers. In the context of this RFC implementation we will follow the same approach a update `/etc/hosts` on Uyuni server.
 
-Cloud RMT https certificate is also returned by the data extraction tool and on uyuni server we need to:
+Public cloud RMT https certificate is also returned by the data extraction tool and on uyuni server we need to:
   - add the certificate to folder `/etc/pki/trust/anchors/<label>`
   - run command `update-ca-certificates`
 
@@ -165,7 +165,7 @@ After we get all repository information from the pay-as-you-go instance, for eac
 
 ##### Find internal SUSE SCC repository ID
 
-Repositories are identified by its URL. We can extract repository endpoint from pay-as-you-go machine and find the corresponding repository in Uyuni database. Note that the cloud RMT server have a url path have a prefix `/repo/` which we need to remove before compare.
+Repositories are identified by its URL. We can extract repository endpoint from pay-as-you-go machine and find the corresponding repository in Uyuni database. Note that the public cloud RMT server have a url path have a prefix `/repo/` which we need to remove before compare.
 
 Example:
 - URL on pay-as-you-go instance: `https://host/repo/SUSE/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
@@ -186,7 +186,7 @@ The query above will return the internal suse scc repository ID, to be used in n
   - source_id: null
   - auth_type: `cloudrmt`
 
-We also need to save the repository base URL in `suseCredentials` table. URL from table `susesccrepository` is pointing to SCC and we need to connect to the RMT cloud servers. For that we need to save URL prefix, including hostname.
+We also need to save the repository base URL in `suseCredentials` table. URL from table `susesccrepository` is pointing to SCC and we need to connect to the RMT public cloud servers. For that we need to save URL prefix, including hostname.
 Example of RMT base URL:
 - URL on pay-as-you-go instance: `https://host/repo/SUSE/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
 - Sub-string used to search repository on `susSccrespository` table: `/Products/SLE-Module-Basesystem/15-SP2/x86_64/product/`
@@ -203,7 +203,7 @@ For the new `cloudrmt` authentication method the url should be composed as:
 In case of multiple options authentication options are available we will need to select one to be used.
 By default, uyuni server should select SCC CDN out of reliability concerns.
 
-## Teach reposync on how to use Cloud RMT authentication mechanism
+## Teach reposync on how to use public cloud RMT authentication mechanism
 
 Reposync is already able to deal with the basic authentication mechanism. It receives the id of a `suseCredentials` record and loads the basic authentication data.
 This mechanism will be enhanced to consider also the new column with the authentication headers. The following changes need to be implemented:
@@ -216,24 +216,24 @@ Another mechanism for [authentication headers](https://github.com/uyuni-project/
 # Drawbacks
 [drawbacks]: #drawbacks
 
-* The current Public Cloud setup requires changing `/etc/hosts` to reach the correct RMT server. This can be a problem if Uyuni server is deliver as container in the future.
+* The current public cloud setup requires changing `/etc/hosts` to reach the correct RMT server. This can be a problem if Uyuni server is deliver as container in the future.
 
 # Alternatives
 [alternatives]: #alternatives
 
 ## Uyuni/SUSE manager pay-as-you-go
 
-We could define a uyuni/suse manager pay-as-you-go server image with access to all cloud RMT repositories.
-It would be possible to synchronize any product directly from cloud in a more simple and straightforward way.
+We could define a uyuni/suse manager pay-as-you-go server image with access to all public cloud RMT repositories.
+It would be possible to synchronize any product directly from public cloud in a more simple and straightforward way.
 
 **Drawbacks:**
 - User will have access to repository and product he is not paying for.
-- Will not be suitable for scenarios were Uyuni server is on-premise but managing cloud instances
+- Will not be suitable for scenarios were Uyuni server is on-premise but managing public cloud instances
 
 ## Reposync only metadata
 
 Change reposync and SCC to allow metadata access without SCC account to load repositories metadata.
-Pay-as-you-go client could download data from cloud RMT server directly.
+Pay-as-you-go client could download data from public cloud RMT server directly.
 This will be a huge change, not sure if it is even possible to all providers.
 Possible security impact of having repository metadata publicly accessible.
 
