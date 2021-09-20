@@ -160,7 +160,7 @@ Cloud RMT https certificate is also returned by the data extraction tool and on 
 
 #### Implementation step - Register new pay-as-you-go repositories
 
-After we get all repositories information from the pay-as-you-go instance, for each repository we will need to:
+After we get all repository information from the pay-as-you-go instance, for each repository we will need to:
 
 ##### Find internal SUSE SCC repository ID
 
