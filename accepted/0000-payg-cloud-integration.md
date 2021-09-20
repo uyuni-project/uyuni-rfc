@@ -222,7 +222,7 @@ It would be possible to synchronize any product directly from cloud in a more si
 
 **Drawbacks:**
 - User will have access to repository and product he is not paying for.
-- Will not be suitable for scenarios were Uyuni is on-perm but managing cloud instances
+- Will not be suitable for scenarios were Uyuni is on-premise but managing cloud instances
 
 ## Reposync only metadata
 
