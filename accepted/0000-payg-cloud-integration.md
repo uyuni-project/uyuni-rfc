@@ -200,6 +200,9 @@ For the new `cloudrmt` authentication method the url should be composed as:
 - Concatenation of base URL from `suseCredentials` with the url path from `susesccrepository`
 - Authentication will use the same mechanism as basic authentication, where id of `suseCredentials` is passed as query string in the repository URL
 
+In case of multiple options authentication options are available we will need to select one to be used.
+By default, uyuni server should select SCC CDN out of reliability concerns.
+
 ## Teach reposync on how to use Cloud RMT authentication mechanism
 
 Reposync is already able to deal with the basic authentication mechanism. It receives the id of a `suseCredentials` record and loads the basic authentication data.
@@ -241,5 +244,3 @@ Possible security impact of having repository metadata publicly accessible.
   - Possible approach is remove the affected cloudrmt auth configs from the Server. Channels will be kept with all the existing content and assigned server will still see it. But no new updates will added to the channels.
 
 - Should we have a UI showing all the pay-as-you-go authentications registered and allow user to remove existing ones?
-
-- In case of multiple options, what should be preferred? I think it also depends on where Uyuni Server is running. If it is running in the cloud, the local RMT servers should be preferred, while if the Server is running outside of the Cloud, SCC should be preferred.
