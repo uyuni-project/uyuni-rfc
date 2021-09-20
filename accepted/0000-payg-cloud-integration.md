@@ -17,8 +17,8 @@ To check repository accessibility RMT Servers have plugins which use Cloud-speci
 # Motivation
 [motivation]: #motivation
 
-Uyuni needs to load repository data from external sources to provide it to the registered clients.
-At the moment Uyuni can synchronize repositories from:
+The Uyuni server needs to load repository data from external sources to provide it to the registered clients.
+At the moment Uyuni server can synchronize repositories from:
   - the SCC CDN
   - a plain RMT Server ("from-mirror setup", still requires connection to SCC)
   - a plain directory exported from an RMT Server ("disconnected setup")
@@ -30,29 +30,29 @@ Presently, it is not possible to sync content from a SUSE-operated Cloud RMT Ser
   - an Uyuni Server does not know which repositories are served via such RMT Servers
   - an Uyuni Server does not know for which repos/products users are entitled for - which pay-as-you-go instances of which products they are running
 
-Since Uyuni cannot contact the Cloud RMT servers the only option for users is to contact SUSE and get one SCC subscription which allows them to synchronize content from the SCC CDN.
+Since the Uyuni server cannot contact the Cloud RMT servers the only option for users is to contact SUSE and get one SCC subscription which allows them to synchronize content from the SCC CDN.
 The process for this is not straightforward and adds excessive complexity to users and SUSE teams.
 
-The goal for this RFC is to propose a solution to simplify this process and allow Uyuni to synchronize content directly from RMT Cloud servers in a self-serviceable way.
+The goal for this RFC is to propose a solution to simplify this process and allow Uyuni server to synchronize content directly from RMT Cloud servers in a self-serviceable way.
 
 
 # Detailed design
 [design]: #detailed-design
 
 Our solution will be based on the following steps:
-  - Manage pay-as-you-go ssh connections data on Uyuni
+  - Manage pay-as-you-go ssh connections data on Uyuni server
     - Register pay-as-you-go ssh connections data
     - Update existing ssh connections data
     - Delete pay-as-you-go ssh connections data
   - Develop a new taskomatic task and job schedule to:
     - Retrieve repositories and authentication data from the pay-as-you-go instance
-    - Register repositories and authentication data on Uyuni
+    - Register repositories and authentication data on Uyuni server
   - Teach Uyuni reposync how cloud RMT authentication data to synchronize product repositories
 
 
 With this solution the expected user flow would be:
-  - Provide to Uyuni ssh information to connect to the pay-as-you-go instance
-    - uyuni will save this information on the database
+  - Provide to Uyuni server ssh information to connect to the pay-as-you-go instance
+    - uyuni server will save this information on the database
     - start a single job execution to synchronize repositories and cloud RMT authentication data
     - product loaded from the pay-as-you-go instance will be available to import after the task finishes
   - Import product using existing "add products" feature (available at UI, API, and cmd)
@@ -62,7 +62,7 @@ With this solution the expected user flow would be:
 ## Manage pay-as-you-go ssh connection data
 
 User should be able to register and manage ssh connection data to pay-as-you-go instances.
-Connecting to those instances, uyuni should extract repository information and authentication data.
+Connecting to those instances, uyuni server should extract repository information and authentication data.
 Users should be able to manage ssh connection data using the web UI or the XML-RPC API.
 
 Supported operations:
@@ -107,7 +107,7 @@ The returned data should be:
   - RMT hosts name and IP address
   - RMT https certificate
 
-Uyuni will execute this script on the pay-as-you-go client via SSH and retrieved data in JSON format.
+The Uyuni server will execute this script on the pay-as-you-go client via SSH and retrieved data in JSON format.
 
 #### URL and authentication header
 Pay-as-you-go instances come with the `cloud-regionsrv-client` package, which provides a zypper plugin (`/usr/lib/zypp/plugins/urlresolver/susecloud`) that takes Cloud-specific crypto and configuration files from the instance and computes:
@@ -135,25 +135,25 @@ We can load the certificate from `/usr/share/pki/trust/anchors/registration_serv
 ### Remotely run data extraction script
 
 Uyuni sever should open an ssh connection to the pay-as-you-go machine, execute the data extraction script, and retrieve the result in JSON format.
-Uyuni should have support to receive the needed ssh parameters in the web UI (similar to the system bootstrap page) or via the XML-RPC API.
+Uyuni server should have support to receive the needed ssh parameters in the web UI (similar to the system bootstrap page) or via the XML-RPC API.
 SSH authentication with basic auth and client certificate should be possible.
 
 For this implementation we will use JSCH library, similar to what is being used in `SSHPushWorker` class.
 
 ### Store authentication data from pay-as-you-go instance
 
-Uyuni will create vendor channels for the pay-as-you-go integration. The advantage would be that if such vendor channels had the correct channel label, then mgr-sync would link them to the appropriate products at next `mgr-sync` time, allowing CVE Audit, Product Migration and other features requiring correct product data to work correctly.
+Uyuni server will create vendor channels for the pay-as-you-go integration. The advantage would be that if such vendor channels had the correct channel label, then mgr-sync would link them to the appropriate products at next `mgr-sync` time, allowing CVE Audit, Product Migration and other features requiring correct product data to work correctly.
 
-Uyuni always gets all products meta information from SCC: which products exists and all repositories assigned.
+Uyuni server always gets all products meta information from SCC: which products exists and all repositories assigned.
 These products are only showed in the products setup wizard page if an authentication mechanism for the repositories is available, meaning users have access to it.
 
-The proposed solution will implement a new authentication mechanism on uyuni (named `cloudrmt`, for example) to deal with cloud RMT server authentication. With this approach we will be able to reuse the existing product/channel management features.
+The proposed solution will implement a new authentication mechanism on uyuni server (named `cloudrmt`, for example) to deal with cloud RMT server authentication. With this approach we will be able to reuse the existing product/channel management features.
 
 #### Implementation step - Cloud RMT server access
 
 To access the cloud RMT server uyuni server needs to know is IP address (which is not registered in DNS) and trust the server certificate.
 
-The current Public Cloud setup requires changing `/etc/hosts` to reach the correct RMT server. This might not be possible if ever Uyuni is delivered as containers. In the context of this RFC implementation we will follow the same approach a update `/etc/hosts` on Uyuni server.
+The current Public Cloud setup requires changing `/etc/hosts` to reach the correct RMT server. This might not be possible if ever Uyuni server is delivered as containers. In the context of this RFC implementation we will follow the same approach a update `/etc/hosts` on Uyuni server.
 
 Cloud RMT https certificate is also returned by the data extraction tool and on uyuni server we need to:
   - add the certificate to folder `/etc/pki/trust/anchors/<label>`
@@ -223,12 +223,12 @@ Another mechanism for [authentication headers](https://github.com/uyuni-project/
 
 ## Uyuni/SUSE manager pay-as-you-go
 
-We could define a uyuni/suse manager pay-as-you-go image with access to all cloud RMT repositories.
+We could define a uyuni/suse manager pay-as-you-go server image with access to all cloud RMT repositories.
 It would be possible to synchronize any product directly from cloud in a more simple and straightforward way.
 
 **Drawbacks:**
 - User will have access to repository and product he is not paying for.
-- Will not be suitable for scenarios were Uyuni is on-premise but managing cloud instances
+- Will not be suitable for scenarios were Uyuni server is on-premise but managing cloud instances
 
 ## Reposync only metadata
 
