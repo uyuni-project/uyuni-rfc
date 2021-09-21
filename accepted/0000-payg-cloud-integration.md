@@ -39,6 +39,10 @@ The goal for this RFC is to propose a solution to simplify this process and allo
 # Detailed design
 [design]: #detailed-design
 
+To be able to contact public cloud RMT server the uyuni server needs to collect authentication data from an existing pay-as-you-go instance.
+For that uyuni server needs to ssh into the instance.
+Since this authentication data have a time to live, uyuni server needs to extract it periodically, and for this reason the uyuni server needs to store ssh connection data.
+
 Our solution will be based on the following steps:
   - Manage pay-as-you-go ssh connections data on Uyuni server
     - Register pay-as-you-go ssh connections data
