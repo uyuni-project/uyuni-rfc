@@ -21,7 +21,7 @@ It is believed implementing Proxy containerization will surface a subset of comm
 ## Delivery
   - Proxy is delivered as one container
     - Updates are delivered via new images on a public Registry
-  - Documentation is produced to describe how this container can be run on popular conainer runtimes: [docker](https://docs.docker.com/engine/reference/commandline/cli/) and [podman](https://podman.io/)
+  - Documentation is produced to describe how this container can be run on popular container runtimes: [docker](https://docs.docker.com/engine/reference/commandline/cli/) and [podman](https://podman.io/)
   - A minimal [Helm](https://helm.sh/) chart is delivered and tested against [k3s](https://k3s.io/)
 
 ## Onboarding
