@@ -63,7 +63,7 @@ It is believed implementing Proxy containerization will surface a subset of comm
   - base image will be Leap 15.3
   - API/UI will need the following data to add a Proxy:
     - FQDN
-    - http proxy hostname, username and password (optional, default from [ProxySettingsManager.getProxySettings()](https://github.com/uyuni-project/uyuni/blob/b7cf9270cc1c5edd9c15fa1217e280d645bfcef9/java/code/src/com/redhat/rhn/manager/setup/ProxySettingsManager.java#L42))
+    - optional details of a plain http proxy to reach the Server (FQDN, username and password)
     - choice for the SSL cert: generated or bring-your-own-certificate
       1. if generated: [CNAMEs](https://en.wikipedia.org/wiki/CNAME_record), Common Name, Organization, OU, City, State, Country Code, e-mail, Password
       2. if bring-your-own-certificate: nothing (with an explaination on where the files need to be placed should be displayed)
