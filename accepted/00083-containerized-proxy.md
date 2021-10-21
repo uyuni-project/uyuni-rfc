@@ -34,10 +34,14 @@ It is believed implementing Proxy containerization will surface a subset of comm
     - Proxy container needs the configuration directory to be mounted as a volume. After start, it is fully connected and operational
 
 ## Operating
-  - Container will expose Salt (4505/4506) and https (443) ports
+  - Container will expose the following ports:
+    - TCP 4505 and TCP 4506: Salt zeromq
+    - TCP 80: http, for clients to download packages (during automated installations)
+    - TCP 443: https, for clients to download packages, repository metadata, etc.
+    - UDP 69: tftp, for clients to perform PXE (network) boot
   - Container will mount volumes:
     - one with the configuration directory
-    - one with cached content (`/var/cache/squid/`, `/var/cache/rhn`)
+    - one with cached content (`/var/cache/squid/`, `/var/cache/rhn`, `/srv/tftpboot`)
     - one with log files (`/var/log/apache2`, `/var/log/squid`, `salt-broker` log)
   - Proxy Containers can be started/stopped/exchanged - as long as the configuration directory stays the same the Proxy identity, history and functionality will be preserved. Optionally, the cached content directory can also be preserved for optimal performance
   - Creating bootstrap scripts from containerized Proxies will not be possible. `mgr-bootstrap --hostname=$PROXY_NAME` from the Server will still be possible
@@ -55,11 +59,16 @@ It is believed implementing Proxy containerization will surface a subset of comm
 
 ## Later steps
   - add Salt SSH support
-  - enable the use of "configuration directories" for VM Proxies as well
   - Retail Branch Server: to be defined in a separate RFC
+  - add support for Apache and Squid Prometheus exporters for monitoring
+  - enable the use of "configuration directories" for VM Proxies as well
 
 ## Other details
-  - Container image includes Apache, Proxy-specific Python WSGI applications and `salt-broker`
+  - Container image includes:
+    - Apache `httpd`, together with Proxy-specific Python WSGI applications
+    - `salt-broker`
+    - `tftpd`
+    - an `init` process such as [s6](https://github.com/just-containers/s6-overlay) to [forward termination signals correctly](https://petermalmgren.com/signal-handling-docker/) and to [reap zombie processes](https://stackoverflow.com/questions/49162358/docker-init-zombies-why-does-it-matter)
   - base image will be Leap 15.3
   - API/UI will need the following data to add a Proxy:
     - FQDN
@@ -68,6 +77,7 @@ It is believed implementing Proxy containerization will surface a subset of comm
       1. if generated: [CNAMEs](https://en.wikipedia.org/wiki/CNAME_record), Common Name, Organization, OU, City, State, Country Code, e-mail, Password
       2. if bring-your-own-certificate: nothing (with an explaination on where the files need to be placed should be displayed)
       3. no SSL termination: nothing (with an explanation on having to provide termination via other means)
+    - checkbox to optionally configure the proxy for [tftpsync](https://github.com/uyuni-project/uyuni/blob/master/tftpsync/susemanager-tftpsync/configure-tftpsync.sh) ([docs](https://www.uyuni-project.org/uyuni-docs/en/uyuni/installation/uyuni-proxy-setup.html#proxy.pxe.sync))
   - Building of the image will happen in the Build Service, by and large leveraging existing packages
 
 # Drawbacks
@@ -78,7 +88,13 @@ It is believed implementing Proxy containerization will surface a subset of comm
 # Alternatives
 [alternatives]: #alternatives
 
- - Proxy could be split into more containers, according to the microservices pattern. This would make deployment and operations more complex, and no significant benefits have been highlighted so far
+  - Proxy could be split into more containers, according to the microservices pattern.
+    - con: this would make deployment and operations more complex
+    - pro: individual images would be smaller, resulting in less network load on updates
+    - pro: it might not need an `init` process
+    - pro: in k8s environments, it is recommended for containers to have all their logs to standard output (in order to use native tools for log processing and aggregation). Having one process per container makes it more likely that no log files are actually needed
+    - pro: in k8s environments, it is recommended that containers start quickly. Having one process per container makes it more likely for the service in it to be ready more quickly
+    - pro: in k8s environments, it is customary to set per-container memory limits. Having one process per container makes setting a value easier
 
 
 # Unresolved questions
