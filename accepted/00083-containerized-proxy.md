@@ -19,11 +19,15 @@ It is believed implementing Proxy containerization will surface a subset of comm
 [design]: #detailed-design
 
 ## Delivery
-  - Proxy is delivered as one container
-    - Updates are delivered via new images on a public Registry
-  - A [podman](https://podman.io/)-based systemd unit for easy execution on distros which support podman (note that [podman supports generation of units which "wrap" containers](https://www.redhat.com/sysadmin/podman-shareable-systemd-services))
-  - A minimal [Helm](https://helm.sh/) chart, tested against [k3s](https://k3s.io/), for Kubernetes environments
-  - Minimal documentation to execute on [docker](https://docs.docker.com/engine/reference/commandline/cli/)
+  - Proxy is delivered as four containers:
+    1. Apache `httpd` and Proxy-specific Python WSGI applications
+    2. Squid
+    3. `salt-broker`
+    4. `tftpd`
+  - Updates are delivered via new images on a public Registry
+  - [podman](https://podman.io/)-based systemd units are provided for orchestation on distros which support podman (note that [podman supports generation of units which "wrap" containers](https://www.redhat.com/sysadmin/podman-shareable-systemd-services))
+  - A minimal [Helm](https://helm.sh/) chart, tested against [k3s](https://k3s.io/), is provided for Kubernetes environments
+  - Minimal documentation to execute on [docker](https://docs.docker.com/engine/reference/commandline/cli/) is also provided
 
 ## Onboarding
   - Containerized Proxy is not a managed client, does not run `salt-minion`, is not registered in the usual way
@@ -32,18 +36,38 @@ It is believed implementing Proxy containerization will surface a subset of comm
       - Normal client actions (package management, configuration file management...) will not be available on that System
       - Proxy-specific Server UI/API functionality, like showing the list of attached clients, will be available like on regular Proxies
     - for each such System, the Server generates a tarball ("configuration directory") that can be downloaded
-    - Proxy container needs the configuration directory to be mounted as a volume. After start, it is fully connected and operational
+    - Proxy containers need the configuration directory to be mounted as a volume. After start, it is fully connected and operational
 
 ## Operating
-  - The following ports will be exposed:
-    - TCP 4505 and TCP 4506: Salt zeromq
-    - TCP 80: http, for clients to download packages (during automated installations)
-    - TCP 443: https, for clients to download packages, repository metadata, etc.
-    - UDP 69: tftp, for clients to perform PXE (network) boot
-  - The following volumes will be mounted:
-    - one with the configuration directory
-    - one with cached content (`/var/cache/squid/`, `/var/cache/rhn`, `/srv/tftpboot`)
-    - one with log files (`/var/log/apache2`, `/var/log/squid`, `salt-broker` log)
+  1. Apache `httpd` and Proxy-specific Python WSGI applications container
+    - The following ports will be exposed:
+      - TCP 80: http, for clients to download packages (during automated installations)
+      - TCP 443: https, for clients to download packages, repository metadata, etc.
+    - The following volumes will be mounted:
+      - one with the configuration directory
+      - one with cached content (`/var/cache/rhn`, `/srv/tftpboot`)
+      - one with log files (`/var/log/apache2`)
+  2. Squid
+    - The following ports will be exposed:
+      - TCP 8080: http, used by the Apache `httpd` container only
+    - The following volumes will be mounted:
+      - one with the configuration directory
+      - one with cached content (`/var/cache/squid/`)
+      - one with log files (`/var/log/squid`)
+  3. `salt-broker`
+    - The following ports will be exposed:
+      - TCP 4505 and TCP 4506: Salt zeromq
+    - The following volumes will be mounted:
+      - one with the configuration directory
+      - logs will be sent to standard output (requires patching `salt-broker`)
+  4. `tftpd`
+    - The following ports will be exposed:
+      - UDP 69: tftp
+    - The following volumes will be mounted:
+      - one with the configuration directory
+      - one with cached content to serve (`/srv/tftpboot`, read-only)
+      - logs will be sent to standard output
+
   - Proxy Containers can be started/stopped/exchanged - as long as the configuration directory stays the same the Proxy identity, history and functionality will be preserved. Optionally, the cached content directory can also be preserved for optimal performance.
     - note that `cobbler sync` will need a new execution from the Server for refreshing `/srv/tftpboot`
   - Creating bootstrap scripts from containerized Proxies will not be possible. `mgr-bootstrap --hostname=$PROXY_NAME` from the Server will still be possible
@@ -66,12 +90,7 @@ It is believed implementing Proxy containerization will surface a subset of comm
   - enable the use of "configuration directories" for VM Proxies as well
 
 ## Other details
-  - Container image includes:
-    - Apache `httpd`, together with Proxy-specific Python WSGI applications
-    - `salt-broker`
-    - `tftpd`
-    - an `init` process such as [s6](https://github.com/just-containers/s6-overlay) to [forward termination signals correctly](https://petermalmgren.com/signal-handling-docker/) and to [reap zombie processes](https://stackoverflow.com/questions/49162358/docker-init-zombies-why-does-it-matter)
-  - base image will be Leap 15.3
+  - base image for all containers will be Leap 15.3
   - API/UI will need the following data to add a Proxy:
     - FQDN
     - optional details of a plain http proxy to reach the Server (FQDN, username and password)
@@ -90,13 +109,13 @@ It is believed implementing Proxy containerization will surface a subset of comm
 # Alternatives
 [alternatives]: #alternatives
 
-  - Proxy could be split into more containers, according to the microservices pattern.
-    - con: this would make deployment and operations more complex
-    - pro: individual images would be smaller, resulting in less network load on updates
-    - pro: it might not need an `init` process
-    - pro: in k8s environments, it is recommended for containers to have all their logs to standard output (in order to use native tools for log processing and aggregation). Having one process per container makes it more likely that no log files are actually needed
-    - pro: in k8s environments, it is recommended that containers start quickly. Having one process per container makes it more likely for the service in it to be ready more quickly
-    - pro: in k8s environments, it is customary to set per-container memory limits. Having one process per container makes setting a value easier
+  - Proxy could be delivered as one "system container".
+    - pro: deployment is easier
+    - con: the one image will be bigger, resulting in more network load on updates
+    - con: it might need an `init` process
+    - con: in k8s environments, it is recommended for containers to have all their logs to standard output (in order to use native tools for log processing and aggregation). Having multiple process per container makes it more likely this is not possible and file-based solutions are needed instead
+    - con: in k8s environments, it is recommended that containers start quickly. Having multiple process per container makes it more likely for the service in it to take more time to be ready
+    - con: in k8s environments, it is customary to set per-container memory limits. Having multiple process per container makes setting a value more difficult
 
 
 # Unresolved questions
