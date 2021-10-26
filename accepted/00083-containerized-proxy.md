@@ -4,14 +4,14 @@
 # Summary
 [summary]: #summary
 
-Deliver Proxy as a container application.
+Deliver Proxy as a containerized application.
 
 # Motivation
 [motivation]: #motivation
 
 There are deployment scenarios in which adding a new Virtual Machine to implement Proxy functionality is cumbersome or impossible, while leveraging an existing container runtime cold be an easier option, especially in highly distributed ("Edge") environments.
 
-Having the option of deploying Proxy functionality as a container can be easier to operate (eg. deployment, independence from underlying OS, keeping up to date) and more flexible (eg. implementing active/passive HA by leveraging an existing Kubernetes environment).
+Having the option of deploying Proxy functionality as containers can be easier to operate (eg. deployment, independence from underlying OS, keeping up to date) and more flexible (eg. implementing active/passive HA by leveraging an existing Kubernetes environment).
 
 It is believed implementing Proxy containerization will surface a subset of common problems and solutions also useful to implement a containerized Server in future.
 
@@ -21,8 +21,9 @@ It is believed implementing Proxy containerization will surface a subset of comm
 ## Delivery
   - Proxy is delivered as one container
     - Updates are delivered via new images on a public Registry
-  - Documentation is produced to describe how this container can be run on popular container runtimes: [docker](https://docs.docker.com/engine/reference/commandline/cli/) and [podman](https://podman.io/)
-  - A minimal [Helm](https://helm.sh/) chart is delivered and tested against [k3s](https://k3s.io/)
+  - A [podman](https://podman.io/)-based systemd unit for easy execution on distros which support podman (note that [podman supports generation of units which "wrap" containers](https://www.redhat.com/sysadmin/podman-shareable-systemd-services))
+  - A minimal [Helm](https://helm.sh/) chart, tested against [k3s](https://k3s.io/), for Kubernetes environments
+  - Minimal documentation to execute on [docker](https://docs.docker.com/engine/reference/commandline/cli/)
 
 ## Onboarding
   - Containerized Proxy is not a managed client, does not run `salt-minion`, is not registered in the usual way
@@ -34,16 +35,17 @@ It is believed implementing Proxy containerization will surface a subset of comm
     - Proxy container needs the configuration directory to be mounted as a volume. After start, it is fully connected and operational
 
 ## Operating
-  - Container will expose the following ports:
+  - The following ports will be exposed:
     - TCP 4505 and TCP 4506: Salt zeromq
     - TCP 80: http, for clients to download packages (during automated installations)
     - TCP 443: https, for clients to download packages, repository metadata, etc.
     - UDP 69: tftp, for clients to perform PXE (network) boot
-  - Container will mount volumes:
+  - The following volumes will be mounted:
     - one with the configuration directory
     - one with cached content (`/var/cache/squid/`, `/var/cache/rhn`, `/srv/tftpboot`)
     - one with log files (`/var/log/apache2`, `/var/log/squid`, `salt-broker` log)
-  - Proxy Containers can be started/stopped/exchanged - as long as the configuration directory stays the same the Proxy identity, history and functionality will be preserved. Optionally, the cached content directory can also be preserved for optimal performance
+  - Proxy Containers can be started/stopped/exchanged - as long as the configuration directory stays the same the Proxy identity, history and functionality will be preserved. Optionally, the cached content directory can also be preserved for optimal performance.
+    - note that `cobbler sync` will need a new execution from the Server for refreshing `/srv/tftpboot`
   - Creating bootstrap scripts from containerized Proxies will not be possible. `mgr-bootstrap --hostname=$PROXY_NAME` from the Server will still be possible
   - SSL certificates can be handled in three ways:
     1. using the same CA as the Server, as generated at Server installation time. A new SSL certificate for the Proxy is generated at "configuration tarball" creation time. This will be the default option
