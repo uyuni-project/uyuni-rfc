@@ -46,14 +46,14 @@ It is believed implementing Proxy containerization will surface a subset of comm
     - The following volumes will be mounted:
       - one with the configuration directory
       - one with cached content (`/var/cache/rhn`, `/srv/tftpboot`)
-      - one with log files (`/var/log/apache2`)
+      - logs will be sent to standard output/error ([like the official image does](https://github.com/docker-library/httpd/blob/cab17d54f9e0070c672326a555996d94922b486e/2.4/Dockerfile#L203-L205))
   2. Squid
     - The following ports will be exposed:
       - TCP 8080: http, used by the Apache `httpd` container only
     - The following volumes will be mounted:
       - one with the configuration directory
       - one with cached content (`/var/cache/squid/`)
-      - one with log files (`/var/log/squid`)
+      - logs will be sent to standard output/error (see above)
   3. `salt-broker`
     - The following ports will be exposed:
       - TCP 4505 and TCP 4506: Salt zeromq
