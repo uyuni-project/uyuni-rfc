@@ -55,7 +55,7 @@ It is believed implementing Proxy containerization will surface a subset of comm
 ## Limitations
   - Only ZeroMQ Salt clients are supported
   - No monitoring functionality
-  - No SLP functionality
+  - No [SLP](https://en.wikipedia.org/wiki/Service_Location_Protocol) functionality
   - Traceback emails are not sent
   - `rhn_package_manager` is not present nor supported
 
