@@ -9,7 +9,7 @@ Deliver Proxy as a containerized application.
 # Motivation
 [motivation]: #motivation
 
-There are deployment scenarios in which adding a new Virtual Machine to implement Proxy functionality is cumbersome or impossible, while leveraging an existing container runtime cold be an easier option, especially in highly distributed ("Edge") environments.
+There are deployment scenarios in which adding a new Virtual Machine to implement Proxy functionality is cumbersome or impossible, while leveraging an existing container runtime could be an easier option, especially in highly distributed ("Edge") environments.
 
 Having the option of deploying Proxy functionality as containers can be easier to operate (eg. deployment, independence from underlying OS, keeping up to date) and more flexible (eg. implementing active/passive HA by leveraging an existing Kubernetes environment).
 
