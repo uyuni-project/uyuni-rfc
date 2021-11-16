@@ -90,7 +90,7 @@ It is believed implementing Proxy containerization will surface a subset of comm
   - enable the use of "configuration directories" for VM Proxies as well
 
 ## Other details
-  - base image for all containers will be Leap 15.3
+  - base image for all containers will be SLE 15 SP3 BCI
   - API/UI will need the following data to add a Proxy:
     - FQDN
     - optional details of a plain http proxy to reach the Server (FQDN, username and password)
