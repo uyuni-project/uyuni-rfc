@@ -20,19 +20,19 @@ If possible, the data should also be usable on a single Uyuni Server with the sa
 # Detailed design
 [design]: #detailed-design
 
-The data should be made available in a postgresql database. We considered using other database types,
+The data should be made available in a PostgreSQL database. We considered using other database types,
 but the increased maintenance effort for new packages and limited knowledge about NoSQL databases
-let us stay with the good well known postresql database.
-Also postgresql seems to be accepted in most Reporting tools as datasource, while NoSQL databases
+let us stay with the good well known PostgreSQL database.
+Also PostgreSQL seems to be accepted in most Reporting tools as data source, while NoSQL databases
 are not supported, or only via standard DBMS modules. Native support was rarely available.
 
 ## The Database
 We design for the possibility to use an external DB for the reporting, while in the default setup
-we consider to use the available postgresql server on Uyuni. We will use a different database name
+we consider to use the available PostgreSQL server on Uyuni. We will use a different database name
 and login data.
 The database needs to be made available on the network to either connect with the reporting tool
 or with the Hub to gather the data.
-The connection should be secured with SSL using the certficiates we configure anyway for Uyuni Server.
+The connection should be secured with SSL using the certificates we configure anyway for Uyuni Server.
 If possible the connection to the main Uyuni DB from the outside should be forbidden.
 
 The database schema on the Uyuni Server and the Hub should be the same.
@@ -55,7 +55,7 @@ A ready-to-use report can be provided with views doing joins over multiple table
 No foreign keys should be used to make data update and refreshing easier and independent from the order
 of the tables.
 
-Every table gets an extra column for the uyuni server id of server which provide the data. On a single
+Every table gets an extra column for the Uyuni server id of server which provide the data. On a single
 Uyuni Server this is a standard value `1` which represent "localhost". On the Hub it will be replaced
 with the real server id the managed server has in the hub database.
 
@@ -81,7 +81,7 @@ is a requirement.
 
 On the Uyuni Hub we have an additional taskomatic job which collect the data from all the managed
 Uyuni Server and insert them into the Hub Reporting Database which could be again an external DB.
-We must parallelize the jobs to be able to gather the data from all Servers even in a large environemnt.
+We must parallelize the jobs to be able to gather the data from all Servers even in a large environment.
 The goal is to get the data from 1000 Servers in maximal 3 hours.
 
 The database schema on the Hub and the Uyuni Servers might differ as not all server might be updated
@@ -109,14 +109,23 @@ Why should we **not** do this?
 [alternatives]: #alternatives
 
 - SQL or NoSQL DB?
-  - Reporting tools often support postgresql directly why we could not find a similar good support
+  - Reporting tools often support PostgreSQL directly why we could not find a similar good support
     for NoSQL databases
   - very limited knowledge in NoSQL makes it hard to decide for a technology we do not know
-  - use case seems better to fit of SQL (based on a very limted knowledge about NoSQL databases)
-  - no obvious killerfeatures provided by NoSQL which we want to use
+  - use case seems better to fit of SQL (based on a very limited knowledge about NoSQL databases)
+  - no obvious killer features provided by NoSQL which we want to use
 
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- localization for reporting data?
+- Is implementation in Java with Hibernate possible and fast enough for
+  * filling the report table in a single Server?
+  * to collect the data from multiple single Servers and insert them into the Hub DB?
+
+- should we use the same tooling for the DB schema as we use for the main Uyuni Schema?
+
+- where and how to configure the connection parameters for the reporting database
+  * on a single Server ?
+  * on the Hub for every managed single Server?
+
