@@ -72,10 +72,13 @@ reporting database as the traditional stack will be deprecated soon.
 
 On an Uyuni Server a taskomatic job is responsible to fetch and prepare the data from the main Uyuni
 Database and insert them into the Reporting Database.
-The job should be written that Uyuni and Reporting Database could be on different Hosts.
+The job should be written in a way, that Uyuni and Reporting Database could be on different Hosts.
 
 Keeping the code which insert the data into the reporting DB in sync with the Reporting Database Schema
 is a requirement.
+
+Implementing a taskomatic simple java job should be sufficient as we need only one task which run at a
+certain point in time.
 
 ## Collecting Data on the Hub
 
@@ -93,6 +96,8 @@ at the same point in time. To support schema differences we should:
   Only columns which are available on both sides will be synchronized. Columns available only on the Hub will
   stay empty. Columns only available on the Uyuni Server will not be exported.
 
+Implementing this as a taskomatic QueueJob could be an option. The Queue Job is started and collect a list
+of candidates. A number of parallel workers can be specified to connect to every single server instance.
 
 
 # Drawbacks
