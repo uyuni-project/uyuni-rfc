@@ -43,8 +43,11 @@ database. The management tools should support
 - Simple User management
 
 The default setup create a Read/Write Admin User to manage the database and write the data from the
-main Uyuni Database into the Reporting DB.
+main Uyuni Database into the Reporting DB. This user and the DB connection parameters are written into
+`/etc/rhn/rhn.conf` similar to the default DB options.
+
 A User created for a reporting tool or for Uyuni Hub to gather the data should be a Read-Only user.
+
 
 ## The Database Schema
 
@@ -99,6 +102,14 @@ at the same point in time. To support schema differences we should:
 Implementing this as a taskomatic QueueJob could be an option. The Queue Job is started and collect a list
 of candidates. A number of parallel workers can be specified to connect to every single server instance.
 
+## Account management on the Hub for the Reporting Databases of the managed Servers
+
+The Hub should create its own user on the Reporting Databases of the single Servers.
+As the Servers are managed with salt, we will write a state to create an account.
+
+The username and password are generated on the Hub and provided as pillar data.
+On the server the state take care of the existance of the account and the Hub can store the paramaters
+in its database under the system entry. 
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -132,5 +143,10 @@ Why should we **not** do this?
 
 - where and how to configure the connection parameters for the reporting database
   * on a single Server ?
+    - The R/W account should be in `/etc/rhn/rhn.conf` like the other DB account
   * on the Hub for every managed single Server?
+    - As the Hub "manages" the single Servers, it should create an own Read-only account
+      and store it in its DB under the system item.
+
+
 
