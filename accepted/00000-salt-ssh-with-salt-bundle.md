@@ -9,10 +9,10 @@ Use Salt Bundle to handle Salt-SSH sessions on managed system side.
 # Motivation
 [motivation]: #motivation
 
-As the Python 2 gets deprecated and out of support and some of the supported Linux systems still has no proper Python 3 version supported by Salt, we need to have a way to process Salt-SSH events on managed system side.
+Due to the deprecation of Python 2 and dropping support of it, while some of supported Linux systems still has no proper Python 3 version supported by Salt, we need to have a way to process Salt-SSH events on managed system side.
 
-We can deploy Salt Bundle with bundled Python inside the virtual environment and handle all the Salt-SSH events using Salt Bundle and make Salt-SSH independent from Python on the managed system.
-Additionally the list of working modules will be extended as Salt Bundle contains binary python modules required by some of Salt modules.
+We can deploy Salt Bundle with bundled Python inside the virtual environment and handle all the Salt-SSH events using Salt Bundle with making Salt-SSH independent from Python on the managed system.
+Additionally we are extending the list of working modules as Salt Bundle contains binary python modules required by some of Salt modules.
 
 This approach will help us to limit the number of supported versions of Salt codebase and drop `py26-compat-salt`, `py27-compat-salt` and all Python 2 dependencies maintenance.
 
@@ -21,17 +21,19 @@ This approach will help us to limit the number of supported versions of Salt cod
 
 ## Uyuni roster
 
-Uyuni roster module is used to provide roster data instead of creating flat roster files with Java. Java change to move all the logic to Uyuni roster: https://github.com/uyuni-project/uyuni/pull/4457
+We can use Uyuni roster module to provide roster data instead of creating flat roster files with Java. PR moving the logic to Uyuni roster on Java side: https://github.com/uyuni-project/uyuni/pull/4457
 
 ## Pre flight script
 
-Pre flight script is used to detect OS and architecture to get proper Salt Bundle from the package available with bootstrap repository.
+Salt can execute a shell script on the salt-ssh client before the "real salt-ssh execution" starts. This script downloads the salt-bundle package from the appropriate bootstrap repository and extracts the virtual environment.
+
+The "Pre flight script" calculates the bootstrap repository URL in a similar manner to the existing boostrap.sh script, based on the operating system and OS architecture of the system it is executed on. It requires one parameter from the Uyuni server: (host, port) (entry point) for SSH connections through tunnels.
 
 By-default there is no way to pass additional parameters to pre fligt script running on the managed system. We need to pass the entry point (host and port) to get bootstrap repository from. The salt codebase need to be modified to pass additional parameters, otherwise we have to generate pre flight script individually for each managed system.
 
 ## Deploying Salt Bundle to the managed system
 
-We don't need to install Salt Bundle package on the managed system. Only virtual environment of the bundle need to be extracted from the package. It can be done with pre flight script.
+We don't need to install Salt Bundle package on the managed system. We need to extract the virtual environment of the bundle from the package. Pre flight script is deploying it as secribed above.
 
 ## Using proper salt codebase
 
@@ -41,15 +43,15 @@ On deploying Salt Bundle with pre flight script, without modification salt-thin 
 [drawbacks]: #drawbacks
 
   * Salt Bundle consumes more space than salt-thin on managed system
-  * One more additional script required to run on managed system (pre flight script)
-  * Requires an access to the bootstrap repository (salt-thin is deployed with ssh, no http(s) connection needed for salt-ssh)
-  * Few changes required in salt codebase
+  * Salt is creating additional SSH connection to run the pre flight script 
+  * Pre flight script requires an access to the bootstrap repository (salt-thin is deployed with ssh, no http(s) connection needed for salt-ssh)
+  * We need to modify salt codebase to handle Salt Bundle the proper way
 
 # Alternatives
 [alternatives]: #alternatives
 
 - Prepare Salt Bundle for each OS and architecture on the Server, but it just make pre flight script bit smaller, the overall complexity is higher due to the bunch of additional changes on server side.
-- With not doing this the systems having Python 2 or not having Python at all can't be managed with Salt-SSH and bootstrapped with web UI
+- With not doing this the systems having not having sufficient Python version can't be managed with Salt-SSH and bootstrapped with web UI
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
