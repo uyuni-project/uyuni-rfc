@@ -26,30 +26,16 @@ let us stay with the good well known PostgreSQL database.
 Also PostgreSQL seems to be accepted in most Reporting tools as data source, while NoSQL databases
 are not supported, or only via standard DBMS modules. Native support was rarely available.
 
-## The Database
-We design for the possibility to use an external DB for the reporting, while in the default setup
-we consider to use the available PostgreSQL server on Uyuni. We will use a different database name
-and login data.
-The database needs to be made available on the network to either connect with the reporting tool
-or with the Hub to gather the data.
-The connection should be secured with SSL using the certificates we configure anyway for Uyuni Server.
+### The Database
+The main database is a PostgresDB in the hub system (but in the future it will be possible to 
+use also an external db): it stores all the information collected from all the server, and eventually
+aggregates them. Other databases with the same schema are also present in all the server, to collect 
+information for that system.
+The hub database needs to be made available on the network to either connect in a secure way (using the SSL
+certificates provided by Uyuni Server) with the reporting tool or with the Hub to gather the data. 
 If possible the connection to the main Uyuni DB from the outside should be forbidden.
 
-The database schema on the Uyuni Server and the Hub should be the same.
-We provide a new package to setup the reporting DB schema and tools to setup and manage the reporting
-database. The management tools should support
-- Database setup and schema initialization
-- Database schema migration
-- Simple User management
-
-The default setup create a Read/Write Admin User to manage the database and write the data from the
-main Uyuni Database into the Reporting DB. This user and the DB connection parameters are written into
-`/etc/rhn/rhn.conf` similar to the default DB options.
-
-A User created for a reporting tool or for Uyuni Hub to gather the data should be a Read-Only user.
-
-
-## The Database Schema
+### The Database Schema
 
 The schema should export the most important tables from the main Uyuni Database as a slightly de-normalized
 variant containing only data which are relevant for a report.
@@ -70,12 +56,42 @@ from the main Uyuni Server database.
 Data which belong to the traditional stack only (like osad status) should not be made available in the
 reporting database as the traditional stack will be deprecated soon.
 
+## Installation
+The reporting tools will be installed by default; all the upgrade to a newer version, will install the 
+reporting tools as well.
 
-## Adding Data to the Reporting DB
+We provide a new package installed in the hub system:
+- to setup the reporting DB schema,
+- to setup and manage the reporting database,
+- to setup and manage the DB in all Uyuni Server.
+
+The management tools should support:
+- Database setup and schema initialization
+- Database schema migration
+- Simple User management. The default setup will create two users:
+  * a Read/Write user, to manage the database and write the data from the main Uyuni Database into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
+  * a Read-Only user, used by the reporting tools for gathering information from the hub database.
+The package will also setup a taskomatic job to retrieve informations from all the other SUSE Manager Server
+database.
+All the other information required (e.g. Uyuni Server info) will be retrieved by already existing configuration.
+
+### Account management on the Hub for the Reporting Databases of the managed Servers
+
+During installtion, hub should create its own user on the Reporting Databases of the single Servers.
+As the Servers are managed with salt, we will write a state to create an account.
+
+The username and password are generated on the Hub and provided as pillar data.
+On the server the state take care of the existance of the account and the Hub can store the paramaters
+in its database under the system entry. 
+
+## Workflow
+
+### Adding Data to the Reporting DB
 
 On an Uyuni Server a taskomatic job is responsible to fetch and prepare the data from the main Uyuni
-Database and insert them into the Reporting Database.
-The job should be written in a way, that Uyuni and Reporting Database could be on different Hosts.
+Database and insert them into the Reporting Database. The infomation will be stored in a local DB and
+collected by Uyuni Hub.
+The job should be written in a way, that Uyuni Hub and Reporting Database could be on different Hosts.
 
 Keeping the code which insert the data into the reporting DB in sync with the Reporting Database Schema
 is a requirement.
@@ -83,7 +99,7 @@ is a requirement.
 Implementing a taskomatic simple java job should be sufficient as we need only one task which run at a
 certain point in time.
 
-## Collecting Data on the Hub
+### Collecting Data on the Hub
 
 On the Uyuni Hub we have an additional taskomatic job which collect the data from all the managed
 Uyuni Server and insert them into the Hub Reporting Database which could be again an external DB.
@@ -101,15 +117,6 @@ at the same point in time. To support schema differences we should:
 
 Implementing this as a taskomatic QueueJob could be an option. The Queue Job is started and collect a list
 of candidates. A number of parallel workers can be specified to connect to every single server instance.
-
-## Account management on the Hub for the Reporting Databases of the managed Servers
-
-The Hub should create its own user on the Reporting Databases of the single Servers.
-As the Servers are managed with salt, we will write a state to create an account.
-
-The username and password are generated on the Hub and provided as pillar data.
-On the server the state take care of the existance of the account and the Hub can store the paramaters
-in its database under the system entry. 
 
 # Drawbacks
 [drawbacks]: #drawbacks
