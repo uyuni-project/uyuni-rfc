@@ -63,7 +63,7 @@ reporting tools as well.
 We provide a new package installed in the hub system:
 - to setup the reporting DB schema,
 - to setup and manage the reporting database,
-- to setup and manage the DB in all Uyuni Server.
+- to setup and manage DBs in all Uyuni Server.
 
 The management tools should support:
 - Database setup and schema initialization
