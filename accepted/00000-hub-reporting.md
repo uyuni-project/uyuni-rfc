@@ -86,7 +86,7 @@ in its database under the system entry.
 
 ## Workflow
 
-### Adding Data to the Reporting DB
+### Uyuni Server: retrieve and organize Data
 
 On an Uyuni Server a taskomatic job is responsible to fetch and prepare the data from the main Uyuni
 Database and insert them into the Reporting Database. The infomation will be stored in a local DB and
@@ -99,7 +99,7 @@ is a requirement.
 Implementing a taskomatic simple java job should be sufficient as we need only one task which run at a
 certain point in time.
 
-### Collecting Data on the Hub
+### Uyuni Hub: Collecting Data on the Hub
 
 On the Uyuni Hub we have an additional taskomatic job which collect the data from all the managed
 Uyuni Server and insert them into the Hub Reporting Database which could be again an external DB.
