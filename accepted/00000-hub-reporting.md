@@ -97,7 +97,7 @@ in its database under the system entry.
 On an Uyuni Server a taskomatic job is responsible to fetch and prepare the data from the main Uyuni
 Database and insert them into the Reporting Database. The infomation will be stored in a local DB and
 collected by Uyuni Hub.
-The job should be written in a way, that Uyuni Hub and Reporting Database could be on different Hosts.
+The job should be written in a way, that the Reporting Database could be on different Host.
 
 Keeping the code which insert the data into the reporting DB in sync with the Reporting Database Schema
 is a requirement.
