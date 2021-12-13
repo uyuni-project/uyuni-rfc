@@ -72,12 +72,10 @@ All the other information required (e.g. Uyuni Server info) will be retrieved by
 ### Database management: setup and account
 
 #### Uyuni Hub
-The management tools should support:
+On the hub side, the management tools should support:
 - Database setup and schema initialization
 - Database schema migration
-- Simple User management. The default setup will create two users:
-  * a Read/Write user, to manage the database and write the data from into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
-  * a Read-Only user, used by the reporting tools for gathering information from the hub database.
+- Simple User management. The default setup will create a Read/Write user, to manage the database and write the data from into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
 
 #### Uyuni Server
 On the server side, during installation, hub should create its own read-only user on the Reporting Databases of the single Servers. 
@@ -121,6 +119,16 @@ at the same point in time. To support schema differences we should:
 
 Implementing this as a taskomatic QueueJob could be an option. The Queue Job is started and collect a list
 of candidates. A number of parallel workers can be specified to connect to every single server instance.
+
+### Show data on reporting tool
+In order to use the data stored in the hub and/or in the servers as a datasource for external reporting tools,
+the admin should create a read-only user to query information from DBs.
+
+## Documentation
+Documentation will cover:
+- reporting tool architecture
+- user creation/management
+- ...
 
 # Drawbacks
 [drawbacks]: #drawbacks
