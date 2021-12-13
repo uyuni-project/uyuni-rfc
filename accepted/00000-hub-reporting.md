@@ -89,7 +89,7 @@ in its database under the system entry.
 
 ## Workflow
 
-### Uyuni Server: retrieve and organize Data
+#### Uyuni Server: retrieve and organize Data
 
 On an Uyuni Server a taskomatic job is responsible to fetch and prepare the data from the main Uyuni
 Database and insert them into the Reporting Database. The infomation will be stored in a local DB and
@@ -102,13 +102,14 @@ is a requirement.
 Implementing a taskomatic simple java job should be sufficient as we need only one task which run at a
 certain point in time.
 
-### Uyuni Hub: Collecting Data on the Hub
+#### Uyuni Hub: Collecting Data on the Hub
 
 On the Uyuni Hub we have an additional taskomatic job which collect the data from all the managed
 Uyuni Server and insert them into the Hub Reporting Database which could be again an external DB.
 We must parallelize the jobs to be able to gather the data from all Servers even in a large environment.
 The goal is to get the data from 1000 Servers in maximal 3 hours.
 
+### Consistency during upgrade
 The database schema on the Hub and the Uyuni Servers might differ as not all server might be updated
 at the same point in time. To support schema differences we should:
 
