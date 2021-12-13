@@ -46,7 +46,7 @@ Pre flight script is deploying it as described above.
 
 ## Using proper salt codebase
 
-On deploying Salt Bundle with pre flight script, without modification salt-thin deployment, we will get two different codebases of salt deployed on the managed system (one codebase is from salt bundle package for the OS+arch and the other one is from salt-master delivered with salt-thin tarball).
+On deploying Salt Bundle with pre flight script, without modification salt-thin (`salt-thin` is a tarball with salt codebase created by the server to deploy salt on salt-ssh managed system: https://docs.saltproject.io/en/latest/ref/runners/all/salt.runners.thin.html) deployment, we will get two different codebases of salt deployed on the managed system (one codebase is from salt bundle package for the OS+arch and the other one is from salt-master delivered with salt-thin tarball).
 As the sources of these two codebases are different (update channel of the Server and client tools relevant for the system) these codebases are not in sync.
 We can prevent deploying salt-thin in case if Salt Bundle has been deployed already and use it as preferred salt codebase to handle salt-ssh session with on managed system side.
 In most cases the client tools channels are updating more frequently than the server and for the minions (not salt-ssh systems) we are using the salt codebase from client tools, it's better to use Salt Bundle codebase for salt-ssh systems.
@@ -69,3 +69,5 @@ In most cases the client tools channels are updating more frequently than the se
 [unresolved]: #unresolved-questions
 
 - The way to update Salt Bundle used for Salt-SSH on the managed system and validate it (cases when we need to redeploy it).
+  It can be easily solved with including sha256 to `venv-enabled-ARCH.txt` in the root of bootstrap repo. Now we are only checking for the presence of the file, but we can also include the hash of the `venv-salt-minion` package there and check it with the pre flight script to check if we need to update the bundle on the managed system.
+  But it doesn't check the consistency of the deployed codebase.
