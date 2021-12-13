@@ -27,13 +27,18 @@ Also PostgreSQL seems to be accepted in most Reporting tools as data source, whi
 are not supported, or only via standard DBMS modules. Native support was rarely available.
 
 ### The Database
-The main database is a PostgresDB in the hub system (but in the future it will be possible to 
+The main database is a PostgresDB in the Uyuni Hub system (but in the future it will be possible to 
 use also an external db): it stores all the information collected from all the server, and eventually
 aggregates them. Other databases with the same schema are also present in all the server, to collect 
 information for that system.
-The hub database needs to be made available on the network to either connect in a secure way (using the SSL
-certificates provided by Uyuni Server) with the reporting tool or with the Hub to gather the data. 
+All the databases (in the Uyuni Hub and in all Uyuni Server) needs to be made available on the network to either connect in a secure way (using the SSL
+certificates provided by Uyuni Server) with the reporting tool or (for Uyuni Server) with the Hub to gather the data. 
 If possible the connection to the main Uyuni DB from the outside should be forbidden.
+In summary:
+- DB in Uyuni Hub stores, collects and eventually aggregates data coming from all the DB in Uyuni Server,
+- DB in Uyuni Server stores it own data,
+- The reporting tool can be connected either to the Hub or to any Uyuni Server,
+- all connections are secure.
 
 ### The Database Schema
 
