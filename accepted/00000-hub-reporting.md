@@ -65,7 +65,7 @@ reporting database as the traditional stack will be deprecated soon.
 The reporting tools will be installed by default; all the upgrade to a newer version, will install the 
 reporting tools as well.
 
-We provide a new package installed in the hub system:
+We provide a new package:
 - to setup the reporting DB schema,
 - to setup and manage the reporting database,
 - to setup and manage DBs in all Uyuni Server.
