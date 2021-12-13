@@ -56,7 +56,7 @@ from the main Uyuni Server database.
 Data which belong to the traditional stack only (like osad status) should not be made available in the
 reporting database as the traditional stack will be deprecated soon.
 
-## Installation
+# Installation
 The reporting tools will be installed by default; all the upgrade to a newer version, will install the 
 reporting tools as well.
 
@@ -69,15 +69,15 @@ The package will also setup a taskomatic job to retrieve informations from all t
 database.
 All the other information required (e.g. Uyuni Server info) will be retrieved by already existing configuration.
 
-### Database management: setup and account
+## Database management: setup and account
 
-#### Uyuni Hub
+### Uyuni Hub
 On the hub side, the management tools should support:
 - Database setup and schema initialization
 - Database schema migration
 - Simple User management. The default setup will create a Read/Write user, to manage the database and write the data from into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
 
-#### Uyuni Server
+### Uyuni Server
 On the server side, during installation, hub should create its own read-only user on the Reporting Databases of the single Servers. 
 This user is used by the hub to read data from the Uyuni Server DB.
 As the Servers are managed with salt, we will write a state to create an account.
@@ -87,7 +87,7 @@ in its database under the system entry.
 
 ## Workflow
 
-#### Uyuni Server: retrieve and organize Data
+### Uyuni Server: retrieve and organize Data
 
 On an Uyuni Server a taskomatic job is responsible to fetch and prepare the data from the main Uyuni
 Database and insert them into the Reporting Database. The infomation will be stored in a local DB and
@@ -100,14 +100,14 @@ is a requirement.
 Implementing a taskomatic simple java job should be sufficient as we need only one task which run at a
 certain point in time.
 
-#### Uyuni Hub: Collecting Data on the Hub
+### Uyuni Hub: Collecting Data on the Hub
 
 On the Uyuni Hub we have an additional taskomatic job which collect the data from all the managed
 Uyuni Server and insert them into the Hub Reporting Database which could be again an external DB.
 We must parallelize the jobs to be able to gather the data from all Servers even in a large environment.
 The goal is to get the data from 1000 Servers in maximal 3 hours.
 
-### Consistency during upgrade
+## Consistency during upgrade
 The database schema on the Hub and the Uyuni Servers might differ as not all server might be updated
 at the same point in time. To support schema differences we should:
 
@@ -120,11 +120,11 @@ at the same point in time. To support schema differences we should:
 Implementing this as a taskomatic QueueJob could be an option. The Queue Job is started and collect a list
 of candidates. A number of parallel workers can be specified to connect to every single server instance.
 
-### Show data on reporting tool
+## Show data on reporting tool
 In order to use the data stored in the hub and/or in the servers as a datasource for external reporting tools,
 the admin should create a read-only user to query information from DBs.
 
-## Documentation
+# Documentation
 Documentation will cover:
 - reporting tool architecture
 - user creation/management
