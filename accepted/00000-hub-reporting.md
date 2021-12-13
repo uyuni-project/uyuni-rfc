@@ -65,6 +65,13 @@ We provide a new package installed in the hub system:
 - to setup and manage the reporting database,
 - to setup and manage DBs in all Uyuni Server.
 
+The package will also setup a taskomatic job to retrieve informations from all the other SUSE Manager Server
+database.
+All the other information required (e.g. Uyuni Server info) will be retrieved by already existing configuration.
+
+### Database management: setup and account
+
+#### Uyuni Hub
 The management tools should support:
 - Database setup and schema initialization
 - Database schema migration
@@ -72,16 +79,10 @@ The management tools should support:
   * a Read/Write user, to manage the database and write the data from into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
   * a Read-Only user, used by the reporting tools for gathering information from the hub database.
 
-The package will also setup a taskomatic job to retrieve informations from all the other SUSE Manager Server
-database.
-All the other information required (e.g. Uyuni Server info) will be retrieved by already existing configuration.
-
-### Account management on the Hub for the Reporting Databases of the managed Servers
-
-During installtion, hub should create its own read/only user on the Reporting Databases of the single Servers. 
+#### Uyuni Server
+On the server side, during installation, hub should create its own read-only user on the Reporting Databases of the single Servers. 
 This user is used by the hub to read data from the Uyuni Server DB.
 As the Servers are managed with salt, we will write a state to create an account.
-
 The username and password are generated on the Hub and provided as pillar data.
 On the server the state take care of the existance of the account and the Hub can store the parameters
 in its database under the system entry. 
