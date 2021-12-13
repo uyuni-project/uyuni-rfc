@@ -69,7 +69,7 @@ The management tools should support:
 - Database setup and schema initialization
 - Database schema migration
 - Simple User management. The default setup will create two users:
-  * a Read/Write user, to manage the database and write the data from the Uyuni Server Database into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
+  * a Read/Write user, to manage the database and write the data from into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
   * a Read-Only user, used by the reporting tools for gathering information from the hub database.
 
 The package will also setup a taskomatic job to retrieve informations from all the other SUSE Manager Server
@@ -78,11 +78,12 @@ All the other information required (e.g. Uyuni Server info) will be retrieved by
 
 ### Account management on the Hub for the Reporting Databases of the managed Servers
 
-During installtion, hub should create its own user on the Reporting Databases of the single Servers.
+During installtion, hub should create its own read/only user on the Reporting Databases of the single Servers. 
+This user is used by the hub to read data from the Uyuni Server DB.
 As the Servers are managed with salt, we will write a state to create an account.
 
 The username and password are generated on the Hub and provided as pillar data.
-On the server the state take care of the existance of the account and the Hub can store the paramaters
+On the server the state take care of the existance of the account and the Hub can store the parameters
 in its database under the system entry. 
 
 ## Workflow
