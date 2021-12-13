@@ -69,7 +69,7 @@ The package will also setup a taskomatic job to retrieve informations from all t
 database.
 All the other information required (e.g. Uyuni Server info) will be retrieved by already existing configuration.
 
-## Database management: setup and account
+## Database management: setup and user management
 
 ### Uyuni Hub
 On the hub side, the management tools should support:
