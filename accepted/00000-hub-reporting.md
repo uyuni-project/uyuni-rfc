@@ -71,6 +71,7 @@ The management tools should support:
 - Simple User management. The default setup will create two users:
   * a Read/Write user, to manage the database and write the data from the main Uyuni Database into the Reporting DB. This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
   * a Read-Only user, used by the reporting tools for gathering information from the hub database.
+
 The package will also setup a taskomatic job to retrieve informations from all the other SUSE Manager Server
 database.
 All the other information required (e.g. Uyuni Server info) will be retrieved by already existing configuration.
