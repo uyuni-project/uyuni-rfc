@@ -69,5 +69,9 @@ In most cases the client tools channels are updating more frequently than the se
 [unresolved]: #unresolved-questions
 
 - The way to update Salt Bundle used for Salt-SSH on the managed system and validate it (cases when we need to redeploy it).
-  It can be easily solved with including sha256 to `venv-enabled-ARCH.txt` in the root of bootstrap repo. Now we are only checking for the presence of the file, but we can also include the hash of the `venv-salt-minion` package there and check it with the pre flight script to check if we need to update the bundle on the managed system.
+  It can be easily solved with including sha256 to `venv-enabled-ARCH.txt` in the root of bootstrap repo.
+  Now we are only checking for the presence of the file, but we can also include the hash of the `venv-salt-minion` package there and check it with the pre flight script to check if we need to update the bundle on the managed system.
   But it doesn't check the consistency of the deployed codebase.
+- Testing need to be adopted somehow. The suggested solution is using Salt Bundle package `venv-salt-minion` from the bootstrap repo relevant for the managed system, and gets the file name of the package from `venv-enabled-ARCH.txt` at the root of the bootstrap repo, while testing environment has no bootstrap repos generated on the server.
+  Without pointing the correct package Salt-SSH system will be tested with salt-thin and it's not correct in context of using Salt Bundle for Salt-SSH
+
