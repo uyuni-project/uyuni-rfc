@@ -61,7 +61,22 @@ Indexes should be set on the typical columns which might be searched for.
 Data which belong to the traditional stack only (like osad status) should not be made available in the
 reporting database as the traditional stack will be deprecated soon.
 
-A detailed Database schema is not part of this RFC.
+#### Schema example
+A detailed database schema is not part of this RFC, but as an example, the data related to servers could be 
+denormalized and presented in the reporting database in the following way:
+
+![Server schema example](images/hub-reporting/server-example.png)
+
+This data structure can be used to extract the pieces of information that are currently available through the reports:
+
+- inventory
+- inactive systems
+- hosts/guests
+- system profile
+
+This existing reports can be provided in the new schema as views, ready to be consumed. In addition, the user will
+have the possibility to extract the pieces of information he needs by querying the data directly from the tables and
+combining them as needed.
 
 # Installation
 The reporting tools will be installed by default; all the upgrade to a newer version, will install the 
