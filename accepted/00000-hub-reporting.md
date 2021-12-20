@@ -9,7 +9,7 @@ Design and implement the infrastructure for a central reporting on Uyuni Hub.
 # Motivation
 [motivation]: #motivation
 
-In a Uyuni Hub scenario we have the Hub to prepare and provide content for multiple other Uyuni Servers.
+In a Uyuni Hub scenario we have the Hub to prepare and provide content for multiple peripheral Uyuni Servers.
 The goal is now to get data from these Servers back and have combined reporting data available on the Hub.
 
 The data should be made available for external Reporting Tools.
@@ -28,16 +28,17 @@ are not supported, or only via standard DBMS modules. Native support was rarely 
 
 ### The Database
 The main database is a PostgresDB in the Uyuni Hub system (but in the future it will be possible to 
-use also an external db): it stores all the information collected from all the server, and eventually
-aggregates them. Other databases with the same schema are also present in all the server, to collect 
+use also an external db): it stores all the information collected from all the servers, and eventually
+aggregates them. Other databases with the same schema are also present in all the servers, to collect 
 information for that system.
 All the databases (in the Uyuni Hub and in all Uyuni Server) needs to be made available on the network to either connect in a secure way (using the SSL
 certificates provided by Uyuni Server) with the reporting tool or (for Uyuni Server) with the Hub to gather the data. 
 If possible the connection to the main Uyuni DB from the outside should be forbidden.
 In summary:
-- DB in Uyuni Hub stores, collects and eventually aggregates data coming from all the DB in Uyuni Server,
-- DB in Uyuni Server stores it own data,
-- The reporting tool can be connected either to the Hub or to any Uyuni Server,
+- the DB in Uyuni Hub stores, collects and eventually aggregates data coming from all the DBs of the peripheral Servers,
+- the DB in Uyuni Hub stores also its own data - data from the systems directly connected and managed by the Hub,
+- the DB in peripheral Uyuni Server stores its own data,
+- the reporting tool can be connected either to the Hub or to any Uyuni Server,
 - all connections are secure.
 
 ### The Database Schema
@@ -95,10 +96,10 @@ The default setup will create a Read/Write user, to manage the database and writ
 This user and the DB connection parameters are written into `/etc/rhn/rhn.conf` similar to the default DB options.
 
 ## Initial Setup
-Uyuni Hub should create its own read-only user on the Reporting Databases of the single Servers.
-As the Servers are managed with salt, we will write a state to create an account.
+Uyuni Hub should create its own read-only user on the Reporting Databases of the peripheral Servers.
+As the peripheral Servers are managed with salt, we will write a state to create an account.
 The username and password are generated on the Hub and provided as pillar data.
-On the server the state take care of the existence of the account and the Hub
+On the peripheral server the state take care of the existence of the account and the Hub
 can store the parameters in its database under the system entry.
 
 This account does not need to be stored in plain text on the managed Server and can be kept only on the Hub.
@@ -119,17 +120,25 @@ is a requirement.
 Implementing a taskomatic simple java job should be sufficient as we need only one task which run at a
 certain point in time.
 
+We will create Views in the main Uyuni Database which prepare the data. The job should just query all and insert
+the data into the reporting DB. We will get schema errors in case the schema of the main Uyuni Database change.
+
 As we design this feature to be ready to use an external database for reporting, we do not use materialized views.
 
 ## Scheduled job: collect remote data
-We also have an additional taskomatic job which collect the data from all the managed
+We also have an additional taskomatic job which collect the data from all peripheral
 Uyuni servers and insert them into the Hub Reporting Database which could be
 again an external DB.
 We must parallelize the jobs to be able to gather the data from all Servers even in a large environment.
 The goal is to get the data from 1000 Servers in maximal 3 hours.
 
 The job get the list of candidates from the Hub Database including the user and connection paramaters to the
-reporting databases of the managed Uyuni Servers.
+reporting databases of the peripheral Uyuni Servers.
+
+The reporting DB does not use own ID columns with own sequences. To keep things simple we will
+remove all rows for the Uyuni Server identified by its `mgm_id` and insert all which we get new from the it.
+In case we see performance problems we need to re-think this approach and need to implement a more inteligent
+mechanism.
 
 ## Consistency during upgrade
 The database schema on the Hub and the Uyuni Servers might differ as not all server might be updated
@@ -175,14 +184,17 @@ Documentation will cover:
 - Q: Should we handle the scenario of multiple hierarchical hubs?
   * Q1: Is this setup allowed and, if so, how is it handled by the existing APIs and features?
     - A1: it is not forbidden, but the XMLRPC API forwarder will not work with such a setup.
-  * Q1: How do we handle and translate the server ids?
-     - We can internally remap all the ids in the hub database to make sure they are unique
-     - We need to keep track of the 'server path' to make sure the end-user is able to identify the
+  * Q2: How do we handle and translate the server ids?
+     - A2a: We can internally remap all the ids in the hub database to make sure they are unique
+     - A2b: We need to keep track of the 'server path' to make sure the end-user is able to identify the
        client within the hierarchical network.
+     All is a bit messy.
 
 - Q: Is implementation in Java with Hibernate possible and fast enough for
   * Q1: filling the report table in a single Server?
+    - A1: should work, we are just talking about query 1 DB and insert the Data into DB2
   * Q2: to collect the data from multiple single Servers and insert them into the Hub DB?
+    - A2: this is more tricky. We will try and maybe look for ideas in the ISSv2 code.
 
 - Q: should we use the same tooling for the DB schema as we use for the main Uyuni Schema?
   - A: yes, no reason for introducing something new and be different from what we already know.
