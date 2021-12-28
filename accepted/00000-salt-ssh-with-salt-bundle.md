@@ -36,19 +36,23 @@ This change can help to avoid creating temporary roster files (https://docs.salt
 
 ## Pre flight script
 
-Salt can execute a shell script on the salt-ssh client before the "real salt-ssh execution" starts.
-This script downloads the salt-bundle package from the appropriate bootstrap repository and extracts the virtual environment.
+Salt can execute a shell script on the salt-ssh client before the "real salt-ssh execution" starts, this is called a "pre flight script".
+We intend to use this script to download the salt-bundle package from the appropriate bootstrap repository and extract the virtual environment.
 
-The possibility to pass additional parameter to the static pre flight script will be implemented to prevent creating individual pre flight script for each minion.
+In order to download the package, the bootstrap repository URL will need to be calculated.
 The pre flight script calculates the bootstrap repository URL in a similar manner to the existing boostrap.sh script, based on the operating system and OS architecture of the system it is executed on.
-It requires one parameter from the Uyuni server: entry point (host name and port number) for different contact methods and pathes (SSH from server/proxy, direct access to the repos or with the tunnel).
+
+Additionally, one extra parameters will be required from the Uyuni server to specify the entry point (host name and port number), as that varies depending on the different contact methods and paths (SSH from server/proxy, direct access to the repos or via tunnel).
+
+
+The possibility to pass additional parameter to the pre flight script will be implemented as it does not exist currently.
 
 Pre flight script will use bootstrap repository for the distro to get the salt bundle from. No changes required for the repository.
 Pre flight script downloads the `venv-enabled-ARCH.txt` file to get full path to the salt bundle package.
 
 ## Deploying Salt Bundle to the minion
 
-We don't need to install Salt Bundle package on the minion as users concider salt-ssh as an agentless contact method and it's better not to install any service on the system even if it will never been started.
+We don't need to install Salt Bundle package on the minion as users consider salt-ssh as an agentless contact method and it's better not to install any service on the system even if it will never been started.
 It can also help for the cases when venv-salt-minion is used on the system for any other purpose.
 Pre flight script extracts only virtual environment of the bundle from the package.
 Pre flight script is deploying it as described above.
@@ -59,7 +63,7 @@ On deploying Salt Bundle with pre flight script, without modification salt-thin 
 As the sources of these two codebases are different (update channel of the Server and client tools relevant for the system) these codebases are not in sync.
 `salt-thin` will not be deployed in case if Salt Bundle has been deployed already and used it as preferred salt codebase to handle salt-ssh session with on the minion side.
 
-In most cases the client tools channels are updating more frequently than the server and for the minions (not salt-ssh systems) we are using the salt codebase from client tools, it's better to use Salt Bundle codebase for salt-ssh systems.
+In most cases the client tools channels are updating more frequently than the server and for the ZeroMQ minions we are using the salt codebase from client tools, it's better to use Salt Bundle codebase for Salt-SSH minions.
 
 If deploying Salt Bundle is not possible for some reason (no salt bundle package in the bootstrap repo for the system, no bootstrap repo at all or the server is unavailable with http(s)) `salt-thin` will be deployed on the minion and used to handle salt-ssh session on the minion side.
 In case of using `salt-thin` the minion must have sufficient version of Python installed.
