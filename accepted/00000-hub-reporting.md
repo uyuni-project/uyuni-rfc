@@ -54,6 +54,9 @@ Every table gets an extra column for the Uyuni server id of server which provide
 On a single Uyuni Server this column has the standard value `1` which represent "localhost".
 On the Hub it will be replaced with the real server id the managed server has in the hub database.
 
+As of now a Hub cannot be cascaded. A Hub of Hubs is not supported. For this we do not need to care
+about how to represent cascaded "management ids".
+
 Every row should get a report timestamp column (`exported`), which is set to the time when the data
 were exported from the main Uyuni Server database.
 
@@ -134,9 +137,14 @@ The goal is to get the data from 1000 Servers in maximal 3 hours.
 
 The job get the list of candidates from the Hub Database including the user and connection paramaters to the
 reporting databases of the peripheral Uyuni Servers.
+To identify "Uyuni Severs" in the Hub Database, we need to add an entitlement to the registered system.
+We will identify a "Uyuni Server" during the onboarding process on the basis of the installed products.
+This detection should be easy changable as we might need a different mechanism in future when we containerize the Server.
 
 The reporting DB does not use own ID columns with own sequences. To keep things simple we will
 remove all rows for the Uyuni Server identified by its `mgm_id` and insert all which we get new from the it.
+The job takes care to replace the `mgm_id` comming from the server("1") with the real ID it has in the Hub Database.
+
 In case we see performance problems we need to re-think this approach and need to implement a more inteligent
 mechanism.
 
@@ -160,8 +168,9 @@ the admin should create a read-only user to query information from DBs.
 # Documentation
 Documentation will cover:
 - reporting tool architecture
+- setup
 - user creation/management
-- ...
+- reporting schema
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -176,36 +185,4 @@ Documentation will cover:
   - very limited knowledge in NoSQL makes it hard to decide for a technology we do not know
   - use case seems better to fit of SQL (based on a very limited knowledge about NoSQL databases)
   - no obvious killer features provided by NoSQL which we want to use
-
-
-# Unresolved questions
-[unresolved]: #unresolved-questions
-
-- Q: Should we handle the scenario of multiple hierarchical hubs?
-  * Q1: Is this setup allowed and, if so, how is it handled by the existing APIs and features?
-    - A1: it is not forbidden, but the XMLRPC API forwarder will not work with such a setup.
-  * Q2: How do we handle and translate the server ids?
-     - A2a: We can internally remap all the ids in the hub database to make sure they are unique
-     - A2b: We need to keep track of the 'server path' to make sure the end-user is able to identify the
-       client within the hierarchical network.
-     All is a bit messy.
-
-- Q: Is implementation in Java with Hibernate possible and fast enough for
-  * Q1: filling the report table in a single Server?
-    - A1: should work, we are just talking about query 1 DB and insert the Data into DB2
-  * Q2: to collect the data from multiple single Servers and insert them into the Hub DB?
-    - A2: this is more tricky. We will try and maybe look for ideas in the ISSv2 code.
-
-- Q: should we use the same tooling for the DB schema as we use for the main Uyuni Schema?
-  - A: yes, no reason for introducing something new and be different from what we already know.
-
-- Q: where and how to configure the connection parameters for the reporting database
-  * Q1: on a single Server ?
-    - A1: The R/W account should be in `/etc/rhn/rhn.conf` like the other DB account
-    - A1: additional accounts should be stored where they are needed. The single server only needs the R/W account. Users which want to connect a reporting tool to it, should remember it or store it in the account management of the reporting tool.
-  * Q2: on the Hub for every managed single Server?
-    - A2: As the Hub "manages" the single Servers, it should create an own Read-only account and store it in its DB under the system item.
-
-- Q: how to identify a Uyuni Server in the Hub database and distinguish it from a normal managed client?
-  - (?): current assumption in Hub is, that all systems are Uyuni Servers.
 
