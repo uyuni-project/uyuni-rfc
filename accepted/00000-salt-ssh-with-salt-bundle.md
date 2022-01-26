@@ -59,14 +59,14 @@ Pre flight script is deploying it as described above.
 
 ## Using proper salt codebase
 
-On deploying Salt Bundle with pre flight script, without modification salt-thin (`salt-thin` is a tarball with salt codebase created by the server to deploy salt on the salt-ssh minion: https://docs.saltproject.io/en/latest/ref/runners/all/salt.runners.thin.html) deployment, we will get two different codebases of salt deployed on the minion (one codebase is from salt bundle package for the OS+arch and the other one is from salt-master delivered with salt-thin tarball).
-As the sources of these two codebases are different (update channel of the Server and client tools relevant for the system) these codebases are not in sync.
-`salt-thin` will not be deployed in case if Salt Bundle has been deployed already and used it as preferred salt codebase to handle salt-ssh session with on the minion side.
+We are going to use Salt Bundle codebase to hadle salt-ssh event on the minion, so we don't need to deploy `salt-thin` (a tarball with salt codebase created by the server to deploy salt on the salt-ssh minion: https://docs.saltproject.io/en/latest/ref/runners/all/salt.runners.thin.html).
 
-In most cases the client tools channels are updating more frequently than the server and for the ZeroMQ minions we are using the salt codebase from client tools, it's better to use Salt Bundle codebase for Salt-SSH minions.
+This approach also helps to use the same codebase for ZeroMQ minions and salt-ssh minions as we expect client tools channels to deliver the recent salt codebase with Salt Bundle package.
 
-If deploying Salt Bundle is not possible for some reason (no salt bundle package in the bootstrap repo for the system, no bootstrap repo at all or the server is unavailable with http(s)) `salt-thin` will be deployed on the minion and used to handle salt-ssh session on the minion side.
-In case of using `salt-thin` the minion must have sufficient version of Python installed.
+In case if deployment of Salt Bundle with pre flight script fails for some reason the appropriate message will be shown in the web UI and logged.
+
+We will left the possibility to use `salt-thin` as a fallback method of handling salt-ssh events on the minion for development purposes only by enabling it explicitly with the parameter in the salt config.
+We will support Salt Bundle only to handle salt-ssh on the minion.
 
 ## Updating Salt Bundle on the minion
 
