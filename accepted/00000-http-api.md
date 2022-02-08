@@ -78,7 +78,7 @@ A class marked with this annotation will be registered as the handler of the spe
 
 Each of these annotations shall mark a method to act as a handler for one of the APIs.
 
-**HTTP:** these methods will be registered to Spark as route handlers during initialization.
+**HTTP:** These methods will be registered to Spark as route handlers during initialization.
 
 **XMLRPC:** `BaseHandler` will search for a requested method in a list of methods annotated with `@XmlRpcApiEndpoint` in the class during a request.
 
@@ -98,7 +98,7 @@ An endpoint annotated with `@Unauthorized` may be called with or without a logge
 
 #### @RouteParam Target=Parameter
 
-This annotation specifies a parameter to be represented as a route parameter, rather than a querystring parameter. `@RouteParam` may not be used for object types as they have to be transferred via the request body.
+This annotation specifies a parameter to be represented with a route parameter, rather than a querystring parameter. `@RouteParam` may not be used for object types as they have to be transferred via the request body.
 
 ### Example 1
 
@@ -122,8 +122,8 @@ At registration, Spark route wrapper will create the following route definition 
 
 get("/activationkey/get_details", (req, res) -> {
   // 1.Unwrap the session user, and the querystring parameter named "key"
-  // 2.call to the `getDetails` method, passing the unwrapped arguments
-  // 3.serialize and return the JSON result
+  // 2.Call to the `getDetails` method, passing the unwrapped arguments
+  // 3.Serialize and return the JSON result
 });
 ```
 
@@ -149,8 +149,8 @@ At registration, Spark route wrapper will create the following route definition 
 post("/contentmanagement/update_project/:label", (req, res) -> {
   // 1.Unwrap the session user, the route parameter named "label",
   //   and the JSON object named "props" from the request body
-  // 2.call to the `updateProject` method, passing the unwrapped arguments
-  // 3.serialize and return the JSON result
+  // 2.Call to the `updateProject` method, passing the unwrapped arguments
+  // 3.Serialize and return the JSON result
 });
 ```
 
