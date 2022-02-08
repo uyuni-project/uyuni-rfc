@@ -31,12 +31,12 @@ To implement the plain HTTP over JSON interface, the existing [Spark framework](
 
 The design is split into a number of areas that represent different aspects of the new API. The rest of the section describes each aspect in detail.
 
-1. [Endpoint registration](#endpoint_registration)
-2. [Authentication](#authentication)
-3. [I/O](#io)
-4. [Exception handling](#exception-handling)
-5. [Security](#security)
-6. [Documentation](#documentation)
+1. [Endpoint registration](#1-endpoint_registration)
+2. [Authentication](#2-authentication)
+3. [I/O](#3-io)
+4. [Exception handling](#4-exception-handling)
+5. [Security](#5-security)
+6. [Documentation](#6-documentation)
 
 
 ## 1. Endpoint Registration
@@ -69,12 +69,12 @@ Java annotations shall also be used to determine attributes of an endpoint, such
 
 Below is an example of such an annotation structure:
 
-### @ApiHandler("namespace") Target=Class
+#### @ApiHandler("namespace") Target=Class
 
 A class marked with this annotation will be registered as the handler of the specified namespace in the XMLRPC framework. The class will further be inspected on initialization to discover any annotated handler methods. Found methods will be registered to Spark as route handlers.
 
-### @XmlRpcApiEndpoint Target=Method
-### @HttpApiEndpoint Target=Method
+#### @XmlRpcApiEndpoint Target=Method
+#### @HttpApiEndpoint Target=Method
 
 Each of these annotations shall mark a method to act as a handler for one of the APIs.
 
@@ -84,7 +84,7 @@ Each of these annotations shall mark a method to act as a handler for one of the
 
 In most cases, both annotations shall be used together. Exclusive use of any of them shall be reserved for edge cases where the endpoint is not applicable to the specific protocol.
 
-### @ReadOnly Target=Method
+#### @ReadOnly Target=Method
 
 An endpoint handled by this method will be set as a read-only endpoint.
 
@@ -92,11 +92,11 @@ An endpoint handled by this method will be set as a read-only endpoint.
 
 **XMLRPC:** `BaseHandler` will check this annotation against the requesting user and block access if restricted.
 
-### @Unauthorized Target=Method
+#### @Unauthorized Target=Method
 
 An endpoint annotated with `@Unauthorized` may be called with or without a logged in user. The handler method may or may not have a `User` parameter in the signature. If it has, the parameter may be `null`, in case the user is not logged in.
 
-### @RouteParam Target=Parameter
+#### @RouteParam Target=Parameter
 
 This annotation specifies a parameter to be represented as a route parameter, rather than a querystring parameter. `@RouteParam` may not be used for object types as they have to be transferred via the request body.
 
