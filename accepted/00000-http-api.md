@@ -58,7 +58,7 @@ For complex types, the request payload of type `JSON` must be used. The Spark ro
 The exposed HTTP routes shall follow the same namespace-method structure with a few extensions:
 
 ```
-/rhn/api/namespace/method[/:route/:params][?query=params]
+/rhn/manager/api/namespace/method[/:route/:params][?query=params]
 ```
 
 On each request, the Spark route wrapper shall unpack both types of arguments in the request, deserialize the payload, and call the appropriate handler method with unpacked arguments.
@@ -118,7 +118,7 @@ public ActivationKey getDetails(User user, String key)
 At registration, Spark route wrapper will create the following route definition for this method:
 
 ```java
-// GET https://uyuni.server/rhn/api/activationkey/get_details?key=1-DEFAULT
+// GET https://uyuni.server/rhn/manager/api/activationkey/get_details?key=1-DEFAULT
 
 get("/activationkey/get_details", (req, res) -> {
   // 1.Unwrap the session user, and the querystring parameter named "key"
@@ -144,7 +144,7 @@ public ContentProject updateProject(User user, @RouteParam String label, Map<Str
 At registration, Spark route wrapper will create the following route definition for this method:
 
 ```java
-// POST https://uyuni.server/rhn/api/contentmanagement/update_project/myproject
+// POST https://uyuni.server/rhn/manager/api/contentmanagement/update_project/myproject
 
 post("/contentmanagement/update_project/:label", (req, res) -> {
   // 1.Unwrap the session user, the route parameter named "label",
