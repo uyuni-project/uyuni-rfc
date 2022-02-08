@@ -159,6 +159,26 @@ post("/contentmanagement/update_project/:label", (req, res) -> {
 
 The web UI performs token-based authentication via a session cookie called `pxt-session-cookie`. Currently, the web UI login page exposes an API endpoint to support this process. This endpoint shall also be used for API authentication.
 
+### Login handshake demo
+
+```bash
+$ curl --include --header "Content-Type: application/json" \
+--data "{'login':'admin','password':'admin'}" \
+https://uyuni.dallas/rhn/manager/api/login
+
+HTTP/1.1 200 200
+...
+Set-Cookie: pxt-session-cookie=209x9fa00e2e947ace87de0743f6cf63b8b0b4bfbfca2310ce6829941fa9db947987; Max-Age=3600; Expires=Tue, 08-Feb-2022 20:05:41 GMT; Path=/; Secure; HttpOnly;HttpOnly;Secure
+...
+
+$ curl --include --cookie "pxt-session-cookie=209x9fa0..." \
+https://uyuni.server/rhn/manager/api/systems/keys
+
+HTTP/1.1 200 200
+...
+<JSON data follows>
+```
+
 
 ## 3. I/O
 
