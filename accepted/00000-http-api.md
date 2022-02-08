@@ -185,7 +185,7 @@ HTTP/1.1 200 200
 On the HTTP API side, I/O serialization is mostly handled by Spark, and the existing `GSON` library. XMLRPC uses specialized "serializer" classes to write structured output on XML. These serializer classes shall be used exclusively for the XMLRPC output.
 
 
-## 4. Error Reporting
+## 4. Exception Handling
 
 The current implementation of the business logic uses exceptions that are designed specifically for XMLRPC (see: `FaultException` and subclasses). To be able to use the business logic with both interfaces, a new, internal exception structure shall be designed to offer enough flexibility in exception handling. These exceptions are then translated to the specific interface, and processed accordingly. For HTTP endpoints, the internal exceptions can be represented by different HTTP status codes where appropriate.
 
