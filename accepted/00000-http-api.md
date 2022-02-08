@@ -205,10 +205,10 @@ More research is required to provide the framework for creating documentation fo
 
 # Unresolved Questions
 
-## Naming standard
+### Naming standard
 
 We use the term REST causally when describing the HTTP API, but as covered in this document, we don't intend to implement "REST" in a traditional way. Therefore, the term REST might be misleading for the user. On the other hand, "HTTP API" does not reflect the whole picture as well, since the existing XMLRPC API technically also utilizes HTTP. For the most clarity, we must determine a standard name for the API and use it consistently on all user-facing media (web UI, documentation, etc.).
 
-## Route parameters
+### Route parameters
 
 The usage of Spark's named route parameters and the `@RouteParam` is proposed to be purely cosmetic. Even though it is a trivial addition, we might consider to leave it out for simplicity.
