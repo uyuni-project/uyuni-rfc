@@ -20,9 +20,9 @@ The design aims to provide a plain HTTP endpoint to the existing methods by reus
 ![Current workflow](images/http-api-before.png)
 *Current workflow*
 
-The components marked with red are tightly coupled to the XMLRPC-specific functionality, and cannot be reused with HTTP as-is. In contrast, the green parts are agnostic, and can be used for both interfaces.
+The components marked with red are tightly coupled to the XMLRPC-specific functionality, and cannot be reused with HTTP as-is.
 
-The main goal is to restructure the workflow so that the agnostic parts can be isolated into separete components and be shared between two interfaces. This is especially important for handler classes, which are the linear growing components of the API implementation.
+The main goal is to restructure the workflow so that the agnostic parts can be isolated into separete components and be shared between two interfaces. These components are drawn in green in the proposed model below. This is especially important for handler classes, which are the linear growing components of the API implementation.
 
 To implement the plain HTTP over JSON interface, the existing [Spark framework](https://sparkjava.com) shall be used.
 
