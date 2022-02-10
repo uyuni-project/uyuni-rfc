@@ -145,6 +145,12 @@ At registration, Spark route wrapper will create the following route definition 
 
 ```java
 // POST https://uyuni.server/rhn/manager/api/contentmanagement/update_project/myproject
+// {
+//   'props': {
+//     'name': 'My Project',
+//     'description': 'This is my project'
+//   }
+// }
 
 post("/contentmanagement/update_project/:label", (req, res) -> {
   // 1.Unwrap the session user, the route parameter named "label",
@@ -164,7 +170,7 @@ The web UI performs token-based authentication via a session cookie called `pxt-
 ```bash
 $ curl --include --header "Content-Type: application/json" \
 --data "{'login':'admin','password':'admin'}" \
-https://uyuni.dallas/rhn/manager/api/login
+https://uyuni.server/rhn/manager/api/login
 
 HTTP/1.1 200 200
 ...
