@@ -43,7 +43,7 @@ The design is split into a number of areas that represent different aspects of t
 
 The most of the boilerplate code involves registration of the endpoint handlers, dispatching requests, and parameter matching. The XMLRPC framework provides an interface to register a class as a handler for a specific namespace. Further resolution of a method in a namespace is handled by the `BaseHandler` class using Java reflection to match the method names and parameters. `BaseHandler` is the base class that all the namespace handler classes inherit from.
 
-On the HTTP side, Spark allows registration of an endpoint as a "route" per each endpoint method, optionally including a number of named route parameters that construct the route path.
+On the HTTP side, Spark allows registration of an endpoint as a "route" per each endpoint method. The existing `HandlerFactory` shall be queried to retrieve and register the available handlers to Spark automatically without any extra effort.
 
 The actual handler methods are designed to use POJOs as parameters. However, Spark expects a specific signature that takes `request` and `response` as parameters for route handlers. A simple wrapper shall unpack the parameters from the request and call the appropriate handler method for each request.
 
@@ -51,38 +51,27 @@ A typical resource-oriented REST API relies on various HTTP verbs to provide con
 
 Spark provides 3 common ways to attach data to a request. Named route parameters that are part of the base URL, querystring parameters, or the payload itself.
 
-For primitive types, either route parameters or querystring parameters may be used. The desired method shall be specified using a parameter annotation in the handler method signature (explained below).
+For primitive types, either querystring parameters or the request body may be used.
 
-For complex types, the request payload of type `JSON` must be used. The Spark route wrapper shall unpack the payload using the `GSON` library.
+To pass parameters for a request, the request payload of type `JSON` shall be used. The Spark route wrapper shall unpack the payload using the `GSON` library. The top level structure of the JSON must be an object that contains all the parameters as properties with matching names.
+
+Primitive parameter types may optionally be passed via the query string. This allows passing of parameters with GET requests as well.
 
 The exposed HTTP routes shall follow the same namespace-method structure with a few extensions:
 
 ```
-/rhn/manager/api/namespace/method[/:route/:params][?query=params]
+/rhn/manager/api/namespace/[namespace/]method[?query=params]
 ```
 
 On each request, the Spark route wrapper shall unpack both types of arguments in the request, deserialize the payload, and call the appropriate handler method with unpacked arguments.
 
-To provide a uniform approach to handler registration, Java annotations can be used to specify a method as an endpoint handler. These annotations can be interpreted during initialization to register all the handlers to both frameworks. As a side benefit, all the handler classes in a predetermined package tree can be automatically identified, without the need to add them in a list manually.
-
-Java annotations shall also be used to determine attributes of an endpoint, such as whether it is a read-only method or not.
+Java annotations shall be used to determine attributes of an endpoint, such as whether it is a read-only method or not.
 
 Below is an example of such an annotation structure:
 
-#### @ApiHandler("namespace") Target=Class
+#### @ApiIgnore Target=Method
 
-A class marked with this annotation will be registered as the handler of the specified namespace in the XMLRPC framework. The class will further be inspected on initialization to discover any annotated handler methods. Found methods will be registered to Spark as route handlers.
-
-#### @XmlRpcApiEndpoint Target=Method
-#### @HttpApiEndpoint Target=Method
-
-Each of these annotations shall mark a method to act as a handler for one of the APIs.
-
-**HTTP:** These methods will be registered to Spark as route handlers during initialization.
-
-**XMLRPC:** `BaseHandler` will search for a requested method in a list of methods annotated with `@XmlRpcApiEndpoint` in the class during a request.
-
-In most cases, both annotations shall be used together. Exclusive use of any of them shall be reserved for edge cases where the endpoint is not applicable to the specific protocol.
+The methods annotated with `@ApiIgnore` shall be ignored by the handler registry in both HTTP and XMLRPC. This will replace the `@xmlrpc.ignore` JavaDoc tag that is being used for this purpose in XMLRPC.
 
 #### @ReadOnly Target=Method
 
@@ -90,15 +79,7 @@ An endpoint handled by this method will be set as a read-only endpoint.
 
 **HTTP:** Spark will create `GET` endpoints for the methods marked with this annotation. If not used, Spark's method wrapper will check the requesting user and block access if restricted.
 
-**XMLRPC:** `BaseHandler` will check this annotation against the requesting user and block access if restricted.
-
-#### @Unauthorized Target=Method
-
-An endpoint annotated with `@Unauthorized` may be called with or without a logged in user. The handler method may or may not have a `User` parameter in the signature. If it has, the parameter may be `null`, in case the user is not logged in.
-
-#### @RouteParam Target=Parameter
-
-This annotation specifies a parameter to be represented with a route parameter, rather than a querystring parameter. `@RouteParam` may not be used for object types as they have to be transferred via the request body.
+**XMLRPC:** `BaseHandler` will check this annotation against the requesting user and block access if restricted. This will replace the existing behavior of looking up the method name prefixes to determine if a method is read-only.
 
 ### Example 1
 
@@ -109,8 +90,6 @@ public ActivationKey getDetails(User user, String key)
 
 With the proposed annotations, it may be written as:
 ```java
-@XmlRpcApiEndpoint
-@HttpApiEndpoint
 @ReadOnly
 public ActivationKey getDetails(User user, String key)
 ```
@@ -134,26 +113,30 @@ Consider the following XMLRPC handler method:
 public ContentProject updateProject(User user, String label, Map<String, Object> props)
 ```
 
-With the proposed annotations, it may be written as:
-```java
-@XmlRpcApiEndpoint
-@HttpApiEndpoint
-public ContentProject updateProject(User user, @RouteParam String label, Map<String, Object> props)
-```
-
 At registration, Spark route wrapper will create the following route definition for this method:
 
 ```java
-// POST https://uyuni.server/rhn/manager/api/contentmanagement/update_project/myproject
+// POST https://uyuni.server/rhn/manager/api/contentmanagement/update_project?label=myproject
 // {
 //   'props': {
 //     'name': 'My Project',
 //     'description': 'This is my project'
 //   }
 // }
+//
+// or
+//
+// POST https://uyuni.server/rhn/manager/api/contentmanagement/update_project
+// {
+//   'label': 'myproject',
+//   'props': {
+//     'name': 'My Project',
+//     'description': 'This is my project'
+//   }
+// }
 
-post("/contentmanagement/update_project/:label", (req, res) -> {
-  // 1.Unwrap the session user, the route parameter named "label",
+post("/contentmanagement/update_project", (req, res) -> {
+  // 1.Unwrap the session user, the query parameter named "label",
   //   and the JSON object named "props" from the request body
   // 2.Call to the `updateProject` method, passing the unwrapped arguments
   // 3.Serialize and return the JSON result
@@ -188,14 +171,14 @@ HTTP/1.1 200 200
 
 ## 3. I/O
 
-On the HTTP API side, I/O serialization is mostly handled by Spark, and the existing `GSON` library. XMLRPC uses specialized "serializer" classes to write structured output on XML. These serializer classes shall be used exclusively for the XMLRPC output.
+On the HTTP API side, I/O serialization is handled by the `GSON` library. However, the XMLRPC implementation does not have dedicated Java classes for the result payloads, and the serialization is defined manually to expose data in a custom structure. For this purpose, XMLRPC uses specialized "serializer" classes to write structured output on XML. These serializers must be enhanced to implement the `JsonSerializer` interface from `GSON` so that Spark can serialize the output in the same way.
 
 
 ## 4. Exception Handling
 
-The current implementation of the business logic uses exceptions that are designed specifically for XMLRPC (see: `FaultException` and subclasses). To be able to use the business logic with both interfaces, a new, internal exception structure shall be designed to offer enough flexibility in exception handling. These exceptions are then translated to the specific interface, and processed accordingly. For HTTP endpoints, the internal exceptions can be represented by different HTTP status codes where appropriate.
+In XMLRPC, all the exceptions used inherit `FaultException` directly. Every exception has a unique integer code that describes an XMLRPC error. For HTTP, the `FaultException` tree must be enhanched with an HTTP status code that will be used in the response in any case of exception. Unlike the unique XMLRPC fault codes, HTTP codes will be chosen from a small subset of the standard HTTP status codes.
 
-This is the main point that couples the business logic with a specific interface, and will require the most work to implement.
+Apart from the ehancement above, the current exception structure can be used as-is with the HTTP interface.
 
 
 ## 5. Security
@@ -215,6 +198,22 @@ More research is required to provide the framework for creating documentation fo
 
 We use the term REST causally when describing the HTTP API, but as covered in this document, we don't intend to implement "REST" in a traditional way. Therefore, the term REST might be misleading for the user. On the other hand, "HTTP API" does not reflect the whole picture as well, since the existing XMLRPC API technically also utilizes HTTP. For the most clarity, we must determine a standard name for the API and use it consistently on all user-facing media (web UI, documentation, etc.).
 
-### Route parameters
+### Automatic handler discovery
 
-The usage of Spark's named route parameters and the `@RouteParam` is proposed to be purely cosmetic. Even though it is a trivial addition, we might consider to leave it out for simplicity.
+Currently, all the handler classes must be registered manually in the `HandlerFactory` class. This can be improved by the use of class annotations and package scanning. However, this would require use of a 3rd-party library since automatic scanning for annotations in packages is not possible with plain Java. Since the HTTP API implementation will not introduce any new handlers initially, this improvement will only provide convenience for the future additions in expense of additional work and an extra dependency in the initial implementation.
+
+### Parameter name matching
+
+XMLRPC relies strictly on the order of the sent arguments to match a method signature to a request. In contrast, the arguments sent via HTTP or JSON does not have any explicit ordering. For that reason, we must rely on parameter names and types to be able to match a signature to a request.
+
+By default, parameter names are not preserved in the compiled Java classes, and this makes parameter name matching impossible. To solve this problem,  `-parameters` `javac` argument must be used when compiling to preserve parameter names in the compiled bytecode.
+
+As demonstrated in the [proof of concept](https://github.com/uyuni-project/uyuni/pull/4910), this option has no major side effects (e.g. ignorable file size difference). However, the CI flow has to be considered when applying this change. 
+
+### CSRF tokens
+
+To be able to provide API POST routes, the CSRF token must be disabled for the POST endpoints in the new HTTP API. It is possible to define exceptions to CSRF token validation via a path root. However, in the current proposal, the API path root is shared with the internal React API (`/rhn/manager/api`). We must decide on an approach to disable CSRF exclusively for the HTTP API endpoints:
+
+ - Host the new API in a dedicated sub-path
+ - Disable CSRF for the whole `/rhn/manager/api` path
+ - Add an explicit rule for each path
