@@ -79,7 +79,7 @@ The pre flight script can store the hash of the deployed Salt Bundle and check i
   * Salt Bundle consumes more space than salt-thin on the minion
     Each salt codebase consumes `~33Mb` on the minion (`99Mb` as now we have 3 codebases: `3002.2` from the master, `3000.3` and `2016.11.10`, as we are dropping `py26-compat-salt`, `py27-compat-salt` and all the dependencies `salt-thin` will contain only one salt codebase `33Mb`)
     The Salt Bundle deployed on the minion is slightly larger than `100Mb`
-  * Salt is creating additional SSH connection to run the pre flight script 
+  * Salt is creating additional SSH connection to run the pre flight script
   * Pre flight script requires an access to the bootstrap repository (salt-thin is deployed with ssh, no http(s) connection needed for salt-ssh)
     http(s) connection is used to get just 2 files: `venv-enabled-ARCH.txt` to get the exact path to the Salt Bundle package and the package itself
   * We need to modify salt codebase to handle Salt Bundle the proper way
