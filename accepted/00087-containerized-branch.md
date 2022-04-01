@@ -124,7 +124,7 @@ Proxy containers are initialized from single config.yaml file generated on SUSE 
 
 
 ### Saltboot group
-[saltboot_group]: #saltboot_group
+[saltboot-group]: #saltboot_group
 
 Since branch server is not salt minion anymore, it cannot be center of configuration any longer. Instead this RFC propose that center of configuration be a so call `saltboot group`.
 Saltboot group is a system group with `Saltboot group` formula assigned. In this formula various saltboot related settings are configured:
@@ -147,24 +147,46 @@ This direct access to initrd and kernel needs changes in how image are built. Cu
 In this RFC I opt for collecting individual files for simple reason not to waste cycles on build host for creating tarball only to be immediately extracted on the Server and increasing load on it. Negative is that current Retail templates do not use image compression by default, so unbundled images are several times bigger then bundled (e.g. for POS_Image_JeOS7 it is around 400MB in bundle and 1,6GB unbundled). This can be remedied by using compression by default in Kiwi templates.
 
 ### PXE Management
-[pxe_management]: #pxe_management
+[pxe-management]: #pxe_management
 
 Deployment workflow needs two kinds of PXE configuration files - `default` for first time, not yet deployed terminals and `01-MAC` for individual terminals already deployed at least once.
 
 `default` configurations are different for each `saltboot group` as this configuration contains `MASTER=<proxyFQDN>` entry to remove the need of custom DNS server and this entry is different for each proxy server.
 
+Options are either to use `cobbler` (as is done in proof of concept implementation) or prepare those files in Java code. These files are to be accessible through HTTP from the Uyuni server.
 
 ### Networking
 
 Managing networking on proxy server is out of scope of containers and left on customer. This means that, similarly as we have with Cobbler autoinstallation now, we will ask customers to set their DHCP environment for PXE booting elsewhere. This eliminates `Dhcp formula` requirement and also majority of `Branch Network formula`. `Dhcp formula` can still be maintained as customer can use that for their separate dhcp management.
 
-`salt` CNAME and `ftp` hostnames are replaced by crafting special PXE kernel command (see [PXE Management](#pxe_management) line and salt pillars (see [Saltboot group](#saltboot_group). We will use this to eliminate `Bind formula`.
+`salt` CNAME and `ftp` hostnames are replaced by crafting special PXE kernel command (see [PXE Management](#pxe-management) line and salt pillars (see [Saltboot group](#saltboot-group). We will use this to eliminate `Bind formula`.
 
 
 # Workflow
 [workflow]: #workflow
 
-TBD user story
+Complete workflow for user is expected to look like this:
+
+> assuming minimal networking setup done by user, that is DHCP server `next-server` and `filename` options points to the proxy server
+
+1. build saltboot image (e.g. POS_Image_JeOS7)
+2. deploy ordinary containerized proxy server
+3. create `Saltboot group` and fill in proxy server FQDN
+4. create `HWType group` with required partitioning for the terminal and select what terminal image should be deployed
+5. boot the terminal
+
+
+For better comparison, this is how retail workflow looks like today:
+
+> assuming minimal networking setup done by user, that is DHCP server `next-server` and `filename` options points to the proxy server
+
+1. build saltboot image
+2. prepare Branch Server proxy
+3. add Branch Server network formula, pxe formula and tftp formula to the branch server, configure them and apply highstate
+4. apply image-sync state on the branch server
+5. either by using Bind formula or other means configure `salt` CNAME and `ftp` hostname to point to the branch server
+6. create `HWType group` with required partitioning for the terminal and select what terminal image should be deployed
+7. boot the terminal
 
 
 # Drawbacks
