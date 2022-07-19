@@ -69,9 +69,9 @@ Java annotations shall be used to determine attributes of an endpoint, such as w
 
 Below is an example of such an annotation structure:
 
-#### @ApiIgnore Target=Method
+#### @ApiIgnore(API_TYPE) Target=Method
 
-The methods annotated with `@ApiIgnore` shall be ignored by the handler registry in both HTTP and XMLRPC. This will replace the `@xmlrpc.ignore` JavaDoc tag that is being used for this purpose in XMLRPC.
+The methods annotated with `@ApiIgnore` shall be ignored by the handler registry in either HTTP, XMLRPC, or both. An interface can be specified by using the annotation parameter.
 
 #### @ReadOnly Target=Method
 
@@ -197,6 +197,8 @@ More research is required to provide the framework for creating documentation fo
 ### Naming standard
 
 We use the term REST causally when describing the HTTP API, but as covered in this document, we don't intend to implement "REST" in a traditional way. Therefore, the term REST might be misleading for the user. On the other hand, "HTTP API" does not reflect the whole picture as well, since the existing XMLRPC API technically also utilizes HTTP. For the most clarity, we must determine a standard name for the API and use it consistently on all user-facing media (web UI, documentation, etc.).
+
+**Resolution:** "JSON over HTTP API" and "HTTP API" will be used as the long and short standard names throughout the product.
 
 ### Automatic handler discovery
 
