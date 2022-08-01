@@ -13,7 +13,7 @@ There are two main reasons to upgrade Bootstrap: ease of maintenance, and securi
 
 Bootstrap 3 comes from an era where browser support was more complicated and it reflects in the stylesheets we have. The current bundled stylesheet for Suma is roughly 10k lines of CSS, which is hard to reason about and maintain to say the least. This problem isn't solely due to Bootstrap, but it is the primary source of the issue. The manner in which Suma has been styled over the years has been essentially add only: since the styles are tightly coupled yet globally shared, removing things has been hard while adding a single override for any given problem is fairly easy. This has resulted in our own themes becoming complex as well, on top of an already large Bootstrap base.  
 
-As a separate issue, Bootstrap 3 has known security vulnerabilities, such as XSS injection, for which there won't be a patch. These security issues by themselves do not pose too serious of a threat due to the nature of the product, but they might be leveraged to create a chain of attacks. Given Suma is open source and has many moving parts, this is a very realsitic attack vector.  
+As a separate issue, Bootstrap 3 has known security vulnerabilities, such as XSS injection, for which there won't be a patch. These security issues by themselves do not pose too serious of a threat due to the nature of the product, but they might be leveraged to create a chain of attacks. Given Suma is open source and has many moving parts, this is a very realistic attack vector.  
 
 The core proposition of this RFC can be summarized in two steps:  
 
