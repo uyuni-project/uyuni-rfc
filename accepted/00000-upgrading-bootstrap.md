@@ -15,28 +15,55 @@ Bootstrap 3 comes from an era where browser support was more complicated and it 
 
 As a separate issue, Bootstrap 3 has known security vulnerabilities, such as XSS injection, for which there won't be a patch. These security issues by themselves do not pose too serious of a threat due to the nature of the product, but they might be leveraged to create a chain of attacks. Given Suma is open source and has many moving parts, this is a very realistic attack vector.  
 
-The core proposition of this RFC can be summarized in two steps:  
-
- 1. Simplify our existing stylesheets to reduce the use of custom overrides, and try and compose views and layouts using standard Bootstrap solutions. This step is beneficial even without the Bootstrap upgrade in mind, as currently our stylesheets are simply very convoluted and hard to reason about.  
- 2. Upgrade Bootstrap. This includes many moving parts which will be outlined below.  
-
-Coming out successfully from the other side, we would hope to have simpler stylesheets with less to maintain, and fewer security issues.  
-
-
 # Detailed design
 [design]: #detailed-design
 
+## Security issues
+
+There are a few minor versions of Bootstrap 3 that we can upgrade which solve some of the issues we currently have. Following that, we can use the security advisories and previous patches to monkeypatch the remaining issues until we complete the migration.  
+
+## Isolating stylesheets per page
+
+The first revision of this RFC proposed simplifying exisrting stylesheets and then migrating them to Bootstrap 5. After testing this idea on a few isolated pages, this turned out to be prohibitively hard. Due to the stacked and fragmented nature of existing stylesheets, all changes need to be tracked through multiple layers in both the Uyuni and Suma theme, often across multiple places in the same file. While it is possible, it is very time consuming with very slow returns.  
+
+What we can do instead is to first create tooling that allows developers to set different stylesheets for different pages, and then migrate existing styles over page by page, only keeping relevant styles for each page. Essentially this is a reversed version of the previous approach, where intead of moving bottom up, we move top down. This has the added benefit that there's less moving parts to handle during any one partial migration.
+
+Adding the capability to use different stylesheets on different pages will allow us to keep using the old theme on all existing pages until they're migrated while working with new stylesheets on pages that we have confirmed to work correctly. For this we need to add some additional tooling around stylesheet loading and navigation.  
+
+There are two main cases to handle: first navigation onto a page, and navigating between pages where some pages may be SPA pages, some legacy pages etc. Given a configuration file e.g. `list_of_updated_pages.conf` such as:
+
+```
+/rhn/foo-1
+/rhn/foo-2
+...
+```
+
+For initial navigation, `layout_head.jsp` can determine which stylesheet to use, in pseudocode:  
+
+```
+<c:choose>
+  <c:when test="${currentPage exists in list_of_updated_pages.conf}">
+    <link rel="stylesheet" href="/css/new/${webTheme}.css" />
+  </c:when>    
+  <c:otherwise>
+    <link rel="stylesheet" href="/css/old/${webTheme}.css" />
+  </c:otherwise>
+</c:choose>
+```
+
+For the SPA navigation case, we need to hook into `window.pageRenderers.spaengine.navigate` to ensure the stylesheet can be swapped out depending on the target page. This means the configuration needs to be available for both JSP and JS pages.  
+
 ## Theme & styles
 
-Bootstrap 3 uses Less while Bootstrap 5 only offers Sass styles. This switch by itself is not very problematic, however there are additional issues that make the upgrade more difficult. Our current styles make heave use of numerous mixins from Bootstrap 3 which no longer exist in Bootstrap 5. Additionally, there are numerous breaking styling changes going from 3 to 4 and even more so moving from 4 to 5.  
+Bootstrap 3 uses Less while Bootstrap 5 only offers Sass styles. The two are sufficiently similar that when manually migrating styles there's a fairly small set of changes which need to be applied. Automatic translation tools exist as well, but current stylesheets make heavy use of Bootstrap 3 mixins which no longer exist in any shape or form in Bootstrap 5, so some manual effort is still required. This coupled with the numerous breaking styling changes going from 3 to 5 makes it more feasible to mostly manually migrate styles chunk by chunk.  
 
-Instead of trying to manually migrate our existing very large theme source, I propose we instead try to first reduce our existing theme footprint as much as possible. We already have component scoped styles working and in use, so we can try move component or view specific styles (e.g. table styles, setup wizard etc) into component scoped styles and remove them from the global stylesheet.  
-
-This allows us to cut up the effort required and do at least some of the work gradually. I suspect the last core theme change will still be painful, though. It might be easier to rebuild the existing theme from the base Bootstrap style rather than migrating the existing one, but this is something we can consider after we've simplified the theme.  
+We already have component scoped styles working and in use, for those an additional mechanism will need to be added to allow those styles to be toggled based on the current page as well. This will allow us to apply scoped styles on components we have migrated and confirmed to work while keeping their old styles in use in pages that still need them. This should be a fairly isolated use case, but may have some small edge cases to cover.  
 
 ## Component and class name changes
 
 This is tied to the previous section, but worth discussing on its own. Numerous component, layout and utility classes have been dropped or changed in both upgrades, e.g. `input-group-addon` was changed in Bootstrap 4 and dropped in 5, so we need to use `input-group-text` and check if it renders correctly etc. The list is pretty long. As discussed in [this ticket](https://github.com/SUSE/spacewalk/issues/18346), it's unlikely that we'd find a tool that can handle all different ways we use Bootstrap (in JSP, JPSF, React, etc), however writing a migration script similar to the Typescript migration might be feasible. For this, we can assemble a list that covers all the breaking changes that affect us by going through the list of changes for 4 and 5, checking whether we use the affected classes, and if so, write down what the upgrade path is.  
+
+Following the partial migration plan outlined above, this would mean we need to stack class names for corresponding versions and clean them up once the migration is done. For example, for existing Bootstrap 3 code we might have `<div class="input-group-addon">`, then during the migration we might have `<div class="input-group-addon input-group-text">`, and after the migration is done, we can reduce back to `<div class="input-group-text">`. During the migration, only the class that exists in the given version of Bootstrap would match, meaning the other is a no-op.  
 
 ## Scripts
 
@@ -46,12 +73,14 @@ There are some scripting changes, e.g. static method names have changed `_foo()`
 
 In short, the suggested upgrade path can be summarized as follows:  
 
- - Simplify the existing styles, trying to use standard Bootstrap tooling wherever possible
- - Gather the list of breaking changes
- - Write a migration script and/or manually migrate the above list
- - Migrate existing styles from Less to Sass
- - Verify the results with Cucumber
- - Clean up any dangling ends
+ - Upgrade Bootstrap 3 to its latest minor version.  
+ - Monkeypatch the remaining security issues based on prior work.  
+ - Create tooling to use different stylesheets on different pages, including JSP, JS and CSS module logic.  
+ - Gather the list of breaking changes to create an initial upgrade cookbook.  
+ - Migrate pages and components one by one, updating the cookbook with any peculiarities we find. Shared components keep legacy classes where needed.  
+ - Verify the results with Cucumber.  
+ - Clean up legacy classes and update Cucumber tests accordingly.  
+ - Clean up any dangling ends.  
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -62,9 +91,4 @@ Suma is huge and the UI likewise. Last time we touched the theme to match corpor
 # Alternatives
 [alternatives]: #alternatives
 
-The easiest alternative is to do nothing. We've been shipping Bootstrap 3 along with its known issues for a long time and so far it hasn't blown up in our face. Likewise, our current themes are hard to maintain, but so long as corporate branding doesn't change, there isn't too much to change day-to-day. It is possible to go ahead with the stylesheet simplification etc by itself without upgrading Bootstrap.  
-
-# Unresolved questions
-[unresolved]: #unresolved-questions
-
-TODO: Will be added as they surface.
+The easiest alternative is to do nothing. We've been shipping Bootstrap 3 along with its known issues for a long time and so far it hasn't blown up in our face. Likewise, our current themes are hard to maintain, but so long as corporate branding doesn't change, there isn't too much to change day-to-day.
