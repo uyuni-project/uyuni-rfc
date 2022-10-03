@@ -18,13 +18,13 @@ This proposed solution is based on the following steps:
  - Use `transactional-update` module to perform the reboot in transactional systems
 
 ### Systemd as reboot method
-As mentioned, `transactional-update` supports different reboot methods. By default, `rebootmgrd` will be used to reboot the system according to the configured policies if the service is running, otherwise systemctl reboot will be called.
+As mentioned, `transactional-update` supports different reboot methods. By default, reboot method is set to `auto`, which means that `rebootmgrd` will be used to reboot the system according to the configured policies if the service is running, otherwise systemctl reboot will be called.
 
 The proposal here is to set, during bootstrap on Suma, `systemd` as `REBOOT_METHOD` for transactional systems, if the system is in its default configuration. The idea behind this strategy is to put Suma on control of the reboot action, considering that `systemd` should perform the reboot immediately. 
 
-Otherwise, `rebootmgr` and the other reboot methods may have their own maintenance windows, and the only thing Suma will be able to do is to ask for a reboot and it will be managed in the peculiarities of each reboot method.Not having control of when the reboot should happen, also takes away from Suma the ability to perform the reboot on its own maintenance windows, what is not ideal.
+Otherwise, the only thing Suma will be able to do is to ask for a reboot and it will be managed in the peculiarities of each reboot method. Not having control of when the reboot should happen, also takes away from Suma the ability to perform the reboot on its own maintenance windows, which is not the ideal configuration.
 
-The user must be able to change reboot method both before and after bootstrap. If it is changed before the bootstrap, we should keep the current configuration. In any case, we should alert in the documentation that using any method different from `systemd` may cause undesired behavior.
+The user must be able to change reboot method at any time and SUSE Manager will keep it. In any case, we should alert in the documentation that using any method different from `systemd` may cause undesired behavior.
 
 ### Disable `transactional-update.timer` and `rebootmgr` services.
 
@@ -33,6 +33,8 @@ If the system was in its default configuration, and we changed the reboot method
 By default, `transactional-update.timer` is configured to automatically reboot the systems each day. The configuration is on `/etc/systemd/system/timers.target.wants/transactional-update.timer`. To avoid undesired reboots in managed systems, this auto reboot service should be disabled.
 
 `rebootmgr` service allows the user to define maintenance windows where the pending reboots should be performed. This also can cause undesired behavior when the system is managed by Suma, so, if we change the reboot method to put Suma in control, we should also disable `rebootmgr` service.
+
+Both these services can be re-enabled by users if they change the reboot method to others that needed them to be enabled. SUSE Manager will not change the configuration of this service after onboard.
 
 ### Use `transactional-update` module to perform the reboot
 
