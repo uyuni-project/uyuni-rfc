@@ -30,7 +30,7 @@ The user must be able to change reboot method at any time and SUSE Manager will 
 
 If the system was in its default configuration, and we changed the reboot method in bootstrap, we need to disable services that deals with reboot but are not controlled by Suma.
 
-By default, `transactional-update.timer` is configured to automatically reboot the systems each day. The configuration is on `/etc/systemd/system/timers.target.wants/transactional-update.timer`. To avoid undesired reboots in managed systems, this auto reboot service should be disabled.
+By default, `transactional-update.timer` is configured to check for updates every day, and if updates are available and could be applied successfully it will reboot the system afterwards automatically. The configuration is on `/etc/systemd/system/timers.target.wants/transactional-update.timer`. To avoid undesired reboots in managed systems, this auto reboot service should be disabled.
 
 `rebootmgr` service allows the user to define maintenance windows where the pending reboots should be performed. This also can cause undesired behavior when the system is managed by Suma, so, if we change the reboot method to put Suma in control, we should also disable `rebootmgr` service.
 
