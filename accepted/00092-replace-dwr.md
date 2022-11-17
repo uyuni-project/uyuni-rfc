@@ -47,13 +47,18 @@ SUMA working normally with the same AJAX requests being made and handled without
 
 # Detailed design
 
-Although the solution could be a little risky, since it involves changes in a number of stable features, it is not so complex. The idea is to have a raw Servlet incorporated in SUMA working as backend for all the AJAX requests currently handled by the [DwrServlet](https://github.com/uyuni-project/uyuni/blob/master/java/code/webapp/WEB-INF/web.xml#L260). This servlet could be based on the URLs of the requests to determine which Java class to instantiate and which method to call on it.
+Although the solution could be a little risky, since it involves changes in a number of stable features, it is not so complex. The idea is to have a raw Servlet incorporated in SUMA working as backend for all the AJAX requests currently handled by the [DwrServlet](https://github.com/uyuni-project/uyuni/blob/master/java/code/webapp/WEB-INF/web.xml#L260). This servlet will be based on the URLs of the requests to determine which Java class to instantiate and which method to call on it.
 
 For the frontend side, the capabilities provided by DWR (both the utility functions from `util.js` file and the ajax calls) are replaceable using jQuery.
 
-There is a PoC in [this commit](https://github.com/wweellddeerr/uyuni/commit/9ddb68030dc49fa3272a062ceb7015c35b68d457) exploring how it is possible to use jQuery to make the ajax request and a raw Servlet as backend replacing the `DWRItemSelector` component of DWR. The SSM (one of the features that uses it) seems to work well after applying this patch.
+Using a raw Servlet as backend will work as a first step making it possible to quickly remove the DWR library itself, without having to rewrite several pages and components using React.
 
-Using a raw Servlet as backend seems to be the best approach since (a) the methods currently exposed by DWR are only available through the `DwrServlet`, which is a raw servlet; and (b) these methods typically manipulate the HttpSession, making it difficult to use the HTTP API, for example.
+The next step after removing the DWR library will be to remove the Ajax requests at all, concentrating all the communication between frontend and backend in the HTTP API. For that, it will be necessary to do the following:
+ - Rewrite the Your RHN page using React, initially only with the intention of removing ajax calls, this strategy will provide a quick migration of that page.
+ - Rewrite Setup Wizard (http proxy and organizational credentials configuration features) using React.
+ - Rewrite action chain list and edit pages using React.
+ - Replace all the tables using item selector in JSP pages to a React component. **This will also provide performance improvements on these pages**. The jsp pages using the `rl:selectablecolumn` custom tag are listed in the end of this document.
+ 
 
 # Drawbacks
 
@@ -72,3 +77,68 @@ A hybrid approach could also be used, migrating some pages (specially the `Your 
 # Unresolved questions
 
 As mentioned, the changes are in stable features. Although we can test the features manually and use the testsuit to reduce the risks, the chances of breaking some stable feature still exist.
+
+
+# Appendix:
+
+ - Pages Using selectable column:
+
+    |    |                  JSP Page                              |
+    |----|--------------------------------------------------------|
+    | 1  | activationkeys/list.jsp                                |
+    | 2  | activationkeys/configuration/list.jsp                  |
+    | 3  | activationkeys/configuration/subscribe.jsp             |
+    | 4  | channel/subscribedsystems.jsp                          |
+    | 5  | channel/targetsystems.jsp                              |
+    | 6  | channel/manage/addpackages.jsp                         |
+    | 7  | channel/manage/channelrepos.jsp                        |
+    | 8  | channel/manage/comparepackagesmerge.jsp                |
+    | 9  | channel/manage/erratapackagesync.jsp                   |
+    | 10 | channel/manage/listremovepackages.jsp                  |
+    | 11 | channel/manage/package/listremovecustompackages.jsp    |
+    | 12 | common/fragments/activationkeys/groups.jspf            |
+    | 13 | common/fragments/audit/scap-list.jspf                  |
+    | 14 | common/fragments/configuration/copy2channels.jspf      |
+    | 15 | common/fragments/configuration/copy2channels.jspf      |
+    | 16 | common/fragments/errata/ownedlistdisplay.jspf          |
+    | 17 | common/fragments/errata/selectableerratalist.jspf      |
+    | 18 | common/fragments/manage/managers.jspf                  |
+    | 19 | common/fragments/manage/subscribers.jspf               |
+    | 20 | common/fragments/scheduledactions/listdisplay-new.jspf |
+    | 21 | common/fragments/systems/group_listdisplay.jspf        |
+    | 22 | common/fragments/systems/groups.jspf                   |
+    | 23 | common/fragments/systems/system_listdisplay.jspf       |
+    | 24 | configuration/channel/copy2systems.jsp                 |
+    | 25 | configuration/sdc/viewfilescentral.jsp                 |
+    | 26 | configuration/sdc/viewmodifyfilescentral.jsp           |
+    | 27 | configuration/sdc/viewmodifyfileslocal.jsp             |
+    | 28 | configuration/sdc/viewmodifyfilessandbox.jsp           |
+    | 29 | errata/affectedsystems.jsp                             |
+    | 30 | errata/cloneerrata.jsp                                 |
+    | 31 | errata/packages/add.jsp                                |
+    | 32 | errata/packages/list.jsp                               |
+    | 33 | groups/adminlist.jsp                                   |
+    | 34 | multiorg/channels/orglist.jsp                          |
+    | 35 | schedule/completedsystems.jsp                          |
+    | 36 | schedule/failedsystems.jsp                             |
+    | 37 | ssm/packagelist.jsp                                    |
+    | 38 | ssm/packageremove.jsp                                  |
+    | 39 | ssm/packageupgrade.jsp                                 |
+    | 40 | ssm/packageverify.jsp                                  |
+    | 41 | ssm/systems/errata-list-fragment.jspf                  |
+    | 42 | ssm/systems/misc/lock-unlock-system.jsp                |
+    | 43 | systems/bootstrapsystemlist.jsp                        |
+    | 44 | systems/errata.jsp                                     |
+    | 45 | systems/registeredlist.jsp                             |
+    | 46 | systems/systemsearch.jsp                               |
+    | 47 | systems/details/packages/extra-packages-list.jsp       |
+    | 48 | systems/details/packages/lockpkgs.jsp                  |
+    | 49 | systems/details/packages/packagelist.jsp               |
+    | 50 | systems/details/packages/packagelist.jspf              |
+    | 51 | systems/details/packages/upgradable.jsp                |
+    | 52 | systems/details/packages/profiles/compareprofiles.jsp  |
+    | 53 | systems/details/packages/profiles/comparesystems.jsp   |
+    | 54 | systems/duplicate/duplicatesystems.jsp                 |
+    | 55 | systems/duplicate/duplicatesystemscompare.jsp          |
+    | 56 | systems/sdc/pending_events.jsp                         |
+    | 57 | systems/sdc/history/snapshots/tags.jsp                 |
