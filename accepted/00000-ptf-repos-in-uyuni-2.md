@@ -44,6 +44,7 @@ Name: ptf-1234
 Version: 1
 Release: 1                 # always 1
 Provides: ptf() = 1234-1
+Provides: ptf-1234 = 1-1
 Requires: (pkg1 = pkg1EVR if pkg1)
 Requires: (pkg2 = pkg1EVR if pkg2)
 ...
@@ -54,16 +55,31 @@ SUSE because that would not work with multi-version packages like the kernel.
 For Non-SUSE systems and packages, which do not support multi-version  packages, we could generate `Conflicts` 
 dependencies.
 
-Each individual rpm package part of the PTF must require the specific master PTF package:
+These dependencies work only with newer versions of rpm. For older rpm version like in SLE12 different dependencies are
+used:
+
+```
+Name: ptf-1234
+Version: 1
+Release: 1                 # always 1
+Provides: ptf() = 1234-1
+Provides: ptf-1234 = 1-1
+Provides: ptfdep-pkg1 = pkg1EVR
+```
+
+The solver was adapted to act the same way as for the SLE15 example.
+
+
+Each individual rpm package part of the PTF provides `ptf-package()` and must require the specific master PTF package:
 
 ```
 Name: pkg1
-Requires: ptf-1234 = 1-1
 Provides: ptf-package()
+Requires: ptf-1234 = 1-1
 ```
 
 This makes sure that the solver cannot pull in the rpm packages, as that would mean to also pull in the blacklisted
-master PTF package. They also provide `ptf-package()` so they can be easily identified.
+master PTF package.
 
 All packages providing `ptf()` get blacklisted by the solver, meaning they can only be installed by a specific solver
 job that addresses them. This means that selecting a specific PTF master package via yast or "zypper in" works, but 
@@ -77,29 +93,40 @@ version (e.g. PTF-1234 = 2-1) and also pull in the corresponding rpm packages.
 
 This should work with any installer.
 
-### Uninstalling PTFs
 
-'zypper rm PTF-1234' will uninstall the PTF and revert back to non-PTF packages.
+### Deinstalling PTFs
 
-We need to check if this is working out of the box or if we need to implement something in Uyuni to make it work.
+Deinstalling a PTF package is not yet supported in an easy way. Currently it is required to do an install operation
+with a dash in front.
+
+```
+$> zypper in -ptf-1234
+```
+
+Even then it maybe required to select from different solution.
+A special command for easy deinstallation of a PTF is planned.
+
 
 ### Making sure that no fixes are lost
 
 If all the bugs fixed by a PTF are also fixed in maintenance updates, a new PTF release consisting only of the 
-master PTF package is done:
+master PTF package which has dependencies to the packages EVR of the maintenance update which contains the fixes:
 
 ```
 Name: ptf-1234
 Version: 3
-Release: 1                 # always 1
-Provides: self-destruct-pkg()
+Release: 1obsolete
+Provides: ptf() = 1234-1
+Provides: ptf-1234 = 1-1obsolete
 Requires: (pkg1 >= maintpkg1EVR if pkg1)
 Requires: (pkg2 >= maintpkg2EVR if pkg2)
 ```
 
 Updating to this version will make sure that this system will contain only the fixed packages from the maintenance
-updates. The special "self-destruct-pkg()" provides will tell the solver that this will be a package erase 
-instead of an installation. This means that installing this package will actually erase the master PTF package.
+updates.
+The release will get the string "obsolete" appended. This is a visual feature only. As the PTF master package
+will stay installed, it can be checked which PTFs were installed during the lifetime of the system.
+
 
 ### Test Packages
 
@@ -118,7 +145,7 @@ The general PTF design has 3 key points:
 
 1. a new PTF master package to install the PTF;
 2. multiple packages that are part of the PTF;
-3. a self-destruction package.
+3. the obsolete master package
 
 For SUSE operating systems they will all be handled on solver level, but for Uyuni Web UI they will need a special 
 treatment.
@@ -142,6 +169,10 @@ some enhancements to the solver. In addition:
    
 The number of packages which potentially get a PTF for Non-SUSE OSes is very limited. We will only ship PTF packages
 for the Client Tools, which is a handful of packages.
+
+In the beginning, PTF packages will only be delivered for SUSE OSes.
+Other OSes will follow later.
+
 
 ### Packages part of the PTF
 
@@ -168,13 +199,6 @@ database view will list only the packages that do not contain the special `ptf-p
 will have the same structure as the existing `rhnpackage` table, and it will act as a simple "drop-in" replacement 
 that might be used in any query where PTF packages must not be visible.
 
-### PTF self-destruction packages
-   
-While on SUSE OSes this would work out of the box, we need to implement something for non SUSE OSes. We could write 
-a state which automatically uninstall all packages which `Provides: self-destruct-pkg()`. This approach, though, would 
-be limited to salt managed systems. In any case, keeping a PTF package installed is not a problem as this cleanup step 
-is not strictly required.
-
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -191,7 +215,8 @@ is not strictly required.
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- None so far
+- Deinstallation of PTF packages is not yet implemented in zypper in a way that it works reliable without user interaction.
+  For now we cannot support this via SUSE Manager.
 
 # Appendix
 [appendix]: #appendix
