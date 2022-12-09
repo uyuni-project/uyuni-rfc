@@ -103,14 +103,16 @@ with a dash in front.
 $> zypper in -ptf-1234
 ```
 
-Even then it maybe required to select from different solution.
+Even then, it may require user interaction to choose among different solutions.
 A special command for easy deinstallation of a PTF is planned.
 
 
 ### Making sure that no fixes are lost
 
-If all the bugs fixed by a PTF are also fixed in maintenance updates, a new PTF release consisting only of the 
-master PTF package which has dependencies to the packages EVR of the maintenance update which contains the fixes:
+If all the bugs fixed by a PTF are also fixed in a maintenance update, a new PTF consisting only of the
+master PTF package is released.
+This updated master package has dependencies on the package EVRs of the maintenance update which contains the fixes:
+
 
 ```
 Name: ptf-1234
