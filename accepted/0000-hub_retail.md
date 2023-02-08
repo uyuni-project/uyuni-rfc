@@ -124,32 +124,19 @@ Further customization is possible via API
 
 This is currently implemented as a formula assigned to a group with special name.
 
-FIXME: pick one alternative
 
-Alternative 1:
-Extend retail_yaml to create the groups and formula data via Hub and Peripheral Server API.
-This is relatively small change to the code.
-
-Alternative 2:
 Central creation of groups is covered in [Hub Users RFC](https://github.com/uyuni-project/uyuni-rfc/blob/master/accepted/00061-hub-users.md). The salt states
 can be extended to handle also formula data.
-This approach is probably more flexible.
 
-Both alternatives will have to cope with authentization and Hub vs. Peripheral server user credentials.
-
-In long term, alternative 2 is clean solution.
-
-Alternative 1 might be used as a short term fix and also to keep compatibility.
+This will have to cope with authentization and Hub vs. Peripheral server user credentials.
 
 
 ### YAML configuration
 
-FIXME: optional, related to Alternative 2 in previous section
-
 We have retail_yaml tool for initial configuration of Retail environment from
 [YAML](https://github.com/uyuni-project/retail/blob/master/python-susemanager-retail/example.yml) file.
 [Hub Users RFC](https://github.com/uyuni-project/uyuni-rfc/blob/master/accepted/00061-hub-users.md) introduced similar concept, based on Salt.
-Maybe these parts could be merged.
+These parts could be merged.
 
 
 ## Combined Peripheral and Branch server
@@ -187,20 +174,15 @@ In Hub setup, DHCP on Peripheral Servers can be configured via formula on Hub.
 # Drawbacks
 [drawbacks]: #drawbacks
 
-Why should we **not** do this?
-
-TBD
+None
 
 # Alternatives
 [alternatives]: #alternatives
 
 HWTYPE configurations:
 
-TBD
+Extend retail_yaml to create the groups and formula data via Hub and Peripheral Server API.
 
-Combined Peripheral and Branch server:
-
-TBD
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
