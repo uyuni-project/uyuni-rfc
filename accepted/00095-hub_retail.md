@@ -1,6 +1,5 @@
 - Feature Name: Hub Retail Extension
 - Start Date: 2020-11-30
-- RFC PR: (leave this empty)
 
 # Summary
 [summary]: #summary
