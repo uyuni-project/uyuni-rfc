@@ -1,0 +1,23 @@
+flowchart TB
+  subgraph t [Terminal, saltboot initrd]
+  dhcp[Parse DHCP response for next-server] --> fqdn[Resolve next-server FQDN]
+  fqdn --> event[Pass FQDN with suse/manager/pxe_update event]
+  end
+
+  subgraph e [Event Handler on Uyuni server]
+  lookup[Find server entry in DB with received FQDN] --> present{Server entry found}
+  present -- No --> null[Set pxeserver_id null]
+  present -- Yes --> notnull[Set pxeserver_id to found server id]
+  null --> generate[Generate PXE entry]
+  notnull --> generate
+  end
+  
+  subgraph g [Generate PXE entry, action on Uyuni server]
+  ispxenull{Is pxeserver_id null} -- Yes --> local[Call pxe/terminal_entry using salt runner and generate PXE entries localy]
+  ispxenull -- No --> remote[Schedule pxe/terminal_entry to be applied on pxeserver_id]
+  local --> End
+  remote --> End
+  end
+
+  event --> e
+  generate --> g
