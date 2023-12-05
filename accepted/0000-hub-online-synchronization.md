@@ -140,7 +140,9 @@ Steps needed to create the channels on peripheral:
    - Minimal set of tables will be populated on the peripheral: rhnchannel,  rhnchannelcontentsource, rhnchannelproduct, rhnchannelfamilymembers, rhnproductname, rhnchannelcloned, suseproductchannel.
 
 
-When creating the channels in the peripheral server the content source will reference the correct HUB repository that provides that channel. Peripheral servers need to be configured with the flag `java.unify_custom_channel_management`, which will synchronize custom channels during the nightly mgr-sync process.
+When creating the channels in the peripheral server the content source will reference the correct HUB repository that provides that channel. This should be done by a new special API (server to server communication) which will add a entry to table `rhncontentsource` with the URL to the HUB channel repository. With this information repo-sync will be able to synchronize data from HUB server without any code change.
+
+Peripheral servers need to be configured with the flag `java.unify_custom_channel_management`, which will synchronize custom channels during the nightly mgr-sync process.
 
 One important aspect is to recreate the connection between custom channels and vendor channels, so we can have SP migration and avoid the need to synchronize all channel clone chains (ISSv1 also does this implementation).
 
