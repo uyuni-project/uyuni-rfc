@@ -165,7 +165,7 @@ With the proposed solution we can retrieve the list of the registered peripheral
 
 ### Inter-server-sync-v2
 
-Will be replaced by this solution. It will continue to exist but for disconnect set-ups only.
+Will be replaced by this solution when fully implemented (including images and configuration channels). It will continue to exist but for disconnect set-ups only.
 
 ### Uyuni-config formula
 
