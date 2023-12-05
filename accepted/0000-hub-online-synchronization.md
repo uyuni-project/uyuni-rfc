@@ -197,7 +197,10 @@ The existing API methods under namespace `configchannel` cannot deal with cross 
 
 ### Images
 
-
+TODO
+- Is all data saved in the database?
+- Is the identifier unique in the system, or we can have duplicates across organizations?
+- Are the existing endpoint sufficient to update all the data?
 
 ### Activation Keys
 
