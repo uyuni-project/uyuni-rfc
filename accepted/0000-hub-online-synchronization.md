@@ -126,13 +126,13 @@ On top of this, we should also provide an endpoint for peripherals to send statu
 
 ## Peripheral software channels creation
 
-We need a mechanism to create the channels in the peripheral servers (vendor and CLM's) in the desired organization. The peripheral channel creation must be done from the HUB server through an API. Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
+We need a mechanism to create the channels in the peripheral servers (vendor and CLM's) in the desired organization. The peripheral channel creation must be done automatically from the HUB server through an API. Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
 
 For each peripheral we should define the organization mapping between HUB organizations and peripheral ones, following the rules (similiar to what we have on ISSv1):
   - Each Hub organization can only be mapped to one peripheral organizations
-  - Peripheral organization can receive data from several different HUB organizations
+  - Peripheral organization can receive data from one HUB organization, which is not mandatory to have the same identifier
 
-From the webUI we should be able to select which channels should be added to each peripheral (vendor or custom). This needed to be saved in a new database table on the HUB side.
+From the webUI we should be able to select which channels should be added to each peripheral (vendor or custom). This needed to be saved in a new database table on the HUB side. The vendor channels mapping are independent from the Organization Mapping. Customs channels need to be selected at a organization mapping level, since they are always attached to a organization.
 
 Steps needed to create the channels on peripheral:
    - In the HUB, generate authentication tokens to access the channel(s). Re-use the existing channel access table.
@@ -179,7 +179,31 @@ With this solution we can replace the mechanism by an API call to the peripheral
 
 ## Future Steps
 
-This implementation sets the foundations to add more online content synchronization through the API, like configuration channels, images and activation keys.
+This implementation sets the foundations to add more online content synchronization through the API, like configuration channels, images or activation keys.
+this section will define a initial approach to make it possible. It's not as details as the proposed solution, since it's out of implementation scoped for this RFC and is described to give a full solution picture.
+
+### Configuration channels
+
+All data for configuration channel are save in the database and then materialized in disk to be used by salt. The source of true is the database information and the disk materialization is automatic if API methods are used.
+
+In the HUB server we can collect which configuration channels that should be synchronized to each peripheral. Configuration channel are attached to a organization and they should be part of the organization mapping selection.
+It's label behave in a different way when compared to software channels: we can have the same label in different organizations.
+
+A new taskomatic Job can be created to synchronized data from HUB server to peripherals which should run automatically once per day during a low usage time.
+
+The existing API methods under namespace `configchannel` cannot deal with cross organization mapping. To overcome it we have two options:
+   - Develop a new endpoint to create and update channels with server-to-server authentication and the possibility to defined the target organization. Besides organization identifier, all business logic should be the same as the API namespace `configchannel`.
+   - Collect organization admin credentials (user+password) on the HUB, and use the existing API. The downside is that it's more fields to be collected and managed.
+
+### Images
+
+
+
+### Activation Keys
+
+Activation keys are part of a organization and need to be mapped to peripherals at a organization mapping level. Similar to Configuration Channels we have API methods to create and update activation keys (namespace `activationkey`). However the API methods doesn't have the ability to do cross organization mapping.
+
+The same two options are available: New API endpoints or collect organization administrator credentials.
 
 # Drawbacks
 [drawbacks]: #drawbacks
