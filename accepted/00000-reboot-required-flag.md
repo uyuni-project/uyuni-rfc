@@ -9,8 +9,8 @@ The feature of showing in the Web UI when a system managed by Uyuni requires a r
 
 ### Detailed Design
 
-#### Current Approach Used for SUSE Distros
-Currently, except for transactional systems (i.e. SLE Micro), Uyuni lacks a system attribute to indicate directly whether a given system requires a reboot at a given moment. The information is derived from other attributes: the time of the last boot and the packages installed in the system. If a package has the “reboot suggested/needed/required” characteristic, and it was installed in a system after its last boot, Uyuni then shows in the WebUI that a reboot is required for this system. It is interesting to note that Uyuni is sensitive only to package installations. If a package removal or any other change causes a reboot to be required, this will not be detected by Uyuni. The “reboot suggested/needed/required” characteristic of a package is also derived from other data that is only available for SUSE Distros.
+#### Current Approach Used for SUSE distributions
+Currently, except for transactional systems (i.e. SUSE Linux Enterprise Micro), Uyuni lacks a system attribute to indicate directly whether a given system requires a reboot at a given moment. The information is derived from other attributes: the time of the last boot and the packages installed in the system. If a package has the “reboot suggested/needed/required” characteristic, and it was installed in a system after its last boot, Uyuni then shows in the WebUI that a reboot is required for this system. It is interesting to note that Uyuni is sensitive only to package installations. If a package removal or any other change causes a reboot to be required, this will not be detected by Uyuni. The “reboot suggested/needed/required” characteristic of a package is also derived from other data that is only available for SUSE distributions.
 
 
 #### Proposed Solution
@@ -22,8 +22,8 @@ The proposed solution entails extracting information directly from the system to
 The suitable way for checking if a reboot is required in a Linux system varies according to its family and version. Here, the following approach will be used:
 
 - Debian/Ubuntu: check if `/var/run/reboot-required` file exists
-- Suse: check if `/boot/do_purge_kernels` or `/run/reboot-needed` file exists.
-- RedHat:
+- SUSE: check if `/boot/do_purge_kernels` or `/run/reboot-needed` file exists.
+- Red Hat:
   - Major release >=8: check if the exit code of running `dnf -q needs-restarting -r` command is 1.
   - Major release < 8: check if the exit code of running `needs-restarting -r` command is 1.
 
@@ -39,9 +39,9 @@ Additionally, a boolean indicating whether a reboot is required or not will be i
 
 As the `reboot_info` beacon will be adapted to not fire events indicating that the reboot is not required, it is necessary to adapt the logic of the reboot required flag in server side. Currently there is a boolean database column `reboot_needed` at `suseMinionInfo` table for this purpose. This column will be modified to be a timestamp `reboot_required_after` and the server will need to compare this timestamp with the `uptime` of the system to determine if a reboot is required or not in a given moment.
 
-##### Changing Suse distros approach
+##### Changing SUSE distributions approach
 
-As it is possible to handle the reboot required information using the proposed approach, it will be used for all distributions. This implies changing the current approach for Suse systems to not query package/patch metadata for this purpose. Thereby, there will be a standardized implementation for the feature. Furthermore, in large installations, the query to list systems requiring reboot will have a better performance.
+As it is possible to handle the reboot required information using the proposed approach, it will be used for all distributions. This implies changing the current approach for SUSE systems to not query package/patch metadata for this purpose. Thereby, there will be a standardized implementation for the feature. Furthermore, in large installations, the query to list systems requiring reboot will have a better performance.
 
 
 ### Drawbacks
