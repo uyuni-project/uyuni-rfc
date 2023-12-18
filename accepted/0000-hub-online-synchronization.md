@@ -109,7 +109,7 @@ For now this solution is focused on software channels only, but can be extended 
 We can follow a similar approach to what exists on ISSv1. On the hub side we can define multiple peripheral servers to connect to by providing the FQDN and an authentication token.
 On the peripheral side we also need to define the Hub server FQDN and an Authentication token.
 
-Each peripheral server can only have 1 Hub server (master). This will avoid dealing with problems like channel label conflicts between multiple masters. Configure a hub server will block access to a set of menu items like: "Admin" -> "Setup wizard" -> "Organization Credentials" and "Products" and "PAYG Connection" (similar to what we already have for ISSv1).
+Each peripheral server can only have 1 Hub server (main). This will avoid dealing with problems like channel label conflicts between multiple main servers. Configure a hub server will block access to a set of menu items like: "Admin" -> "Setup wizard" -> "Organization Credentials" and "Products" and "PAYG Connection" (similar to what we already have for ISSv1).
 We cannot add Hub connection if SCC credentials are defined, they should be mutually excluded.
 
 We can re-use and improve existing ISSv1 database tables to save the needed data.
