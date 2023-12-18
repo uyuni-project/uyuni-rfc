@@ -167,6 +167,7 @@ Currently, each user is part of an organization, even if it has the role `sat_ad
 
 For this reason, the best approach would be develop a new namespace with a token authentication to be used for server-to-server communication. This namespace will contain all the needed API methods for hub content synchronization. Some methods will be similar to other existing methods in other namespaces, with differences in authentication/autorization and maybe an extra parameter for the organization (since it would be extracted from the authenticated user).
 
+The exact list of methods and parameters are seen as an implementation detail.
 
 ## Communication Workflow
 
