@@ -197,10 +197,13 @@ The existing API methods under namespace `configchannel` cannot deal with cross 
 
 ### Images
 
-TODO
-- Is all data saved in the database?
-- Is the identifier unique in the system, or we can have duplicates across organizations?
-- Are the existing endpoint sufficient to update all the data?
+For images metadata and pillar information are saved on the database. Images are store on disk but accessible through http(s). Images are associated to a Organization but it's IS is unique across installation.
+
+To copy data from one SUSE Manager server to another we would need to use several API calls and http(s) calls. Some data cannot be imported using the API, like package list information.
+
+An implementation example is available from the community [link](https://github.com/uyuni-project/contrib/blob/main/os-image-tools/osimage-import-export.py).
+
+Communication can be done from the HUB to the peripheral server to synchronize all the necessary data.
 
 ### Activation Keys
 
