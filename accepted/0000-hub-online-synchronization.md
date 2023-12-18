@@ -107,13 +107,16 @@ For now this solution is focused on software channels only, but can be extended 
 ## Define connection between HUB and Peripherals
 
 We can follow a similar approach to what exists on ISSv1. On the hub side we can define multiple peripheral servers to connect to by providing the FQDN and an authentication token.
-On the peripheral side we also need to define the Hub server FQDN and an Authentication token.
+On the peripheral side we also need to define the Hub server FQDN and it would generate an Authentication token for he HUB.
 
 Each peripheral server can only have 1 Hub server (main). This will avoid dealing with problems like channel label conflicts between multiple main servers. Configure a hub server will block access to a set of menu items like: "Admin" -> "Setup wizard" -> "Organization Credentials" and "Products" and "PAYG Connection" (similar to what we already have for ISSv1).
 We cannot add Hub connection if SCC credentials are defined, they should be mutually excluded.
 
 We can re-use and improve existing ISSv1 database tables to save the needed data.
 
+To define this connection the existing API namespace should be re-use (`sync.master` and `sync.slave`), with some adaptations to cope with the new requirements. Example of this is the need to define an authentication method between servers to the connection more secure.
+
+During development phase we should consider if we can join both namespaces in one name `hub`, for example.
 
 ## Hub as a proxy for SCC data
 
@@ -124,15 +127,16 @@ The minimal endpoints to be provided are:
 
 On top of this, we should also provide an endpoint for peripherals to send status data needed by SCC (example of this is the minions registered and hardware information). Peripheral servers should send this data to the HUB instead of SCC, and the HUB server should consolidate it and send it to SCC.
 
-## Peripheral software channels creation
+## Peripheral organization mapping and software channel creation
 
-We need a mechanism to create the channels in the peripheral servers (vendor and CLM's) in the desired organization. The peripheral channel creation must be done automatically from the HUB server through an API. Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
-
-For each peripheral we should define the organization mapping between HUB organizations and peripheral ones, following the rules (similiar to what we have on ISSv1):
+On the hub side, for each peripheral we should define the organization mapping between HUB organizations and peripheral ones, following the rules (similar to what we have on ISSv1):
   - Each Hub organization can only be mapped to one peripheral organizations
   - Peripheral organization can receive data from one HUB organization, which is not mandatory to have the same identifier
 
 From the webUI we should be able to select which channels should be added to each peripheral (vendor or custom). This needed to be saved in a new database table on the HUB side. The vendor channels mapping are independent from the Organization Mapping. Customs channels need to be selected at a organization mapping level, since they are always attached to a organization.
+
+For channel creation we need a mechanism to create them in the peripheral servers (vendor and CLM's) in the desired organization. The peripheral channel creation must be done automatically from the HUB server through an API. Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
+To be able to present data on the HUB
 
 Steps needed to create the channels on peripheral:
    - In the HUB, generate authentication tokens to access the channel(s). Re-use the existing channel access table.
@@ -147,6 +151,22 @@ Peripheral servers need to be configured with the flag `java.unify_custom_channe
 One important aspect is to recreate the connection between custom channels and vendor channels, so we can have SP migration and avoid the need to synchronize all channel clone chains (ISSv1 also does this implementation).
 
 Vendor channels are not linked to any organization, and can also be synchronized with this method.
+
+### API Integration
+
+We will have 3 different API use cases for the organization mapping and channel creation.
+
+1. ** User API on HUB server: ** Define organization mapping and which content should be synchronized to each peripheral server.
+2. ** Hub-Peripheral data collector: ** Hub needs to grab data from the peripheral, like organizations list. API methods already exists for this tasks.
+3. ** Hub-Peripheral channel creation: ** Hub needs to call a peripheral API method to create channels in different organization.
+
+For use case 1) we can enhance the existing `sync.slave` (or it's new name) to support the organization mapping and define which channels should be synchronized per peripheral.
+
+For use cases 2) and 3), we have a problem with API authentication and authorization.
+Currently, each user is part of an organization, even if it has the role `sat_admin`. Since we need to make cross-organizations call we would need a new authentication/authorization mechanism or change the authorization for the existing API methods.
+
+For this reason, the best approach would be develop a new namespace with a token authentication to be used for server-to-server communication. This namespace will contain all the needed API methods for hub content synchronization. Some methods will be similar to other existing methods in other namespaces, with differences in authentication/autorization and maybe an extra parameter for the organization (since it would be extracted from the authenticated user).
+
 
 ## Communication Workflow
 
