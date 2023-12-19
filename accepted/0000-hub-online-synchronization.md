@@ -135,8 +135,9 @@ On the hub side, for each peripheral we should define the organization mapping b
 
 From the webUI we should be able to select which channels should be added to each peripheral (vendor or custom). This needed to be saved in a new database table on the HUB side. The vendor channels mapping are independent from the Organization Mapping. Customs channels need to be selected at a organization mapping level, since they are always attached to a organization.
 
-For channel creation we need a mechanism to create them in the peripheral servers (vendor and CLM's) in the desired organization. The peripheral channel creation must be done automatically from the HUB server through an API. Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
-To be able to present data on the HUB
+After the mapping is defined in the HUB this needs to be synchronized to Peripheral server.
+The channel creation must use a mechanism to create them in the peripheral servers (vendor and CLM's) in the desired organization. This should be implemented by a taskomatic task which would automatically set the desired configuraiton on each peripheral server. Communication must be done from the HUB server through an API only.
+Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
 
 Steps needed to create the channels on peripheral:
    - In the HUB, generate authentication tokens to access the channel(s). Re-use the existing channel access table.
@@ -156,9 +157,9 @@ Vendor channels are not linked to any organization, and can also be synchronized
 
 We will have 3 different API use cases for the organization mapping and channel creation.
 
-1. ** User API on HUB server: ** Define organization mapping and which content should be synchronized to each peripheral server.
-2. ** Hub-Peripheral data collector: ** Hub needs to grab data from the peripheral, like organizations list. API methods already exists for this tasks.
-3. ** Hub-Peripheral channel creation: ** Hub needs to call a peripheral API method to create channels in different organization.
+1. **User API on HUB server:** Define organization mapping and which content should be synchronized to each peripheral server.
+2. **Hub-Peripheral data collector:** Hub needs to grab data from the peripheral, like organizations list. API methods already exists for this tasks.
+3. **Hub-Peripheral channel creation:** Hub needs to call a peripheral API method to create channels in different organization.
 
 For use case 1) we can enhance the existing `sync.slave` (or it's new name) to support the organization mapping and define which channels should be synchronized per peripheral.
 
@@ -168,6 +169,7 @@ Currently, each user is part of an organization, even if it has the role `sat_ad
 For this reason, the best approach would be develop a new namespace with a token authentication to be used for server-to-server communication. This namespace will contain all the needed API methods for hub content synchronization. Some methods will be similar to other existing methods in other namespaces, with differences in authentication/autorization and maybe an extra parameter for the organization (since it would be extracted from the authenticated user).
 
 The exact list of methods and parameters are seen as an implementation detail.
+However for data creation (like create software channels, synchronize images, etc) we should have consider one single API method for each data type and be sure of is ACIDity.
 
 ## Communication Workflow
 
@@ -231,6 +233,19 @@ Communication can be done from the HUB to the peripheral server to synchronize a
 Activation keys are part of a organization and need to be mapped to peripherals at a organization mapping level. Similar to Configuration Channels we have API methods to create and update activation keys (namespace `activationkey`). However the API methods doesn't have the ability to do cross organization mapping.
 
 The same two options are available: New API endpoints or collect organization administrator credentials.
+
+## Synchronization failing scenarios
+
+We will bi-directional communication between Hub server and peripheral servers:
+
+1. **Peripheral to HUB:** Download packages when running `spacewalk-repo-sync`
+2. **HUB to Peripheral:** API call(s) to create software channels structure and in the future synchronize configuration channels, images and activation keys.
+
+Both synchronizations should happen automatically. For 1) it's already automated in taskomatic with `mgr-sync-refresh-default` task. for scenario 2) we would need to develop a new taskomatic task running on HUB server.
+
+If a peripheral server is unreachable the new taskomatic task should retry to apply the desired configurations in the next execution.
+
+In case HUB server is unreachable during repository sync, the next execution of the task should retry the synchonization and should be able to recover from the problem as soon HUB server gets available again.
 
 # Drawbacks
 [drawbacks]: #drawbacks
