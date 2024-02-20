@@ -24,11 +24,13 @@ The design encompasses core functionality, new UI operations, modifications to t
 
 The core design involves three key components for data collection and filtering of packages for client consuption:
 
-1. **Repo-sync**: A standalone Python module that extracts module metadata from source channels using `dnf`'s `libmodulemd` library during repo-sync, serving as the source of truth for the module information. As the data gathered during this process is critical to the feature, it must be executed as a single unit with the repo-sync.
+1. **Repo-sync**: A standalone Python module that extracts module metadata from source channels using `dnf`'s `libmodulemd` library during repo-sync, serving as the source of truth for the module information. As the data gathered during this process is critical to the feature, it must be executed as a single unit with the repo-sync ([See the PoC](https://github.com/cbbayburt/uyuni/commit/ed9391e8c6e0a66d1dd7cb0f3501332b0884f2f3)).
 
-2. **Package profile update**: A Salt state that retrieves current module information from clients, storing the data in the database. The state calls `dnf module` commands to retrieve the list of enabled module streams together with their *name*, *stream*, *version*, *context*, and *arch* values.
+2. **Package profile update**: A Salt state that retrieves current module information from clients, storing the data in the database. The state calls `dnf module` commands to retrieve the list of enabled module streams together with their *name*, *stream*, *version*, *context*, and *arch* values ([see the PoC](https://github.com/cbbayburt/uyuni/commit/2c788f3144f5bfe8ddd904045e0a757a7a432923)).
 
 3. **Package cache**: Incorporates data from repo-sync and package profile update into existing queries, ensuring proper filtering of non-enabled modular packages. The existing tables, queries and stored procedures will be updated with additional joins and proper indexing to ensure minimum performance impact.
+
+A prototype showcasing the core functionality can be found [here](https://github.com/cbbayburt/uyuni/tree/native_appstreams_poc).
 
 ### ER diagram
 
