@@ -74,3 +74,4 @@ Below is an example of a minimal test repository:
 
 - Final UI design considerations
 - Whether the Salt module for profile update should be native or packaged with Uyuni
+- Migration plan for the typical user
