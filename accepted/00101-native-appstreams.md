@@ -44,8 +44,8 @@ The proposed UI includes a new page under the `System > Software` tab, visible o
 
 The main workflow is as follows:
 
-1. Select an assigned modular channel.
-2. Select enabled modules and their streams.
+1. Display modules and their available streams from all the assigned modular channels
+2. The user selects module streams to be enabled on the client
 3. *Optional:* Run `mgr-libmod` for dependency resolution with real-time feedback.
 4. Schedule an Uyuni action to apply the selection on the client.
 5. The action calls `dnf` with the selection of module streams on the client via Salt.
