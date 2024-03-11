@@ -130,6 +130,13 @@ Goal: Incorporate LogCLI to provide a command-line interface for querying logs s
 
 ### Component 8: Supportconfig metrics gatherer
 
+Goal: Extract relevant metrics from support config files.
+Configuration: No extra configuration needed apart from the path to the supportconfig files.
+
+### Component 9: Saline
+
+Configuration: Deploy as a monitoring formula.
+
 
 ## Alerting and notifications
 
@@ -195,11 +202,12 @@ Running the Uyuni Health-Check-Tool along with tye Uyuni Server container in the
 
 [unresolved]: #unresolved-questions
 
-  
 
 - What are the unknowns?
 
 Has Saline to be part of the current Uyuni Monitoring stack?
+
+How is the exporter going to access to uyuni-server container? For example, to query the database.
 
 - What can happen if Murphy's law holds true?
 
