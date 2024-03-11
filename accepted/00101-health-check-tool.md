@@ -1,6 +1,6 @@
-- Feature Name: (fill with a unique ident, my_awesome_feature)
+- Feature Name: Uyuni Health-Check-Tool
 
-- Start Date: (fill with today's date, YYYY-MM-DD)
+- Start Date: 2024-11-03
 
   
 
@@ -76,11 +76,11 @@ Saline is an addition for salt used in SUSE Manager/Uyuni aimed to provide bette
 
 * Container Deployment Function: Design a generic container deployment function in Python that abstracts the container runtime interface. This function will initially support Podman but is designed to allow easy extension to other container orchestration platforms like Kubernetes.
 
-* OS-Specific Logic: Based on the OS detection, incorporate conditional logic to handle differences in configurations or dependencies that may exist between SLE 15 and SLE Micro.
 
 ### Component 1: Exporter 
 
 Goal: Configure the  Exporter to gather metrics from the Uyuni server and managed systems. The exporter uses Salt runners to gather metrics.
+
 Steps:
     Deploy the Exporter as a containerized application.
     Ensure the exporter is accessible for Prometheus to scrape metrics.
@@ -90,6 +90,7 @@ Steps:
 ### Component 2: Prometheus 
 
 Goal: Set up Prometheus to scrape metrics from the Uyuni-Health-Check exporter and evaluate alerting rules.
+
 Steps:
     Scrape Configuration: Add the Exporter endpoint to the Prometheus configuration.
     Alerting Rules Definition: Create alerting rules to define conditions for triggering alerts based on metrics from the Exporter.
@@ -98,6 +99,7 @@ Steps:
 ### Component 3: Grafana 
 
 Goal: Use Grafana to visualize metrics and alerts from Prometheus.
+
 Steps:
     Add Prometheus as a data source in Grafana.
     Create dashboards to visualize metrics from the Exporter.
@@ -107,6 +109,7 @@ Steps:
 
 **Loki setup**
 Goal: Deploy and configure Loki to serve as the centralized log aggregation system for collecting, storing, and querying logs from the Uyuni environment.
+
 Steps:
     Deployment: Install Loki on the Uyuni infrastructure as a container that is part of the Uyuni-Health-Check Pod.
     Configuration: Customize the Loki configuration to define storage locations for logs, retention policies, and other operational parameters.
@@ -114,6 +117,7 @@ Steps:
 
 **Promtail setup**
 Goal: Configure Promtail to collect logs from Uyuni server and managed systems, forwarding them to Loki for aggregation and analysis.
+
 Steps: 
     Deployment: Install Promtail on the Uyuni infrastructure as a container that is part of the Uyuni-Health-Check Pod.
     Configuration: 
@@ -121,7 +125,7 @@ Steps:
         Configure Promtail to forward logs to your Loki instance.
 
 ### Component 7: LogCLI
-Goal : Incorporate LogCLI to provide a command-line interface for querying logs stored in Loki, enhancing the toolset available for diagnostics, troubleshooting, and operational reporting.
+Goal: Incorporate LogCLI to provide a command-line interface for querying logs stored in Loki, enhancing the toolset available for diagnostics, troubleshooting, and operational reporting.
 
 
 ### Component 8: Supportconfig metrics gatherer
