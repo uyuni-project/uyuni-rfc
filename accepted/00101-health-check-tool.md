@@ -156,7 +156,7 @@ Configuration: Deploy as a monitoring formula.
     * Recommendation Logic: For recommendations, the alerting mechanism can be extended with additional logic to suggest actions. 
   
 
-# Metrics
+## Metrics
 
 * Server status and resource utilization
 
