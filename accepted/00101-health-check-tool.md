@@ -1,4 +1,4 @@
-- Feature Name: Uyuni Health-Check-Tool
+- Feature Name: A Health Check tool for Uyuni
 - Start Date: 2024-11-03
 
 
@@ -171,7 +171,7 @@ Configuration: Deploy as a monitoring formula.
 
 We want to differentiate conceptually between "Saline" and the "Health Check Tool". In this regard, these are two different components with different purposes.
 
-#### Saline: Salt state appliement monitoring to be integrated to the product.
+### Saline: Salt state appliement monitoring to be integrated to the product.
 Saline exposes Salt state metrics to Prometheus. It is a tool meant to attach to Salt Master sockets and analyze and extract Salt state/jobs metrics from a live and running Uyuni server.
 
 Saline setup is done is two steps:
@@ -187,7 +187,7 @@ The `salined` service must be able to attach to the Salt Master. At the moment t
 The Saline engine that is running on the Uyuni server, can be also used to feed a future UI with a live view of running actions. It is a potential component that we may want eventually integrate as part of the default Uyuni server stack.
 
 
-#### Health Check Tool: A tool you can run on a live server or use in a disconnected setup (via supportconfig)
+### Health Check Tool: A tool you can run on a live server or use in a disconnected setup (via supportconfig)
 In this case, this tool is mean not only to provide a picture of the current health status of the Uyuni server, but also to help engineers to debug disconnected setups via "supportconfig". In this regard, the tool cannot always rely on existing Prometheus and Grafana instances, but it should be able to deploy its own instances to visualize the data on disconnected environments.
 
 - The Health Check Tool is not installed or running by default in a Uyuni server.
