@@ -58,7 +58,7 @@ URL: https://github.com/uyuni-project/poc-uyuni-health-check
 
 ### Saline
 
-Saline is an addition for Salt used in SUSE Manager/Uyuni aimed to provide better control and visibility for states deploymend in the large scale environments. It can provide metrics related to Salt events and "state.apply" process on the minions.
+Saline is an addition for Salt used in SUSE Manager/Uyuni aimed to provide better control and visibility for states deployment in the large scale environments. It can provide metrics related to Salt events and "state.apply" process on the minions.
 
 URL: https://github.com/vzhestkov/saline
 
@@ -72,7 +72,7 @@ There are different and complementary approaches when it comes to how to configu
 
 * Containerized Deployment: The Health-Check-Tool components, including Loki, Promtail, Grafana, and the Exporter, are deployed as containers within a POD, simplifying scaling and management.
 
-* Comunication with Uyuni server: The approach to establishing communication with the Uyuni server lies in the underlying infrastructure setup. When deployed in a standalone environment, the system leverages Podman's networking capabilities to facilitate connectivity. This involves configuring Podman containers to ensure they can communicate effectively with the Uyuni server, using Podman's built-in networking features such as container-specific network configurations. Alternatively, in environments where Kubernetes is employed, communication with the Uyuni server is managed through Kubernetes networking principles.
+* Communication with Uyuni server: The approach to establishing communication with the Uyuni server lies in the underlying infrastructure setup. When deployed in a standalone environment, the system leverages Podman's networking capabilities to facilitate connectivity. This involves configuring Podman containers to ensure they can communicate effectively with the Uyuni server, using Podman's built-in networking features such as container-specific network configurations. Alternatively, in environments where Kubernetes is employed, communication with the Uyuni server is managed through Kubernetes networking principles.
 
 * Storage and Persistence: Utilizing persistent storage solutions for logs and metrics data, ensuring data integrity and availability for historical analysis.
 
@@ -194,7 +194,7 @@ In this case, this tool is mean not only to provide a picture of the current hea
 
 In this regard, on disconnected setups, the tool cannot rely on existing Uyuni server components, neither existing Prometheus and Grafana instances, but it should be able to deploy its own instances to visualize the data coming from a "supportconfig".
 
-When the tool have access to an Uyuni server, then it can run "standalone" or via `mgradm`, allowing to resuse existing Prometheus and Grafana instances.
+When the tool have access to an Uyuni server, then it can run "standalone" or via `mgradm`, allowing to reuse existing Prometheus and Grafana instances.
 
 - The Health Check Tool is not installed or running by default in a Uyuni server.
 - As multiple components (containers) are deployed, resources on a live Uyuni server might be affected.
@@ -205,11 +205,11 @@ As mentioned, the exporter needs to have access to Uyuni server container. It do
 
 There are some Salt runners jobs that requires access to Salt Master Event publisher, currently exposed via IPC socket. This makes it tricky access these sockets from a different container. Some metrics might not be available until we move to "TCP" sockets for the Salt Master Event publisher in this case.
 
-Alternatively, we could make the "exporter" as part of the server-image, even if not running by default. Then it is up to the Healh Check Tool or Monitoring formula to start it. This would solve the current issue of not having access to the IPC sockets.
+Alternatively, we could make the "exporter" as part of the server-image, even if not running by default. Then it is up to the Health Check Tool or Monitoring formula to start it. This would solve the current issue of not having access to the IPC sockets.
 
 
 # Security considerations
-In the current design, we are exposing metrics via Promotheus and making them available in Grafana, and more importantly we are exposing logs messages via Loki/LogCLI to CLI and Grafana users. It is important to notice that after running this tool, and until related containers are destroyed, the Grafana Dashboards (and other components like Prometheus and Loki/LogCLI) are exposing metrics and logs messages that may contain sensitive data and information to any non-root user in the system or to anyone that have access to this host in the network.
+In the current design, we are exposing metrics via Prometheus and making them available in Grafana, and more importantly we are exposing logs messages via Loki/LogCLI to CLI and Grafana users. It is important to notice that after running this tool, and until related containers are destroyed, the Grafana Dashboards (and other components like Prometheus and Loki/LogCLI) are exposing metrics and logs messages that may contain sensitive data and information to any non-root user in the system or to anyone that have access to this host in the network.
 
 Promtail pipeline definition can be enhanced to use [replace](https://grafana.com/docs/loki/latest/send-data/promtail/stages/replace/) function, to hide sensitive data from logs. Users must have a configuration file to define the different filters to apply to the Promtail pipeline. Filters must be also configurable via Monitoring Formula.
 
@@ -287,4 +287,4 @@ Has Saline to be part of the current Uyuni Monitoring stack? As mentioned above,
 
 The tool will just not be able to provide insights.
 Security issues.
-The tool might also enhaust resources on the server (computing/memory/disk).
+The tool might also exhaust resources on the server (computing/memory/disk).
