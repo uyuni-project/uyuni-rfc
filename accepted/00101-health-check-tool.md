@@ -64,13 +64,17 @@ Proof-of-Concept: https://github.com/vzhestkov/saline
 
 ## Configuration and Deployment
 
-There are different and complementary approaches when it comes to how to configure and deploy these tools:
+This RFC proposes the following solutions:
+
+### Integrated solution: extending existing monitoring stack.
 
 * Monitoring Formula Integration: Loki/Promtail and `uyuni_health_exporter` configurations are managed via Uyuni's monitoring formula, ensuring seamless integration and ease of deployment. Making Saline and Health Check to part of the current Monitoring formulas.
 
 * Additional Monitoring Formulas: Similar to the previous approach, integration with current Monitoring stack but using a separated formulas.
 
 ![monitoring stack integration](images/health-check/integration-monitoring-stack.png)
+
+### Standalone solution: containerized deployment including Loki, Promtail and Grafana.
 
 * Containerized Deployment: The Health-Check-Tool components, including Loki, Promtail, Grafana, and the Exporter, are deployed as containers sharing the same network, allowing TCP communication between containers. Running all containers within the same POD would be also possible but it would limits the deployment method on kubernetes to be running all at the same cluster node.
 
@@ -83,6 +87,11 @@ There are different and complementary approaches when it comes to how to configu
 ![exporter internal diagram](images/health-check/internals.png)
 
 * Container Deployment Function: Design a generic container deployment function in Python that abstracts the container runtime interface. This function will initially support Podman but is designed to allow easy extension to other container orchestration platforms like Kubernetes. It should be standalone, allowing the tool to run disconnected environments but it will be also integrated into `mgradm`, keeping `mgradm` as the single entry point for the users to manage the containerized Uyuni server deployment.
+
+### Disconnected solution: containerized deployment without access to an Uyuni server (via supportconfig)
+
+![standalone disconnected diagram](images/health-check/standalone-disconnected.png)
+
 
 ### Component 1: Exporter
 
@@ -151,13 +160,6 @@ Configuration: No extra configuration needed apart from the path to the supportc
 
 Configuration: Deploy as a monitoring formula.
 
-# How is the exporter going to access to uyuni-server container? For example, to query the database.
-As mentioned, the exporter needs to have access to Uyuni server container. It does need to query the DB and also execute some Salt runners jobs to gather metrics. If the "exporter" runs in a separated container than the Salt Master, then we can make the "exporter" container to run in the same network than the "uyuni-server", then TCP sockets are available to use.
-
-There are some Salt runners jobs that requires access to Salt Master Event publisher, currently exposed via IPC socket. This makes it tricky access these sockets from a different container. Some metrics might not be available until we move to "TCP" sockets for the Salt Master Event publisher in this case.
-
-Alternatively, we could make the "exporter" as part of the server-image, even if not running by default. Then it is up to the Health Check Tool or Monitoring formula to start it. This would solve the current issue of not having access to the IPC sockets.
-
 
 ## Alerting and notifications
 
@@ -183,6 +185,14 @@ Alternatively, we could make the "exporter" as part of the server-image, even if
 * Database health and integrity
 
 * Status of relevant Uyuni services
+
+
+# How is the exporter going to access to uyuni-server container? For example, to query the database.
+As mentioned, the exporter needs to have access to Uyuni server container. It does need to query the DB and also execute some Salt runners jobs to gather metrics. If the "exporter" runs in a separated container than the Salt Master, then we can make the "exporter" container to run in the same network than the "uyuni-server", then TCP sockets are available to use.
+
+There are some Salt runners jobs that requires access to Salt Master Event publisher, currently exposed via IPC socket. This makes it tricky access these sockets from a different container. Some metrics might not be available until we move to "TCP" sockets for the Salt Master Event publisher in this case.
+
+Alternatively, we could make the "exporter" as part of the server-image, even if not running by default. Then it is up to the Health Check Tool or Monitoring formula to start it. This would solve the current issue of not having access to the IPC sockets.
 
 
 ## Saline vs Health Check Tool
@@ -219,8 +229,6 @@ When the tool have access to an Uyuni server, then it can run "standalone" or vi
 - The Health Check Tool is not installed or running by default in a Uyuni server.
 - As multiple components (containers) are deployed, resources on a live Uyuni server might be affected.
 - It should be able to reuse existing Prometheus and Grafana instances, allowing integration with existing Monitoring stack.
-
-![standalone disconnected diagram](images/health-check/standalone-disconnected.png)
 
 
 # Security considerations
