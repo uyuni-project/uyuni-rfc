@@ -187,7 +187,7 @@ Configuration: Deploy as a monitoring formula.
 * Status of relevant Uyuni services
 
 
-# How is the exporter going to access to uyuni-server container? For example, to query the database.
+## How is the exporter going to access to uyuni-server container? For example, to query the database.
 As mentioned, the exporter needs to have access to Uyuni server container. It does need to query the DB and also execute some Salt runners jobs to gather metrics. If the "exporter" runs in a separated container than the Salt Master, then we can make the "exporter" container to run in the same network than the "uyuni-server", then TCP sockets are available to use.
 
 There are some Salt runners jobs that requires access to Salt Master Event publisher, currently exposed via IPC socket. This makes it tricky access these sockets from a different container. Some metrics might not be available until we move to "TCP" sockets for the Salt Master Event publisher in this case.
