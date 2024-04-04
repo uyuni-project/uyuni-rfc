@@ -54,13 +54,13 @@ As an engineer, I get the supportconfig mostly so I need this tool to consume th
 
 * LogCLI: A command-line interface tool provided by Grafana Loki, LogCLI enables direct querying of logs stored in Loki from the terminal. It supports running LogQL queries, live tailing of logs, and viewing logs in a flexible output format. This tool is particularly useful for administrators and developers who prefer to work within a CLI environment for quick log searches, debugging, and log analysis without the need for a graphical interface.
 
-URL: https://github.com/uyuni-project/poc-uyuni-health-check
+Proof-of-Concept: https://github.com/uyuni-project/poc-uyuni-health-check
 
 ### Saline
 
 Saline is an addition for Salt used in SUSE Manager/Uyuni aimed to provide better control and visibility for states deployment in the large scale environments. It can provide metrics related to Salt events and "state.apply" process on the minions.
 
-URL: https://github.com/vzhestkov/saline
+Proof-of-Concept: https://github.com/vzhestkov/saline
 
 ## Configuration and Deployment
 
@@ -70,41 +70,49 @@ There are different and complementary approaches when it comes to how to configu
 
 * Additional Monitoring Formulas: Similar to the previous approach, integration with current Monitoring stack but using a separated formulas.
 
-* Containerized Deployment: The Health-Check-Tool components, including Loki, Promtail, Grafana, and the Exporter, are deployed as containers within a POD, simplifying scaling and management.
+![monitoring stack integration](images/health-check/integration-monitoring-stack.png)
+
+* Containerized Deployment: The Health-Check-Tool components, including Loki, Promtail, Grafana, and the Exporter, are deployed as containers sharing the same network, allowing TCP communication between containers. Running all containers within the same POD would be also possible but it would limits the deployment method on kubernetes to be running all at the same cluster node.
+
+![standalone diagram](images/health-check/standalone.png)
 
 * Communication with Uyuni server: The approach to establishing communication with the Uyuni server lies in the underlying infrastructure setup. When deployed in a standalone environment, the system leverages Podman's networking capabilities to facilitate connectivity. This involves configuring Podman containers to ensure they can communicate effectively with the Uyuni server, using Podman's built-in networking features such as container-specific network configurations. Alternatively, in environments where Kubernetes is employed, communication with the Uyuni server is managed through Kubernetes networking principles.
 
 * Storage and Persistence: Utilizing persistent storage solutions for logs and metrics data, ensuring data integrity and availability for historical analysis.
 
-* Container Deployment Function: Design a generic container deployment function in Python that abstracts the container runtime interface. This function will initially support Podman but is designed to allow easy extension to other container orchestration platforms like Kubernetes. It should be standalone, allowing the tool to run disconnected environments but it will be also integrated into `mgradm`, keeping `mgradm` as the single entry point for the users to manage the containerized Uyuni server deployment.
+![exporter internal diagram](images/health-check/internals.png)
 
+* Container Deployment Function: Design a generic container deployment function in Python that abstracts the container runtime interface. This function will initially support Podman but is designed to allow easy extension to other container orchestration platforms like Kubernetes. It should be standalone, allowing the tool to run disconnected environments but it will be also integrated into `mgradm`, keeping `mgradm` as the single entry point for the users to manage the containerized Uyuni server deployment.
 
 ### Component 1: Exporter
 
 Goal: Configure the Exporter to gather metrics from the Uyuni server and managed systems. The exporter uses Salt runners to gather metrics.
 
 Steps:
-    Deploy the Exporter as a containerized application.
-    Ensure the exporter is accessible for Prometheus to scrape metrics.
-    Ensure the exporter can run Salt runner commands targeting the server.
+
+  - Deploy the Exporter as a containerized application.
+  - Ensure the exporter is accessible for Prometheus to scrape metrics.
+  - Ensure the exporter can run Salt runner commands targeting the server.
 
 ### Component 2: Prometheus
 
 Goal: Set up Prometheus to scrape metrics from the Uyuni-Health-Check exporter and evaluate alerting rules.
 
 Steps:
-    Scrape Configuration: Add the Exporter endpoint to the Prometheus configuration.
-    Alerting Rules Definition: Create alerting rules to define conditions for triggering alerts based on metrics from the Exporter.
-    Alertmanager Configuration: Set up Alertmanager to handle alerts generated by Prometheus, including notifications.
+
+  - Scrape Configuration: Add the Exporter endpoint to the Prometheus configuration.
+  - Alerting Rules Definition: Create alerting rules to define conditions for triggering alerts based on metrics from the Exporter.
+  - Alertmanager Configuration: Set up Alertmanager to handle alerts generated by Prometheus, including notifications.
 
 ### Component 3: Grafana
 
 Goal: Use Grafana to visualize metrics and alerts from Prometheus.
 
 Steps:
-    Add Prometheus as a data source in Grafana.
-    Create dashboards to visualize metrics from the Exporter.
-    Configure panels within dashboards to display alerts based on Prometheus data.
+
+  - Add Prometheus as a data source in Grafana.
+  - Create dashboards to visualize metrics from the Exporter.
+  - Configure panels within dashboards to display alerts based on Prometheus data.
 
 ### Component 4: Loki and Promtail
 
@@ -112,24 +120,28 @@ Steps:
 Goal: Deploy and configure Loki to serve as the centralized log aggregation system for collecting, storing, and querying logs from the Uyuni environment.
 
 Steps:
-    Deployment: Install Loki on the Uyuni infrastructure as a container that is part of the Uyuni-Health-Check Pod.
-    Configuration: Customize the Loki configuration to define storage locations for logs, retention policies, and other operational parameters.
-    Service Discovery: Configure Loki to discover targets for log collection, focusing on integration with the Exporter and Uyuni components.
+
+  - Deployment: Install Loki on the Uyuni infrastructure as a container that is part of the Uyuni-Health-Check Pod or sharing the same network than the "uyuni-server" container.
+  - Configuration: Customize the Loki configuration to define storage locations for logs, retention policies, and other operational parameters.
+  - Service Discovery: Configure Loki to discover targets for log collection, focusing on integration with the Exporter and Uyuni components.
 
 **Promtail setup**
 Goal: Configure Promtail to collect logs from Uyuni server and managed systems, forwarding them to Loki for aggregation and analysis.
 
 Steps:
-    Deployment: Install Promtail on the Uyuni infrastructure as a container that is part of the Uyuni-Health-Check Pod.
-    Configuration:
-        Edit Promtail configuration to define the paths of log files to monitor. In the containerized Uyuni environment, the Promtail container must be configured to have read access to mapped volumes that correspond to the log locations of the Uyuni server container.
-        Configure Promtail to forward logs to your Loki instance.
+
+  - Deployment: Install Promtail on the Uyuni infrastructure as a container that is part of the Uyuni-Health-Check Pod.
+  - Configuration:
+    - Edit Promtail configuration to define the paths of log files to monitor. In the containerized Uyuni environment, the Promtail container must be configured to have read access to mapped volumes that correspond to the log locations of the Uyuni server container.
+    - Configure Promtail to forward logs to your Loki instance.
 
 ### Component 5: LogCLI
 Goal: Incorporate LogCLI to provide a command-line interface for querying logs stored in Loki, enhancing the toolset available for diagnostics, troubleshooting, and operational reporting.
 
 
 ### Component 6: Supportconfig metrics gatherer
+
+Stakeholders: Engineers and Supporters
 
 Goal: Extract relevant metrics from support config files.
 
@@ -188,6 +200,8 @@ Saline should be configurable to use IPC or TCP sockets. Switching Salt Master t
 
 The Saline engine running on the Uyuni server, will provide data and metrics to feed Prometheus and Grafana instances and also a future UI with a live view of running actions. Eventually, this component should be integrated as part of the default Uyuni server stack.
 
+For now Saline would be part of Uyuni server image.
+
 
 ### Health Check Tool: An standalone tool you can run on an running Uyuni server or use in a disconnected setup (via supportconfig)
 In this case, this tool is mean not only to provide a picture of the current health status of a live running the Uyuni server, where the tool has access to it and can fetch data in real time, but it is meant to also help engineers and supporters to analyze and debug problems on disconnected setups, where the tool doesn't have access to an actual running Uyuni server, but only has a "supportconfig" as a source of data.
@@ -199,6 +213,9 @@ When the tool have access to an Uyuni server, then it can run "standalone" or vi
 - The Health Check Tool is not installed or running by default in a Uyuni server.
 - As multiple components (containers) are deployed, resources on a live Uyuni server might be affected.
 - It should be able to reuse existing Prometheus and Grafana instances, allowing integration with existing Monitoring stack.
+
+![standalone disconnected diagram](images/health-check/standalone-disconnected.png)
+
 
 # How is the exporter going to access to uyuni-server container? For example, to query the database.
 As mentioned, the exporter needs to have access to Uyuni server container. It does need to query the DB and also execute some Salt runners jobs to gather metrics. If the "exporter" runs in a separated container than the Salt Master, then we can make the "exporter" container to run in the same network than the "uyuni-server", then TCP sockets are available to use.
