@@ -90,6 +90,8 @@ This RFC proposes the following solutions:
 
 ### Disconnected solution: containerized deployment without access to an Uyuni server (via supportconfig)
 
+No access to an Uyuni server or existing monitoring stack, only access to a supportconfig.
+
 ![standalone disconnected diagram](images/health-check/standalone-disconnected.png)
 
 
@@ -202,11 +204,11 @@ We want to differentiate conceptually between "Saline" and the "Health Check Too
 ### Saline: Salt state application monitoring to be integrated to the product.
 Saline exposes Salt state metrics to Prometheus. It is a tool meant to attach to Salt Master sockets and analyze and extract Salt state/jobs metrics from a live and running Uyuni server.
 
-Saline setup is done is two steps:
+Saline setup is done is two steps, and should be also driven by `mgradm`:
 
-1. Install `saline` RPM in the Uyuni server. This provides "setup" script and new "Formulas with Forms".
+1. Install `saline` RPM in the Uyuni server (pre-installed in the server image). This provides "setup" script and new "Formulas with Forms".
 2. Run `saline-setup run` to configure and enable the `salined` service to attach to the Salt Master.
-3. In the "Formulas with Forms" UI, new formulas will appear: "Saline Prometheus" and "Saline Grafana". These can be used to automatically configure your Prometheus and Grafana instances to get the metrics and dashboards from Saline.
+3. In the "Formulas with Forms" UI, new formulas will appear: "Saline Prometheus" and "Saline Grafana". These can be used to automatically configure your existing Prometheus and Grafana instances to get the metrics and dashboards from Saline.
 
 Saline already provides an easy way to integrate with the current Monitoring Stack (Formulas with Forms).
 
@@ -259,7 +261,7 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 
 #### Saline
 - Research about using TCP instead of IPC sockets for Salt Master internal sockets.
-- Build Saline in OBS/IBS and provide it via RPM package for the Uyuni Server channel.
+- Build Saline in OBS/IBS and make it part of the Uyuni Server image
 - Saline runs inside "uyuni-server" container.
 
 ### Phase 1 (after 5.0 GA):
