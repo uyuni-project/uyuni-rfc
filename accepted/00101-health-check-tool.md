@@ -12,7 +12,7 @@ The Uyuni Health Check Tool is conceived as a solution aimed at optimizing the m
 
 [motivation]: #motivation
 
-Developing a Health Check Tool for Uyuni is becoming more critical with each passing day. We have an increasing number of bug reports and a bug report usually takes a lot more time due to the extensive communication overhead involved. We need a tool that helps identify issues quickly and present the state of suse manager health to all the stakeholders on each level from users to support and engineering.
+Developing a Health Check Tool for Uyuni is becoming more critical with each passing day. We have an increasing number of bug reports and a bug report usually takes a lot more time due to the extensive communication overhead involved. We need a tool that helps identify issues quickly and present the state of Uyuni health to all the stakeholders on each level from users to support and engineering.
 
 
 ## Use cases
@@ -23,9 +23,7 @@ As a system administrator using Uyuni, I want a comprehensive health check tool 
 
 **User story 2**
 
-As an engineer responsible for maintaining the Uyuni codebase, I want to efficiently investigate and fix reported bugs or performance issues within the Uyuni infrastructure. To expedite the debugging process and ensure a stable codebase, I would like to leverage the capabilities of the integrated health check tool, which will help me identify any underlying health-related problems that could be contributing to the reported bug.
-
-As an engineer, I get the supportconfig mostly so I need this tool to consume the provided supportconfig and help me identify any potential issues before I dive into the huge amount of logs.
+As an engineer responsible for maintaining the Uyuni codebase, I want to efficiently investigate and fix reported bugs or performance issues within the Uyuni infrastructure. To expedite the debugging process and ensure a stable codebase, I would like to leverage the capabilities of the integrated health check tool, which will help me identify any underlying health-related problems that could be contributing to the reported bug. I also need this tool to consume the provided supportconfig and help me identify any potential issues before I dive into the huge amount of logs.
 
 
 ## Expected outcome
