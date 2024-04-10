@@ -14,7 +14,6 @@ The Uyuni Health Check Tool is conceived as a solution aimed at optimizing the m
 
 Developing a Health Check Tool for Uyuni is becoming more critical with each passing day. We have an increasing number of bug reports and a bug report usually takes a lot more time due to the extensive communication overhead involved. We need a tool that helps identify issues quickly and present the state of suse manager health to all the stakeholders on each level from users to support and engineering.
 
-As the volume of bug reports rises and the time required to address each report is affected by the extensive communication overhead involved, developing a Health Check Tool for Uyuni is becoming more critical. A tool that pinpoints issues and clearly presents the health status of Uyuni to stakeholders at every level, from users to support and engineering, is essential.
 
 ## Use cases
 
