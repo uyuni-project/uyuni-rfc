@@ -267,9 +267,10 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 ### Phase 1 (after 5.0 GA):
 
 #### Uyuni Health Check
+
 - Enhance metrics, dashboards and alerts.
-- Allow user to enhance Loki pipeline to add filters and/or replace patterns to replace sensitive information.
-- Integration with Monitoring Stack. Enhance monitoring formula to enable Health Check monitoring.
+- Allow users to enhance the Loki pipeline to add filters and/or replace patterns to be able to replace sensitive information.
+- Integration with the Monitoring Stack. Enhance the monitoring formula to enable Health Check monitoring.
 - Reuse configuration from "standalone" version.
 
 #### Saline
