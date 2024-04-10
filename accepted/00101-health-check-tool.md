@@ -296,8 +296,8 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 
 ### What other designs/options have been considered?
 
-1. Running the Uyuni Health-Check-Tool along with the Uyuni Server container in the same pod. This could lead to a resource problem on the node running the pod.
-2. Integration with current Monitoring stack. This has been considered in this RFC as an complementary integration for the standalone Health Check Tool.
+1. Running the Uyuni Health-Check-Tool along with the `uyuni-server` container on the same pod. This could lead to a resource problem on the node running the pod.
+2. Integration with the current Monitoring stack. This has been considered in this RFC as an complementary integration for the standalone Health Check Tool.
 
 ### What is the impact of not doing this?
 
