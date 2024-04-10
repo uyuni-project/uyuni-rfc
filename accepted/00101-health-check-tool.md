@@ -274,7 +274,8 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 - Reuse configuration from "standalone" version.
 
 #### Saline
-- Provide "Saline" inside a separated container that attach to Salt Master TCP sockets from "uyuni-server" container.
+
+- Provide "Saline" inside a separated container that attaches to Salt Master TCP sockets from the `uyuni-server` container.
 - Alternatively, explore sharing Salt Master IPC sockets between containers.
 
 
