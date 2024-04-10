@@ -314,6 +314,6 @@ Has Saline to be part of the current Uyuni Monitoring stack? As mentioned above,
 
 ### What can happen if Murphy's law holds true?
 
-The tool will just not be able to provide insights.
-Security issues.
-The tool might also exhaust resources on the server (computing/memory/disk).
+- The tool will just not be able to provide insights.
+- Security issues.
+- The tool might also exhaust resources on the server (computing/memory/disk).
