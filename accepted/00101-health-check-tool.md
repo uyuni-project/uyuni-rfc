@@ -301,7 +301,7 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 
 ### What is the impact of not doing this?
 
-1. Not having a Health Check Tools to monitor health of an Uyuni server. Poor monitoring when it comes to internal metrics, overall Uyuni server health, and particularly around Salt jobs and actions.
+1. Not having a Health Check Tool to monitor the health of an Uyuni server. Poor monitoring when it comes to internal metrics, overall Uyuni server health, and particularly around Salt jobs and actions.
 
 
 # Unresolved questions
