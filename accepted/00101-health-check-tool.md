@@ -55,7 +55,7 @@ Proof-of-Concept: https://github.com/uyuni-project/poc-uyuni-health-check
 
 ### Saline
 
-Saline is an addition for Salt used in SUSE Manager/Uyuni aimed to provide better control and visibility for states deployment in the large scale environments. It can provide metrics related to Salt events and "state.apply" process on the minions.
+Saline is an addition for Salt used in Uyuni aimed to provide better control and visibility for states deployment in the large scale environments. It can provide metrics related to Salt events and `state.apply` process on the minions.
 
 Proof-of-Concept: https://github.com/vzhestkov/saline
 
