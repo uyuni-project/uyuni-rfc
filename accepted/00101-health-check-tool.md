@@ -45,7 +45,7 @@ As an engineer responsible for maintaining the Uyuni codebase, I want to efficie
 
 * Grafana: Utilized for visualization, with dashboards displaying metrics, logs, and alerts, facilitating an integrated view of system health and performance.
 
-* Uyuni-health-exporter: A custom exporter to gather specific metrics related to Uyuni server health, including database, service status, and resource usage.
+* Uyuni-Health-Exporter: A custom exporter to gather specific metrics related to Uyuni server health, including database, service status, and resource usage.
 
 * Alerting System: Leveraging Grafana's alerting mechanism, configured to monitor critical metrics and log patterns, triggering alerts based on predefined thresholds.
 
