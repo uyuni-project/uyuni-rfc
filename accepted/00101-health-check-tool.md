@@ -17,7 +17,7 @@ Developing a Health Check Tool for Uyuni is becoming more critical with each pas
 
 ## Use cases
 
-**User Story 1**
+**User story 1**
 
 As a system administrator using Uyuni, I want a comprehensive health check tool that can efficiently assess the overall health and performance of the Uyuni infrastructure and its components. This tool should provide valuable insights into the system's status, detect potential issues, and offer recommendations for improvements, enabling me to proactively maintain and optimize the Uyuni environment.
 
