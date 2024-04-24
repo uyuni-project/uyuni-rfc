@@ -164,9 +164,9 @@ Configuration: Deploy as a monitoring formula.
 
 ## Alerting and notifications
 
-* Severity Levels: Alerts are categorized by severity levels (e.g., Critical, Warning, Info), allowing for a prioritized response and management.
+* Labels: Alerts are categorized by labels like severity (e.g., Critical, Warning, Info), allowing for a prioritized response and management.
 
-* Notification Channels: Configured within Grafana to support various notification mechanisms.
+* Notification Channels: Configured within Alertmanager to support various notification mechanisms.
 
 * Alerts and Recommendations via Loki:
     * Loki Querying: Utilize the Loki API to query log data for patterns indicative of issues or anomalies. This requires crafting LogQL queries tailored to the types of issues Uyuni Health-Check-Tool aims to detect.
@@ -175,7 +175,7 @@ Configuration: Deploy as a monitoring formula.
 * Implementing alerts and recommendations involve:
     * Defining LogQL Queries: Writing LogQL queries that match the relevant conditions.
     * Configuring Alert Rules: Using the Loki Ruler to define alert rules based on LogQL queries. These rules specify the conditions under which alerts should be triggered and the severity levels.
-    * Setting Up Notification Channels: Configuring the notification channels to receive alerts.
+    * Setting Up Notification Channels: Configuring the notification channels in Alertmanager to send alerts.
     * Recommendation Logic: For recommendations, the alerting mechanism can be extended with additional logic to suggest actions.
 
 
@@ -253,35 +253,44 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 
 # Implementation steps
 
-### Phase 0 (before 5.0 GA):
+### Phase 0: Disconnected Setup
 
 #### Uyuni Health Check
 
 - Create RPM packages in OBS/IBS.
 - Use container images building in OBS/IBS for the different components.
-- Provide a "standalone" version only (no integration with the Monitoring stack) via an Uyuni server channel (or others so it is available for engineers or supporters).
-- Flag this as a Tech Preview.
+- Use alerting rules to detect potential issues.
+- Gathers opinions from engineers about possible improvements of metrics, dashboards and alerts.
 
 #### Saline
 
 - Research about using TCP instead of IPC sockets for Salt Master internal sockets.
-- Build Saline in OBS/IBS and make it part of the Uyuni Server image
-- Saline runs inside the `uyuni-server` container.
 
-### Phase 1 (after 5.0 GA):
+### Phase 1:
 
 #### Uyuni Health Check
 
-- Enhance metrics, dashboards and alerts.
-- Allow users to enhance the Loki pipeline to add filters and/or replace patterns to be able to replace sensitive information.
 - Integration with the Monitoring Stack. Enhance the monitoring formula to enable Health Check monitoring.
-- Reuse configuration from "standalone" version.
+- Enhance metrics, dashboards and alerts.
+- Allow users to enhance the Promtail pipeline to add filters and/or replace patterns to be able to replace sensitive information.
+- Use the alert system to detect potential issues and provide recommendations.
+
+#### Saline
+
+- Build Saline in OBS/IBS and make it part of the Uyuni Server image
+- Saline runs inside the `uyuni-server` container.
+
+### Phase 2:
+
+#### Uyuni Health Check
+
+- Provide a "standalone" version only (no integration with the Monitoring stack) via an Uyuni server channel (or others so it is available for engineers or supporters).
+- Reuse configuration from the "integrated" version.
 
 #### Saline
 
 - Provide "Saline" inside a separated container that attaches to Salt Master TCP sockets from the `uyuni-server` container.
 - Alternatively, explore sharing Salt Master IPC sockets between containers.
-
 
 # Drawbacks
 
