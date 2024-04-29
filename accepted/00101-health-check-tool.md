@@ -266,7 +266,7 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 
 - Research about using TCP instead of IPC sockets for Salt Master internal sockets.
 
-### Phase 1:
+### Phase 1: Integrated Solution
 
 #### Uyuni Health Check
 
@@ -280,7 +280,7 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 - Build Saline in OBS/IBS and make it part of the Uyuni Server image
 - Saline runs inside the `uyuni-server` container.
 
-### Phase 2:
+### Phase 2: Standalone Solution
 
 #### Uyuni Health Check
 
