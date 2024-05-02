@@ -255,6 +255,8 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 
 ### Phase 0: Disconnected Setup
 
+Available to engineers and supporters. Only access to a supportconfig.
+
 #### Uyuni Health Check
 
 - Create RPM packages in OBS/IBS.
@@ -267,6 +269,8 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 - Research about using TCP instead of IPC sockets for Salt Master internal sockets.
 
 ### Phase 1: Integrated Solution
+
+Integrated with the Monitoring Stack.
 
 #### Uyuni Health Check
 
@@ -281,6 +285,8 @@ In this sense, we must provide a good documentation with tutorials, use cases an
 - Saline runs inside the `uyuni-server` container.
 
 ### Phase 2: Standalone Solution
+
+Decoupled from the Monitoring Stack. Available via an Uyuni Server channel.
 
 #### Uyuni Health Check
 
