@@ -47,7 +47,7 @@ As an engineer responsible for maintaining the Uyuni codebase, I want to efficie
 
 * Uyuni-Health-Exporter: A custom exporter to gather specific metrics related to Uyuni server health, including database, service status, and resource usage.
 
-* Alerting System: Leveraging Grafana's alerting mechanism, configured to monitor critical metrics and log patterns, triggering alerts based on predefined thresholds.
+* Alerting System: Leveraging Loki and Prometheus alerting mechanism, configured to monitor critical metrics and log patterns, triggering alerts based on predefined thresholds. Using Alertmanager for sending notifications.
 
 * LogCLI: A command-line interface tool provided by Loki, LogCLI enables direct querying of logs stored in Loki from the terminal. It supports running LogQL queries, live tailing of logs, and viewing logs in a flexible output format. This tool is particularly useful for administrators and developers who prefer to work within a CLI environment for quick log searches, debugging, and log analysis without the need for a graphical interface.
 
