@@ -85,6 +85,8 @@ This RFC proposes the following solutions:
 
 * Container Deployment Function: Design a generic container deployment function in Python that abstracts the container runtime interface. This function will initially support Podman but is designed to allow easy extension to other container orchestration platforms like Kubernetes. It should be standalone, allowing the tool to run disconnected environments but it will be also integrated into `mgradm`, keeping `mgradm` as the single entry point for the users to manage the containerized Uyuni server deployment.
 
+* This solution is also suitable for smaller deployments, e.g., running all containers on a single node and deploying the Health-Check-Tool with a default configuration in a short time.
+
 ### Disconnected solution: containerized deployment without access to an Uyuni server (via supportconfig)
 
 No access to an Uyuni server or existing monitoring stack, only access to a supportconfig.
@@ -292,6 +294,7 @@ Decoupled from the Monitoring Stack. Available via an Uyuni Server channel.
 
 - Provide a "standalone" version only (no integration with the Monitoring stack) via an Uyuni server channel (or others so it is available for engineers or supporters).
 - Reuse configuration from the "integrated" version.
+- Integrate a _one button_ simplified deployment in the Uyuni UI.
 
 #### Saline
 
