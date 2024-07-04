@@ -6,6 +6,7 @@ The "RFC" (request for comments) process is intended to provide a consistent and
 
 ## TL;DR
 
+* Make sure you have Git commit signing enabled. If you are not doing it already, check out the [GitHub documentation](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification).
 * Fork https://github.com/uyuni-project/uyuni-rfc
 * Copy `00000-template.md` to `accepted/00000-my-feature.md`
   - 'my-feature' should be as descriptive as possible.
