@@ -97,7 +97,9 @@ The new Hub synchronization would be focused on HUB online deployments to allow 
 
 The solution focuses on re-using the repo-sync mechanism to synchronize channels from Hub server to peripheral servers. It will be described in several steps that aim to address how it will be used and how we can technically support it.
 
-The main focus is to develop the integration between HUB server and peripherals through API only and re-using existing API methods as much as possible. However, some new custom methods will be needed.
+The main focus is to develop the integration between HUB server and peripherals through API only.
+For the Hub/peripheral communication an new API might be useful to have a clear separation. This is needed when we want to make this API organization independent.
+In the existing API the calling user is only allowed to operate on his own organization any maybe utilize "Vendor Channel" when he is a "SUSE Manager Administrator".
 
 Configuration should be pushed from the HUB to peripherals, to avoid the need of direct management of the peripherals.
 
@@ -106,37 +108,74 @@ For now this solution is focused on software channels only, but can be extended 
 
 ## Define connection between HUB and Peripherals
 
-We can follow a similar approach to what exists on ISSv1. On the hub side we can define multiple peripheral servers to connect to by providing the FQDN and an authentication token.
-On the peripheral side we also need to define the Hub server FQDN and it would generate an Authentication token for he HUB.
-
-Each peripheral server can only have 1 Hub server (main). This will avoid dealing with problems like channel label conflicts between multiple main servers. Configure a hub server will block access to a set of menu items like: "Admin" -> "Setup wizard" -> "Organization Credentials" and "Products" and "PAYG Connection" (similar to what we already have for ISSv1).
+Each peripheral server can only have 1 Hub server (main). This will avoid dealing with problems like channel label conflicts between multiple main servers.
+Configure a hub server on a peripheral server will block access to a set of menu items like: "Admin" -> "Setup wizard" -> "Organization Credentials" and "Products" and "PAYG Connection" (similar to what we already have for ISSv1).
 We cannot add Hub connection if SCC credentials are defined, they should be mutually excluded.
 
-We can re-use and improve existing ISSv1 database tables to save the needed data.
+### Alternative 1:
+We can follow a similar approach to what exists on ISSv1. On the hub side we can define multiple peripheral servers to connect to by providing the FQDN and an authentication token.
+On the peripheral side we also need to define the Hub server FQDN and it would generate an Authentication token for he HUB.
 
 To define this connection the existing API namespace should be re-use (`sync.master` and `sync.slave`), with some adaptations to cope with the new requirements. Example of this is the need to define an authentication method between servers to the connection more secure.
 
 During development phase we should consider if we can join both namespaces in one name `hub`, for example.
 
+
+### Alternative 2:
+We can follow a similar approach to what we do to activate a proxy.
+On the Hub we create an API which is called authenticated and can take additional data like credentials for the peripheral server.
+This API create a system (kubernetes) or change an existing system (podman host exists) to an Uyuni Peripheral Server.
+
+On the peripheral side we call the API on the Hub and fill out the required configuration data needed locally on the peripheral server (e.g. auto generated mirror credential password).
+We will also change the `scc_url` configuration on the Peripheral to point to the Hub Server.
+
+On the hub, the activate call will create the peripheral configuration with first data.
+
+Alternatively for the Hub/peripheral communication an new API might be useful to have a clear separation.
+This is needed when we want to make this API organization independent.
+In the existing API the calling user is only allowed to operate on his own organization any maybe utilize "Vendor Channel" when he is a "SUSE Manager Administrator".
+
+
 ## Hub as a proxy for SCC data
 
 The SUSE Manager server needs a set of metadata to be able to operate. Currently that metadata is provided by SCC directly or, in the case of PAYG, provided by the cloud RMT infrastructure. We should also provide this data in SUSE Manager HUB to be consumed by the peripheral servers.
-The minimal endpoints to be provided are:
+The endpoints which are called are:
    - "/suma/product_tree.json"
    - "/connect/organizations/products/unscoped"
+   - "/connect/organizations/repositories"
+   - "/connect/organizations/subscriptions"
+   - "/connect/organizations/orders"
 
-On top of this, we should also provide an endpoint for peripherals to send status data needed by SCC (example of this is the minions registered and hardware information). Peripheral servers should send this data to the HUB instead of SCC, and the HUB server should consolidate it and send it to SCC.
+The first two are required to provide full data. The URL in "/connect/organizations/products/unscoped" should be adapted to the URL pointing to the Hub Server.
+
+The endpoint "/connect/organizations/repositories" should contain all repositories the asking peripheral server has access to. The URLs should point to the hub server and contain valid download tokens to access the hub.
+We should also include custom channels in this repository list and implement the update of download URLs on the peripheral server for custom channels.
+
+"subscriptions" and "orders" are not important for peripheral server and should just return an empty JSON list.
+
+### Peripheral sending system data for SCC to the Hub
+
+To be able to report all systems of a Hub scenario to SCC, we should also provide the endpoints for peripherals to send the system data needed by SCC (example of this is the minions registered and hardware information). Peripheral servers should send this data to the HUB instead of SCC, and the HUB server should consolidate it and send it to SCC.
+
+These endpoints are:
+    - DELETE /connect/organizations/systems/:id
+    - PUT /connect/organizations/systems
+    - PUT /connect/organizations/virtualization_hosts
+
+This requires on the Hub enhancements to store the data from the different peripherals and send them together with its own data to SCC.
 
 ## Peripheral organization mapping and software channel creation
+
+### Alternative 1:
 
 On the hub side, for each peripheral we should define the organization mapping between HUB organizations and peripheral ones, following the rules (similar to what we have on ISSv1):
   - Each Hub organization can only be mapped to one peripheral organizations
   - Peripheral organization can receive data from one HUB organization, which is not mandatory to have the same identifier
 
-From the webUI we should be able to select which channels should be added to each peripheral (vendor or custom). This needed to be saved in a new database table on the HUB side. The vendor channels mapping are independent from the Organization Mapping. Customs channels need to be selected at a organization mapping level, since they are always attached to a organization.
+From the web UI we should be able to select which channels should be added to each peripheral (vendor or custom). This needed to be saved in a new database table on the HUB side. The vendor channels mapping are independent from the Organization Mapping. Customs channels need to be selected at a organization mapping level, since they are always attached to a organization.
 
 After the mapping is defined in the HUB this needs to be synchronized to Peripheral server.
-The channel creation must use a mechanism to create them in the peripheral servers (vendor and CLM's) in the desired organization. This should be implemented by a taskomatic task which would automatically set the desired configuraiton on each peripheral server. Communication must be done from the HUB server through an API only.
+The channel creation must use a mechanism to create them in the peripheral servers (vendor and CLM's) in the desired organization. This should be implemented by a taskomatic task which would automatically set the desired configuration on each peripheral server. Communication must be done from the HUB server through an API only.
 Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
 
 Steps needed to create the channels on peripheral:
@@ -153,7 +192,34 @@ One important aspect is to recreate the connection between custom channels and v
 
 Vendor channels are not linked to any organization, and can also be synchronized with this method.
 
+
+### Alternative 2:
+
+On the hub side, for each peripheral we select channels to be synced (vendor or custom).
+We allow freely to select from any hub organization.
+Vendor Channels are created on the Peripheral side still as vendor channels.
+For Custom Channels the target organization on the peripheral server can be freely selected.
+
+A static organization mapping is not needed for software channels.
+
+After the channels are defined it needs to be synchronized to Peripheral server.
+The channel creation must use a mechanism to create them in the peripheral servers (vendor and CLM's) in the desired organization.
+This should be implemented by a taskomatic task which would automatically set the desired configuration on each peripheral server.
+Communication must be done from the HUB server through an API only.
+Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
+
+Steps needed to create the channels on peripheral:
+    - In the peripheral create all needed channels (vendor and custom). Check how the product page is doing it. Make this mechanism also work for custom channels.
+    - execute the refresh. The refresh connect to the SCC data endpoints on the Hub and populate all the data including the URLs with tokens for all the channels. These URLs will point to the Hub and have fresh tokens for authentication against the Hub. We need to enhance this mechanism, that also custom channels gets the URLs updated.
+
+Peripheral servers need to be configured with the flag `java.unify_custom_channel_management`, which will synchronize custom channels during the nightly mgr-sync process.
+
+One important aspect is to recreate the "cloned from" connection between custom channels and vendor channels, so we can have SP migration and avoid the need to synchronize all channel clone chains (ISSv1 also does this implementation).
+
+
 ### API Integration
+
+#### Alternative 1:
 
 We will have 3 different API use cases for the organization mapping and channel creation.
 
@@ -166,10 +232,36 @@ For use case 1) we can enhance the existing `sync.slave` (or it's new name) to s
 For use cases 2) and 3), we have a problem with API authentication and authorization.
 Currently, each user is part of an organization, even if it has the role `sat_admin`. Since we need to make cross-organizations call we would need a new authentication/authorization mechanism or change the authorization for the existing API methods.
 
-For this reason, the best approach would be develop a new namespace with a token authentication to be used for server-to-server communication. This namespace will contain all the needed API methods for hub content synchronization. Some methods will be similar to other existing methods in other namespaces, with differences in authentication/autorization and maybe an extra parameter for the organization (since it would be extracted from the authenticated user).
+For this reason, the best approach would be develop a new namespace with a token authentication to be used for server-to-server communication. This namespace will contain all the needed API methods for hub content synchronization. Some methods will be similar to other existing methods in other namespaces, with differences in authentication/authorization and maybe an extra parameter for the organization (since it would be extracted from the authenticated user).
 
 The exact list of methods and parameters are seen as an implementation detail.
 However for data creation (like create software channels, synchronize images, etc) we should have consider one single API method for each data type and be sure of is ACIDity.
+
+#### Alternative 2:
+
+We will have 3 different API use cases for the channel creation and mapping.
+
+1. **User API on HUB server:** Define channel mapping which content should be synchronized to each peripheral server.
+2. **Hub-Peripheral data collector:** Hub needs to grab data from the peripheral, like organizations list. API methods already exists for this tasks.
+3. **Hub-Peripheral channel creation:** Hub needs to call a peripheral API method to create channels in different organization.
+
+For use case 1) we can enhance the existing `sync.slave` (or it's new name) to support the channel mapping and define which channels should be synchronized per peripheral.
+
+For use cases 2) and 3), we have a problem with API authentication and authorization.
+Currently, each user is part of an organization, even if it has the role `sat_admin`. Since we need to make cross-organizations call we would need a new authentication/authorization mechanism or change the authorization for the existing API methods.
+
+For this reason, the best approach would be develop a new API with a new authentication method to be used for server-to-server communication.
+This API will contain all the needed API methods for hub content synchronization.
+Some methods will be similar to other existing methods in the existing API, but with differences in authentication/authorization and maybe an extra parameter for the organization (since it would be extracted from the authenticated user).
+
+The exact list of methods and parameters are seen as an implementation detail.
+However for data creation (like create software channels, synchronize images, etc) we should have consider one single API method for each data type and be sure of is ACIDity.
+
+What authentication should be used needs to be discussed. The goal is:
+    - easy to setup
+    - easy to exchange in case it got compromised
+    - follow a good known standard
+
 
 ## Communication Workflow
 
@@ -245,7 +337,7 @@ Both synchronizations should happen automatically. For 1) it's already automated
 
 If a peripheral server is unreachable the new taskomatic task should retry to apply the desired configurations in the next execution.
 
-In case HUB server is unreachable during repository sync, the next execution of the task should retry the synchonization and should be able to recover from the problem as soon HUB server gets available again.
+In case HUB server is unreachable during repository sync, the next execution of the task should retry the synchronization and should be able to recover from the problem as soon HUB server gets available again.
 
 # Drawbacks
 [drawbacks]: #drawbacks
