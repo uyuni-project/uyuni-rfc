@@ -158,9 +158,9 @@ We should also include custom channels in this repository list and implement the
 To be able to report all systems of a Hub scenario to SCC, we should also provide the endpoints for peripherals to send the system data needed by SCC (example of this is the minions registered and hardware information). Peripheral servers should send this data to the HUB instead of SCC, and the HUB server should consolidate it and send it to SCC.
 
 These endpoints are:
-    - DELETE /connect/organizations/systems/:id
-    - PUT /connect/organizations/systems
-    - PUT /connect/organizations/virtualization_hosts
+   - DELETE /connect/organizations/systems/:id
+   - PUT /connect/organizations/systems
+   - PUT /connect/organizations/virtualization_hosts
 
 This requires on the Hub enhancements to store the data from the different peripherals and send them together with its own data to SCC.
 
@@ -209,8 +209,8 @@ Communication must be done from the HUB server through an API only.
 Since we are making special channel creation (defined next), those API methods should be available to server-to-server communication only.
 
 Steps needed to create the channels on peripheral:
-    - In the peripheral create all needed channels (vendor and custom). Check how the product page is doing it. Make this mechanism also work for custom channels.
-    - execute the refresh. The refresh connect to the SCC data endpoints on the Hub and populate all the data including the URLs with tokens for all the channels. These URLs will point to the Hub and have fresh tokens for authentication against the Hub. We need to enhance this mechanism, that also custom channels gets the URLs updated.
+   - In the peripheral create all needed channels (vendor and custom). Check how the product page is doing it. Make this mechanism also work for custom channels.
+   - execute the refresh. The refresh connect to the SCC data endpoints on the Hub and populate all the data including the URLs with tokens for all the channels. These URLs will point to the Hub and have fresh tokens for authentication against the Hub. We need to enhance this mechanism, that also custom channels gets the URLs updated.
 
 Peripheral servers need to be configured with the flag `java.unify_custom_channel_management`, which will synchronize custom channels during the nightly mgr-sync process.
 
@@ -258,9 +258,9 @@ The exact list of methods and parameters are seen as an implementation detail.
 However for data creation (like create software channels, synchronize images, etc) we should have consider one single API method for each data type and be sure of is ACIDity.
 
 What authentication should be used needs to be discussed. The goal is:
-    - easy to setup
-    - easy to exchange in case it got compromised
-    - follow a good known standard
+   - easy to setup
+   - easy to exchange in case it got compromised
+   - follow a good known standard
 
 
 ## Communication Workflow
