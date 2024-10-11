@@ -124,7 +124,7 @@ During development phase we should consider if we can join both namespaces in on
 ### Alternative 2:
 We can follow a similar approach to what we do to activate a proxy.
 On the Hub we create an API which is called authenticated and can take additional data like credentials for the peripheral server.
-This API create a system (kubernetes) or change an existing system (podman host exists) to an Uyuni Peripheral Server.
+This API create the configuration on the Hub side and also handle the creation of a system which represent an Uyuni Peripheral Server.
 
 On the peripheral side we call the API on the Hub and fill out the required configuration data needed locally on the peripheral server (e.g. auto generated mirror credential password).
 We will also change the `scc_url` configuration on the Peripheral to point to the Hub Server.
@@ -134,6 +134,29 @@ On the hub, the activate call will create the peripheral configuration with firs
 Alternatively for the Hub/peripheral communication an new API might be useful to have a clear separation.
 This is needed when we want to make this API organization independent.
 In the existing API the calling user is only allowed to operate on his own organization any maybe utilize "Vendor Channel" when he is a "SUSE Manager Administrator".
+
+
+#### The Peripheral Server system entry
+
+Similar as in the Proxy case, we should have a "system" entry which represent the Peripheral Server.
+This can be used to show special information or relations.
+
+There are 2 different cases we need to consider.
+   1. A host system exists with the same FQDN (podman running the container)
+   2. No host system got registered (kubernetes case or podman where the host should not be registered at the Hub)
+
+To handle these 2 cases, we should create a new base entitlement for "Container Workloads" (similar to Foreign Entitlement) and 2 add-on entitlements for Peripheral and Proxy Server.
+In case we have a host system, we would not use the "Container Workload Entitlement" as base, but the "Salt Entitlement".
+Only in case if no host is available, the "Container Workload Entitlement" would be used.
+
+#### Special Requirements for the Hub/Peripheral relation
+
+We have the use case that the operators of hub and peripheral server are not the same company. In this case the hub is only used to provide content to the peripheral and no data should be flowing in the other direction. This has several implications:
+
+   - The Hub and the Peripheral Server may use different Root CAs. To esteblish trusted TLS connections, Root CAs must be exchanged during the onboarding process.
+   - The report database synchronization must be optional and should be configurable
+   - The peripheral server maybe not be managed by the Hub
+   - sending SCC Data from the peripheral to the hub must be optional as well
 
 
 ## Hub as a proxy for SCC data
