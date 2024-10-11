@@ -122,18 +122,34 @@ During development phase we should consider if we can join both namespaces in on
 
 
 ### Alternative 2:
-We can follow a similar approach to what we do to activate a proxy.
-On the Hub we create an API which is called authenticated and can take additional data like credentials for the peripheral server.
-This API create the configuration on the Hub side and also handle the creation of a system which represent an Uyuni Peripheral Server.
 
-On the peripheral side we call the API on the Hub and fill out the required configuration data needed locally on the peripheral server (e.g. auto generated mirror credential password).
-We will also change the `scc_url` configuration on the Peripheral to point to the Hub Server.
+We need to establish a secure connection between Hub and Peripheral Server.
+For this we create a Peripheral configuration on the Hub server.
+It mainly defines the FQDN of the Peripheral and generate credentials to authenticate from the Hub.
+The Root CA must be configured as well when the peripheral server is already setup.
 
-On the hub, the activate call will create the peripheral configuration with first data.
+This configuration can be exported and needs to be transferred to the Peripheral Server.
+This configuration include:
+   - the Root CA of the Hub
+   - the FQDN of the Hub
+   - the credentials to setup on the Peripheral Server
 
-Alternatively for the Hub/peripheral communication an new API might be useful to have a clear separation.
-This is needed when we want to make this API organization independent.
-In the existing API the calling user is only allowed to operate on his own organization any maybe utilize "Vendor Channel" when he is a "SUSE Manager Administrator".
+The authentication credentials works only for a special server-to-server API and is not connected to any user on the hub or peripheral server.
+The new server-to-server API is required as the existing API is tied to the organization of the calling user. The new API should work organization independent.
+
+The Peripheral Server may already be configured. When restarted with this additional configuration, it configures the Hub configuration and setup the credentials
+that the Hub can connect and finish the configuration.
+
+We may want to provide the possibility to generate a full peripheral configuration which makes it possible to setup the peripheral server from scratch including the Hub configuration (similar to the proxy configuration).
+
+
+After the peripheral server is setup and the Hub can connect via the server-to-server API, the final configuration can be triggered by the Hub.
+This include:
+   - Mirror credentials that the Peripheral Server can use to call the SCC endpoints on the Hub (See `Hub as a proxy for SCC data`). These credentials must be generated and set on Hub and Peripheral. This is required to authenticate and verify the authentication. Every Peripheral Server get a different credential.
+   - On the Peripheral server the `scc_url` must be changed to point to the Hub Server
+   - Create the Channels on the Peripheral Server which should be synchronized from the Hub
+
+More configurations might be needed at a later point when additional features will be added.
 
 
 #### The Peripheral Server system entry
@@ -153,7 +169,7 @@ Only in case if no host is available, the "Container Workload Entitlement" would
 
 We have the use case that the operators of hub and peripheral server are not the same company. In this case the hub is only used to provide content to the peripheral and no data should be flowing in the other direction. This has several implications:
 
-   - The Hub and the Peripheral Server may use different Root CAs. To esteblish trusted TLS connections, Root CAs must be exchanged during the onboarding process.
+   - The Hub and the Peripheral Server may use different Root CAs. To establish trusted TLS connections, Root CAs must be exchanged during the on boarding process.
    - The report database synchronization must be optional and should be configurable
    - The peripheral server maybe not be managed by the Hub
    - sending SCC Data from the peripheral to the hub must be optional as well
