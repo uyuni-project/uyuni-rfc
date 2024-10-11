@@ -137,11 +137,7 @@ This configuration include:
 The authentication credentials works only for a special server-to-server API and is not connected to any user on the hub or peripheral server.
 The new server-to-server API is required as the existing API is tied to the organization of the calling user. The new API should work organization independent.
 
-The Peripheral Server may already be configured. When restarted with this additional configuration, it configures the Hub configuration and setup the credentials
-that the Hub can connect and finish the configuration.
-
-We may want to provide the possibility to generate a full peripheral configuration which makes it possible to setup the peripheral server from scratch including the Hub configuration (similar to the proxy configuration).
-
+The Peripheral Server may already be configured. It should be possible to import this additional configuration which should than configure the Hub connection and setup the credentials.
 
 After the peripheral server is setup and the Hub can connect via the server-to-server API, the final configuration can be triggered by the Hub.
 This include:
@@ -150,6 +146,8 @@ This include:
    - Create the Channels on the Peripheral Server which should be synchronized from the Hub
 
 More configurations might be needed at a later point when additional features will be added.
+
+This should also be automated via taskomatic. Every change of the configuration can be deployed automatically every night to all peripheral servers.
 
 
 #### The Peripheral Server system entry
@@ -173,6 +171,11 @@ We have the use case that the operators of hub and peripheral server are not the
    - The report database synchronization must be optional and should be configurable
    - The peripheral server maybe not be managed by the Hub
    - sending SCC Data from the peripheral to the hub must be optional as well
+
+#### Full Periphiral Server Setup
+
+We can think abouot a full setup similar to the Proxy setup.
+We can generate a full peripheral configuration which makes it possible to setup the peripheral server from scratch including the Hub configuration.
 
 
 ## Hub as a proxy for SCC data
