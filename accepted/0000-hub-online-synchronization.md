@@ -138,6 +138,7 @@ The authentication credentials works only for a special server-to-server API and
 The new server-to-server API is required as the existing API is tied to the organization of the calling user. The new API should work organization independent.
 
 The Peripheral Server may already be configured. It should be possible to import this additional configuration which should than configure the Hub connection and setup the credentials.
+This import can happen via Web UI or API authenticated as "SUSE Manager Administrator" at the peripheral server.
 
 After the peripheral server is setup and the Hub can connect via the server-to-server API, the final configuration can be triggered by the Hub.
 This include:
