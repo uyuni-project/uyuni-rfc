@@ -29,6 +29,10 @@ The purpose of this RFC is to define:
 
 Due the great module purge, we need to rethink the way we package Salt, as lot of the modules are been dropped and Salt Extensions are stepping in now.
 
+As upstream Salt project wants to drops the support from their side in favor of [community driven support](https://github.com/salt-extensions#what-are-salt-extensions) and lifecycle for the different Salt Extensions, this raises the question about which of them do we want to include and support.
+
+At the time of writting this RFC, most of the modules dropped from the Salt core are not yet migrated to Salt Extensions, therefore nobody from the community has claimed their ownership yet.
+
 ### Builtin Salt Extensions
 
 There are a couple of Salt Extensions that we want to have integrated by default in our main `python311-salt` package. These are:
@@ -39,18 +43,25 @@ There are a couple of Salt Extensions that we want to have integrated by default
 - docker / dockerng
 - ...
 
-These are the minimum required extensions to be able to do basic operations in SUSE/openSUSE distributions and also allow basic operations on the context of SUSE Manager clients.
+These are the minimum required extensions to be able to do basic operations in SUSE/openSUSE distributions and also allow basic operations on the context of SUSE Manager clients. We must maintain and support these builtin Salt Extensions.
 
-Alternatively, we could reduce this list even more by just providing the `zypperpkg` and `transactional_update` modules and then provide the rest via `/usr/share/susemanager/salt/[_modules,_states,...]` in the Uyuni / SUSE Manager server.
+This list could be reduced even more by just providing the `zypperpkg` and `transactional_update` modules and then providing the rest via `/usr/share/susemanager/salt/[_modules,_states,...]` in the Uyuni / SUSE Manager server.
+
+Builtin Salt Extensions will be integrated into our main "openSUSE/salt" GitHub repo codebase for 3008.x, and provided as content of the main `python311-salt` package.
+
+Alternatively, we could create separated packages for each of those default Salt Extensions and then make add them as `Requires` for the `python311-salt` package. In that case, an official Salt Extensions must be created (if not existing) for each extension we want to have a package, and then taking the sources from the official extension repository. One Salt Extension, one RPM package.
 
 ### What about Salt Extensions packages?
 
-Essentially there are two different approaches here:
+Essentially there are some different approaches here:
 
 1. Creating separated packages for each one of the Salt Extensions (potentially hundreds) -> maybe too cumbersome if we go with all of them, and probably not really needed.
 2. Do not package Salt Extensions at all -> builtin extensions + manual customization.
+3. Only package a reduced list of Salt Extensions -> we could consider some popular extensions that we should then maintain in the context of SLE.
 
 With option 1, we do package and do support all those extensions we decide to have a package for. On the other hand, with option 2, we do only take care of maintaing and supporting the reduced list of builin extensions (actually integrated in the main `python311-salt` package), and then users and customers would need to rely on extending with their desired extensions coming from the community.
+
+In case of packaging certain list of Salt Extensions, those will be available as RPM packages, allowing the ability to install those packaged ones in an system without access to internet or PyPI. Additionally, providing extensions via Salt Master file roots is also a valid option for disconnected setups.
 
 ## Customizing your Salt package
 
@@ -78,19 +89,19 @@ Besides of adapting the Salt specfile to build using Python 3.11, by using singl
 
 ### New dependencies for Salt 3008.
 
-There are new dependencies that are not available as part of "SLE-Module-Python3", and we will need to take it from Factory or some other SLE/ALP source to include them in the new "SLE-Module-Salt" module.
+There are new dependencies that are not available as part of "SLE-Module-Python3", and we will need to take it from Factory or some other SLE/ALP source to include them either in the "SLE-Module-Python3" (or via the new "SLE-Module-Salt" module.
 
 #### Runtime:
-- `python-networkx` + its dependencies (python-matplotlib, python-pandas, python-scipy, python-FontTools)
-- `python-tornado6` 
+- `python-networkx` + its dependencies: `python-matplotlib`, `python-pandas`, `python-scipy`, `python-FontTools`)
+- `python-tornado6`
 
 #### BuildTime:
-- `python-networkx` -> python-pydot, python-graphviz, graphviz
-- `python-meson-python` -> meson, patchelf
-- `python-pandas` -> python-versioneer-toml
-- `python-scipy` -> python-pythran
+- `python-networkx` -> `python-pydot`, `python-pygraphviz`, `graphviz`
+- `python-meson-python` -> `meson`, `patchelf`
+- `python-pandas` -> `python-versioneer-toml`
+- `python-scipy` -> `python-pythran`
 
-A testing build project is here: https://build.suse.de/project/show/home:PSuarezHernandez:new-salt-version
+A testing build project is here: https://build.opensuse.org/project/show/home:PSuarezHernandez:branches:systemsmanagement:saltstack:products:next
 Based on the current upstream Salt `master` branch (target for 3008 release)
 
 ## Maintaining Salt
