@@ -89,7 +89,7 @@ Besides of adapting the Salt specfile to build using Python 3.11, by using singl
 
 ### New dependencies for Salt 3008.
 
-There are new dependencies that are not available as part of "SLE-Module-Python3", and we will need to take it from Factory or some other SLE/ALP source to include them either in the "SLE-Module-Python3" (or via the new "SLE-Module-Salt" module.
+There are new dependencies that are not available as part of "SLE-Module-Python3", and we will need to take it from Factory or some other SLE/ALP source to include them either in the "SLE-Module-Python3" (check with SLE PMs) or via the new "SLE-Module-Salt" module.
 
 #### Runtime:
 - `python-networkx` + its dependencies: `python-matplotlib`, `python-pandas`, `python-scipy`, `python-FontTools`)
@@ -101,8 +101,7 @@ There are new dependencies that are not available as part of "SLE-Module-Python3
 - `python-pandas` -> `python-versioneer-toml`
 - `python-scipy` -> `python-pythran`
 
-A testing build project is here: https://build.opensuse.org/project/show/home:PSuarezHernandez:branches:systemsmanagement:saltstack:products:next
-Based on the current upstream Salt `master` branch (target for 3008 release)
+A testing build project can be found [here](https://build.opensuse.org/project/show/home:PSuarezHernandez:branches:systemsmanagement:saltstack:products:next), based on the current upstream Salt `master` branch (target for 3008 release).
 
 ## Maintaining Salt
 
