@@ -49,6 +49,22 @@ This list could be reduced even more by just providing the `zypperpkg` and `tran
 
 Builtin Salt Extensions will be integrated into our main "openSUSE/salt" GitHub repo codebase for 3008.x, and provided as content of the main `python311-salt` package.
 
+#### An example of the Git repo:
+```
+salt
+|-- builin-extensions
+|   |-- saltext-zypperpkg
+|   |-- saltext-dpkg
+|   |-- ...
+...
+```
+
+The idea would be to include the releases for the different builtin extension directly inside our GH repo, as it was previously done with "tornado". We should take this oportunity also to take the ownership, migrate and create the official `saltext-zypperpkg` extension and probably some others.
+
+These builtin extensions will be then placed in `/usr/lib/python3.11/site-packages/saltext/` when installing `python311-salt` so they are available for Salt.
+
+**NOTE:** The usage of `git submodule` would make it a bit tricky when it comes to generate patches for the single unified Salt codebase, as apparentely you cannot get an unified diff for the main repo + submodules.
+
 Alternatively, we could create separated packages for each of those default Salt Extensions and then make add them as `Requires` for the `python311-salt` package. In that case, an official Salt Extensions must be created (if not existing) for each extension we want to have a package, and then taking the sources from the official extension repository. One Salt Extension, one RPM package.
 
 ### What about Salt Extensions packages?
@@ -106,6 +122,40 @@ A testing build project can be found [here](https://build.opensuse.org/project/s
 ## Maintaining Salt
 
 TBD
+
+## Salt version in Uyuni and SUSE Manager
+
+The Uyuni and SUSE Manager server gets the Salt Master package from the OS repositories/channels (either Leap or SLE), and we have the restriction that Salt Master version must be always equal or higher than the Salt version in the minions.
+
+Under these premises, depending on when Salt 3008 is released, this will be the plan:
+
+a) If Salt 3008 is ready before "last MU-1" for SUMA 4.3 (~February-March 2025?) -> Upgrade to Salt 3008 in SP4/5/6/7 in "last MU-1":
+  - 4.3 LTS will contain 3008.
+  - 5.0 gets 3008 around the middle of its lifecycle (Feb-March 2025).
+  - 5.1 is released with 3008 (June 2025).
+  - Salt Bundle (shared between 4.3 and 5.0) gets upgraded to 3008 (Feb-March 2025).
+  - Salt Bundle (new client tools for 5.1) gets upgraded to 3008 (Feb-March 2025).
+  - Uyuni will get automatically 3008 from SLE into Leap (Feb-March 2025).
+
+b1) If Salt 3008 is NOT ready when SUMA 4.3 LTS begins (June 2025) -> We keep Salt 3006.0 on SP4 until LTS ends (June 2026):
+  - Current upstream Salt 3006 EOL date is January 2026, but potentially extended if 3008 is delayed, so worst scenario we are 6 months in our own (probably less).
+  - SP5/6/7 gets 3008 (after June 2025) -> probably no-go as that mean SP5/SP6 managed minions will break for 4.3 LTS.
+  - 4.3 LTS cannot manage newer SPs with Salt 3008 (after June 2025).
+  - 5.0 gets 3008 at some point after the middle of its lifecycle (after June 2025).
+  - 5.1 is released with 3008 (June 2025).
+  - Salt Bundle (shared between 4.3 and 5.0) is never upgraded to 3008 before 4.3 LTS is EOL (June 2026).
+  - Salt Bundle (new client tools for 5.1) gets upgraded to 3008 (June 2025).
+  - Uyuni will get automatically 3008 from SLE into Leap (June 2025).
+
+b2) If Salt 3008 is NOT ready when SUMA 4.3 LTS begins (June 2025) -> We keep Salt 3006.0 for all SPs until LTS ends (June 2026):
+  - Current upstream Salt 3006 EOL date is January 2026, but potentially extended if 3008 is delayed, so worst scenario we are 6 months in our own (probably less).
+  - 4.3 LTS is able to manage newer SPs, as they still have Salt 3006.0.
+  - Once 4.3 LTS is EOL, we upgrade Salt 3008 in all SPs.
+  - 5.0 does not get 3008 before its EOL. (June 2026).
+  - 5.1 is released with Salt 3006.0 and gets 3008 in the middle of its lifecycle (June 2026).
+  - Salt Bundle (shared between 4.3 and 5.0) is never upgraded to 3008 before 4.3 LTS is EOL (June 2026).
+  - Salt Bundle (new client tools for 5.1) gets upgraded to 3008 (June 2026).
+  - Uyuni will get automatically 3008 from SLE into Leap (June 2026).
 
 # Drawbacks
 [drawbacks]: #drawbacks
