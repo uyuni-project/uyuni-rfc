@@ -128,6 +128,13 @@ Since Salt 3008.x release has been delayed and it is not yet fully clear when it
 
 **IMPORTANT: Since we want to drop the Salt 3006.0 from the Basesystem and Server Application modules for SLE 15 SP7 (based on Python 3.6), in favor of a new Salt based on Python 3.11, even if 3008 is delayed we should NOT compromise the SLE 15 SP7 feature cutoff deadline to implement the new "SLE-Module-Salt" module even if it still provides 3006.0 version**
 
+The alternative plan:
+- Prepare Salt 3006.0 package based on Python 3.11.
+- Drop Salt from Basesystem / Server Application modules for SP7 before feature cut-off. (ECO needed)
+- Create new "SLE-Module-Salt" module for SP4/5/6/7 based on "SLE-Module-Python3".
+- Deprecate Salt from Basesystem / Server Applicacion module in favor of "SLE-Module-Salt" for SP4/5/6. (ECO needed)
+- Once 3008 is finally released, we can upgrade Salt in "SLE-Module-Salt" module.
+
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
