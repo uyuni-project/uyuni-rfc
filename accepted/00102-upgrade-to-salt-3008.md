@@ -103,6 +103,8 @@ Besides of adapting the Salt specfile to build using Python 3.11, by using singl
 - Python 3.11 is already available in Leap.
 - The new Salt and any new dependencies will get into Leap from SLE.
 
+NOTE: SLMicro 6.0 works differently than SLE15, as it does contain Python 3.11 in the base channels.
+
 ### New dependencies for Salt 3008.
 
 There are new dependencies that are not available as part of "SLE-Module-Python3", and we will need to take it from Factory or some other SLE/ALP source to include them either in the "SLE-Module-Python3" (check with SLE PMs) or via the new "SLE-Module-Salt" module.
@@ -164,6 +166,7 @@ a) If Salt 3008 is ready before "last MU-1" for SUMA 4.3 (~February-March 2025?)
   - Salt Bundle (shared between 4.3 and 5.0) gets upgraded to 3008 (Feb-March 2025).
   - Salt Bundle (new client tools for 5.1) gets upgraded to 3008 (Feb-March 2025).
   - Uyuni will get automatically 3008 from SLE into Leap (Feb-March 2025).
+  - Cons: potential bugs in inmature 3008.0 release and not much time for 3008.0 validation.
 
 b1) If Salt 3008 is NOT ready when SUMA 4.3 LTS begins (June 2025) -> We keep Salt 3006.0 on SP4 until LTS ends (June 2026):
   - SP5/6/7 gets 3008 (after June 2025) -> probably no-go as that mean SP5/SP6 managed minions will break for 4.3 LTS.
@@ -180,12 +183,17 @@ b2) If Salt 3008 is NOT ready when SUMA 4.3 LTS begins (June 2025) -> We keep Sa
   - Once 4.3 LTS is EOL, we upgrade Salt 3008 in all SPs.
   - 5.0 does not get 3008 before its EOL. (June 2026).
   - 5.1 is released with Salt 3006.0 and gets 3008 in the middle of its lifecycle (June 2026).
+  - 5.2 is released with 3008 (June 2026)
   - Salt Bundle (shared between 4.3 and 5.0) is never upgraded to 3008 before 4.3 LTS is EOL (June 2026).
   - Salt Bundle (new client tools for 5.1) gets upgraded to 3008 (June 2026).
   - Uyuni will get automatically 3008 from SLE into Leap (June 2026).
   - Current upstream Salt 3006 EOL date is January 2026, but potentially extended if 3008 is delayed, so worst scenario we are 6 months in our own (probably less).
+  - As soon as 3008 is ready, we can start validating it during development of 5.2 before 4.3 LTS has ended.
+  - Pros: more stable and mature Salt 3008.x package + more validation time for 3008.x.
+
+Initial agreement has been made within the Team to follow option "b2".
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-- TBD
+- Would lifecycle of "SLE-Module-Python3" module for the different SPs of SLE15 affect us somehow, either from SLE PM or Maintenance side?
