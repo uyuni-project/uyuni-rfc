@@ -41,6 +41,7 @@ There are a couple of Salt Extensions that we want to have integrated by default
 - transactional_update
 - openscap
 - docker / dockerng
+- virt (needed by virtualization-formula)
 - ...
 
 These are the minimum required extensions to be able to do basic operations in SUSE/openSUSE distributions and also allow basic operations on the context of SUSE Manager clients. We must maintain and support these builtin Salt Extensions.
@@ -63,7 +64,7 @@ The idea would be to include the releases for the different builtin extension di
 
 These builtin extensions will be then placed in `/usr/lib/python3.11/site-packages/saltext/` when installing `python311-salt` so they are available for Salt.
 
-**NOTE:** The usage of `git submodule` would make it a bit tricky when it comes to generate patches for the single unified Salt codebase, as apparentely you cannot get an unified diff for the main repo + submodules.
+**NOTE:** Depending on the maintaining workflow to use, the usage of `git submodule` would make it a bit tricky when it comes to generate patches (i.a. during bugfixing) for the single unified Salt codebase, as apparentely you cannot get an unified diff for the main repo + submodules.
 
 Alternatively, we could create separated packages for each of those default Salt Extensions and then make add them as `Requires` for the `python311-salt` package. In that case, an official Salt Extensions must be created (if not existing) for each extension we want to have a package, and then taking the sources from the official extension repository. One Salt Extension, one RPM package.
 
@@ -123,7 +124,9 @@ A testing build project can be found [here](https://build.opensuse.org/project/s
 
 ## Maintaining Salt
 
-TBD
+Given the irruption of Salt Extensions, we need to rethink the current workflow we use for maintaining Salt (and now also some of its extensions). In this regard, we want to improve our workflow, to make it simpler and adapted to the new Salt Extensions scenario and aligned with SUSE & OBS proposed workflows.
+
+As this section has itself enough significance, it will be covered in a dedicated RFC around "New SCM workflow for Salt", so discussion around this topic can happen separetely to the present RFC.
 
 # Drawbacks
 [drawbacks]: #drawbacks
