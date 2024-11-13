@@ -11,7 +11,7 @@ This RFC describes the preparation and strategy to upgrade Salt to the upcoming 
 
 The upstream Salt project is aiming the future 3008.x release (LTS) for Autumn 2024. As we want Uyuni and SUSE Manager to align to the latest LTS version from Salt project, we need to prepare the strategy to drive this upgrade.
 
-Particularly, this new 3008.x LTS release is the first version after [the great module migration](https://salt.tips/the-great-salt-module-migration/), and lot of Salt modules have been purged from the main Salt package in favor of [Salt Extensions](https://github.com/salt-extensions), including for example, the `zypperpkg` and `transactional_update` modules.
+Particularly, this new 3008.x LTS release is the first version after [the great module migration](https://salt.tips/the-great-salt-module-migration/), and lot of Salt modules have been purged from the main Salt package in favor of [Salt Extensions](https://github.com/salt-extensions), including for example, the `zypperpkg` and `transactional_update` modules. Moreover this new Sal 3008.x release is not working anymore with Python 3.6, which is currently the Python version in SLE15 Basesystem where the classic Salt package resides.
 
 At this point in time, only few modules have been already migrated to Salt Extensions, a lot of other modules are still waiting at [community-extensions-holding repository](https://github.com/salt-extensions/community-extensions-holding) to be migrated.
 
@@ -82,9 +82,9 @@ In case of packaging certain list of Salt Extensions, those will be available as
 
 ## Customizing your Salt package
 
-As described by Salt [here](https://salt.tips/the-great-salt-module-migration/), starting with Salt 3008, both Salt Master and Minion can be extended by using `salt-pip` or `pip.installed` to install the Salt Extensions packages (`saltext-*`). Similar to the extending mechanism we currently have for the Salt Bundle.
+As described by Salt [here](https://salt.tips/the-great-salt-module-migration/), starting with Salt 3008, both Salt Master and Minion can be extended by using `salt-pip` or `pip.installed` to install the Salt Extensions packages (`saltext-*`). Similar to the extending mechanism we currently have for the Salt Bundle. This makes it easy to integrate the customization of your minions with Uyuni an SUSE Manager, as based on a Salt state.
 
-If an extension is not existing (as most of the dropped modules are NOT yet migrated to Salt Extensions), they mention to provide them as custom modules in your Salt state tree (file_roots).
+If a Salt Extension is not existing yet (as most of the dropped modules are NOT yet migrated to Salt Extensions), they mention to provide them as custom modules in your Salt state tree (file_roots).
 
 As mentioned above, we would be probably providing a main Salt package containing some builtin extensions already there that at least covers basic operations.
 
@@ -105,6 +105,14 @@ Besides of adapting the Salt specfile to build using Python 3.11, by using singl
 - The new Salt and any new dependencies will get into Leap from SLE.
 
 NOTE: SLMicro 6.0 works differently than SLE15, as it does contain Python 3.11 in the base channels.
+
+#### Other OSes where we still ship the classic Salt package:
+- SLE12 (Adv. System Administration Module): Do not upgrade to Salt 3008 - this module is already EOL and not included in LTSS. Salt Bundle only.
+- Ubuntu 20.04 (client tools): Do not upgrade to Salt 3008 - drop the classic Salt package for the new 5.1 client tools. Salt Bundle only.
+- RHEL8 and clones (client tools): Do not upgrade to Salt 3008 - drop the classic Salt package for the new 5.1 client tools. Salt Bundle only.
+
+#### Salt Bundle:
+The upgrade of Salt Bundle to 3008 will happen for all Uyuni and SUSE Manager supported client OSes via their respective client tools channels at the same time that we upgrade Salt in SLE15.
 
 ### New dependencies for Salt 3008.
 
@@ -149,7 +157,7 @@ Since Salt 3008.x release has been delayed and it is not yet fully clear when it
 
 **IMPORTANT: Since we want to drop the Salt 3006.0 from the Basesystem and Server Application modules for SLE 15 SP7 (based on Python 3.6), in favor of a new Salt based on Python 3.11, even if 3008 is delayed we should NOT compromise the SLE 15 SP7 feature cutoff deadline to implement the new "SLE-Module-Salt" module even if it still provides 3006.0 version**
 
-The alternative plan:
+The proposed plan:
 - Prepare Salt 3006.0 package based on Python 3.11.
 - Drop Salt from Basesystem / Server Application modules for SP7 before feature cut-off. (ECO needed)
 - Create the new "SLE-Module-Salt" module for SP4/5/6/7 based on "SLE-Module-Python3", containing the current Salt 3006.0 based on Python 3.11.
