@@ -84,7 +84,7 @@ In case of packaging certain list of Salt Extensions, those will be available as
 
 As described by Salt [here](https://salt.tips/the-great-salt-module-migration/), starting with Salt 3008, both Salt Master and Minion can be extended by using `salt-pip` or `pip.installed` to install the Salt Extensions packages (`saltext-*`). Similar to the extending mechanism we currently have for the Salt Bundle. This makes it easy to integrate the customization of your minions with Uyuni an SUSE Manager, as based on a Salt state.
 
-If a Salt Extension is not existing yet (as most of the dropped modules are NOT yet migrated to Salt Extensions), they mention to provide them as custom modules in your Salt state tree (file_roots).
+If a Salt Extension is not existing yet (as most of the dropped modules are NOT yet migrated to Salt Extensions), they mention to provide them as custom modules in your Salt state tree (file_roots), i.a. `/srv/salt` as users alreayd do when extending Salt with their custom modules.
 
 As mentioned above, we would be probably providing a main Salt package containing some builtin extensions already there that at least covers basic operations.
 
