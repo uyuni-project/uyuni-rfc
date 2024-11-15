@@ -204,6 +204,14 @@ b2) If Salt 3008 is NOT ready when SUMA 4.3 LTS begins (June 2025) -> We keep Sa
 
 Initial agreement has been made within the Team to follow option "b2".
 
+
+| Scenario | Description | Salt 3008 Release | SUMA 4.3 LTS (SP4) | SP5 | SP6 | SP7 | SUMA 5.0 | SUMA 5.1 | SUMA 5.2 | Salt Bundle (4.3/5.0) | Salt Bundle (5.1) | Uyuni |
+|---|---|---|---|---|---|---|---|---|---|---|---|---| 
+| A | Upgrade all to 3008 early. | Before Feb-Mar 2025 | 3008 | 3008 | 3008 | 3008 | 3008 | 3008 | 3008 | 3008 | 3008 | 3008 |
+| B1 | Keep 3006 on 4.3 LTS (SP4), upgrade later SPs. | After June 2025 | 3006 | 3008 | 3008 | 3008 | 3006 (initially) upgraded to 3008 in mid-lifecycle | 3008 | 3008 | 3006 | 3006 (initially) gets 3008 after June 2025 | 3008 |
+| B2 | Keep 3006 on all SPs, and upgrade all to 3008 after 4.3 LTS ends.| After June 2025 | 3006 | 3006 | 3006 | 3006 | 3006 | 3006 (initially) upgraded to 3008 in mid-lifecycle after June 2025 | 3008 | 3006 | 3006 (initially) upgraded to 3008 after June 2026 | 3006 (initially) gets 3008 in June 2026| 
+
+
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
