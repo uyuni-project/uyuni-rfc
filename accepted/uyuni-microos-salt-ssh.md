@@ -11,9 +11,9 @@ This RFC describes improvements for Salt SSH such that Uyuni can fully control T
 # Motivation
 [motivation]: #motivation
 
-Uyuni users want feature parity of TU minions to non-TU minions. Currently, Uyuni users can use the Salt, Salt SSH, or Salt SSH Proxy methods to control their deployed non-TU minions. However, for TU minions, SSH management does not work.
+Uyuni users want feature parity of contact methods between TU minions and non-TU minions. Currently, users can use the Salt, Push via SSH (Salt SSH), or Push via SSH tunnel (Salt SSH proxy) contact methods to control their deployed non-TU minions. However, for TU minions, we support only the Salt method.
 
-Enabling Salt SSH for TU minions is crucial, for example, for partially air gapped environments, where system administrators can provide a trusted bridge (SSH proxy) for Uyuni to reach the TU minion and update it as necessary.
+Enabling Salt SSH for TU minions is important, for example, for partially air gapped environments, where system administrators can provide a trusted bridge (SSH proxy) for Uyuni to reach the TU minion and update it as necessary.
 
 # Detailed design
 [design]: #detailed-design
@@ -29,8 +29,8 @@ The `transactional-update` command temporarily mounts the partitions as read-wri
 
 Note that Salt SSH relies on both file systems for functions that modify the read-only file system:
 
-- The filesystem outside of a transaction (IAT) contains both the Salt client, and, more importantly, the `salt_state.tgz` file.
-- The filesystem inside of a transaction (OOT) requires both the Salt client and the `salt_state.tgz` because the execution must happen in a transaction.
+- The filesystem outside of a transaction (OOT) contains both the Salt client, and, more importantly, the `salt_state.tgz` file.
+- The filesystem inside of a transaction (IAT) requires both the Salt client and the `salt_state.tgz` because the execution must happen in a transaction.
 
 This poses a problem: on TU systems, Salt needs to coordinate files between the IAT and OOT filesystems.
 
