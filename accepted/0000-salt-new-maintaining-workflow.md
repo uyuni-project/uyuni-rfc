@@ -224,8 +224,12 @@ This "openSUSE/salt-extensions" repository will contain:
 When it comes to OBS, we will use the same SCM integration and OBS subprojects schema than the proposed for the main Salt codebase. Unique workflow for Salt and Salt Extensions.
 
 - PoC:
-  - https://github.com/meaksh/test-repo-1
-  - https://build.opensuse.org/package/show/home:PSuarezHernandez:tests/salt-extensions
+  * https://github.com/meaksh/test-repo-1
+  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests/salt-extensions
+
+- Example PR:
+  * https://github.com/meaksh/test-repo-1/pull/6
+  * https://build.opensuse.org/project/show/home:PSuarezHernandez:tests:github:CI:meaksh:test-repo-1:PR-6
 
 NOTE: We are using a single GitHub repo and single OBS package which provides all different salt-extensions RPM packages. This is preferred against having a separated GitHub repositories and OBS package for each Salt Extension, as it will reduce the number of submissions, maintenance incidents and resources needed.
 
