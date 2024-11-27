@@ -47,6 +47,8 @@ This is how the proposed OBS structure would look like:
    * package building according to PR branch.
    * branched and removed automatically from `systemsmanagement:saltstack:github/salt` by OBS workflow.
 
+The same OBS structure will apply to all our OBS targets: `products`, `products:testing` and `products:next`.
+
 ### Packaging artifacts
 
 All current extra "Sources" files in our RPM package, together with spec file and changelog file will go now to a `pkg/suse/` directory in `openSUSE/salt`:
@@ -171,7 +173,7 @@ This workflow will take care of:
 - Setting up a new subproject at `systemsmanagement:saltstack:github:CI:...:PR-XXXX/salt` for every incoming PR to build the Salt package according to the changes in the PR.
 - Triggering the services at `systemsmanagement:saltstack:github/salt` on any new push to `openSUSE/release/xxxx` to build the package accordingly.
 
-### Making OBS packages ready to submit
+### Making OBS packages ready to be submitted to Maintenance
 
 Since the package at `systemsmanagement:saltstack:github/salt` has "services" enabled, and we cannot enable/disable services using OBS workflows, this means this package is not yet ready to be submitted to openSUSE or SLE, as they don't accept enabled services on their submissions. We must disable the services.
 
@@ -202,15 +204,43 @@ I've implemented this structure and automation here:
 
 Feel free to open new PRs against `openSUSE/devel/master` to see this in action.
 
+### Salt Extensions
+
+#### Builtin extensions
+The sources for the builtin Salt Extensions will be located together with the main Salt codebase at the `openSUSE/salt` GitHub repository. No new packages or subpackages will be created for these extensions as they will be part of the main `python3*-salt` package.
+
+If a fix is needed for any of the builtin extensions, workflow would be the same as for a code fix in the main Salt package.
+
+#### Packaged Salt Extensions
+
+For the Salt Extensions that are packaged separately from the main Salt package, we will create a separated GitHub repository where we will maintain these extensions.
+
+This "openSUSE/salt-extensions" repository will contain:
+- a common salt-extension spec file that will generate all RPM packages
+- The sources for each Salt Extension we package
+- A changelog file
+- OBS workflow file
+
+When it comes to OBS, we will use the same SCM integration and OBS subprojects schema than the proposed for the main Salt codebase. Unique workflow for Salt and Salt Extensions.
+
+- PoC:
+  - https://github.com/meaksh/test-repo-1
+  - https://build.opensuse.org/package/show/home:PSuarezHernandez:tests/salt-extensions
+
+NOTE: We are using a single GitHub repo and single OBS package which provides all different salt-extensions RPM packages. This is preferred against having a separated GitHub repositories and OBS package for each Salt Extension, as it will reduce the number of submissions, maintenance incidents and resources needed.
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
-TBD
+- A bit more complex OBS structure than the current one. Including `obs_scm` service.
+- Having to still rely on Jenkins to get the packages ready to be released.
 
 # Alternatives
 [alternatives]: #alternatives
 
-TDB
+1. Stick to our current workflow based on "salt-packaging" -> The workflow doesn't currently fit with Salt Extensions and we don't want to have different workflows between Salt and Salt Extensions.
+1. One dedicated GitHub repository and OBS package per each Salt Extension -> It won't save resources and will cause more submissions.
+2. The usage of "git submodules" as an alternative to adding the Salt Extensions sources manually would make it tricky to generate patches manually and also to integrate with "obs_scm".
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
