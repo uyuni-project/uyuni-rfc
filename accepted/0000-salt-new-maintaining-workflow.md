@@ -69,7 +69,7 @@ This is the place now where all those files will be maintained.
 
 As mentioned this is now at `pkg/suse/salt.changes` in `openSUSE/salt` GitHub repo.
 
-When creating a PR to `openSUSE/salt` the user must also include the corresponding changes to the spec file, that can be generated as usual with `osc vc`.
+When creating a PR to `openSUSE/salt` the user must also include the corresponding changes to the changes file, that can be generated as usual with `osc vc`.
 
 Similarly to the main Uyuni repository, we should add a GitHub action to warn the user in case no changelog entry is added in the PR.
 
