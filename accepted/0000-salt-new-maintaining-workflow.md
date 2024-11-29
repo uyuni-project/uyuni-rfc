@@ -24,7 +24,7 @@ The purpose of this RFC is:
 # Detailed design
 [design]: #detailed-design
 
-In this new workflow the `openSUSE/salt` GitHub repository will become the unique source of thrust, and it will contain:
+In this new workflow the `openSUSE/salt` GitHub repository will become the unique source of trust, and it will contain:
 
 - Salt codebase
 - Packaging artifacts: spec file, changelog and extra sources
