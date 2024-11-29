@@ -38,7 +38,7 @@ This is how the proposed OBS structure would look like:
 
 - `systemsmanagement:saltstack/salt`:
    * no services enabled - package ready to be submitted to openSUSE or SLE.
-   * branched from `systemsmanagement:saltstack:github/salt`
+   * linked to `systemsmanagement:saltstack:github/salt`
 - `systemsmanagement:saltstack:github/salt`:
    * services enabled
    * package building based on `openSUSE/release/xxxx` GitHub branch.
@@ -47,7 +47,11 @@ This is how the proposed OBS structure would look like:
    * package building according to PR branch.
    * branched and removed automatically from `systemsmanagement:saltstack:github/salt` by OBS workflow.
 
-The same OBS structure will apply to all our OBS targets: `products`, `products:testing` and `products:next`.
+The same OBS structure will apply these other OBS targets, allowing us to deal with different Salt versions if necessary ensuring the packages are also ready to be consumed, without enabled services that could run unexpectely on targets that are linked to them (like i.a. `systemsmanagement:Uyuni:Master`):
+- `systemsmanagement:saltstack:products:testing`
+- `systemsmanagement:saltstack:products:next`
+
+For `systemsmanagement:saltstack:products` OBS target, it is not really necessary to follow the above structure, as this target gets updated once we run our "Salt Promote pipeline" (which does copypac whatever is in `products:testing` to `products`).
 
 ### Packaging artifacts
 
@@ -102,7 +106,7 @@ The rest of the files will be automatically pulled by the service, as they are e
 
 #### `systemsmanagement:saltstack/salt`
 
-This OBS package is a branch from `systemsmanagement:saltstack:github/salt`, where we disable the services and manually run them to get the spec file, changelog and obsinfo/obscpio files, so the package can be submitted to openSUSE or SLE.
+This is our ready-to-consume OBS package. It is linked to `systemsmanagement:saltstack:github/salt`, but here we disable the services and manually run them to get the spec file, changelog and obsinfo/obscpio files, so the package can be submitted to openSUSE or SLE.
 
 The `_service` file should look like:
 
