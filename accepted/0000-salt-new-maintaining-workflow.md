@@ -113,7 +113,7 @@ The `_service` file should look like:
     <param name="scm">git</param>
     <param name="versionformat">@PARENT_TAG@</param>
     <param name="versionrewrite-pattern">v(.*)</param>
-    <param name="revision">openSUSE/devel/master</param>
+    <param name="revision">openSUSE/release/xxxx</param>
     <param name="extract">pkg/suse/salt.*</param>
   </service>
   <service name="set_version" mode="manual" />
@@ -135,7 +135,7 @@ salt.obsinfo
 salt.spec
 ```
 
-Since services are disabled here, to allow submissions to openSUSE and SLE, this OBS package will be automatically synced with `openSUSE/devel/master` by a Jenkins job.
+Since services are disabled here, to allow submissions to openSUSE and SLE, this OBS package will be automatically synced with `openSUSE/release/xxxx` by a Jenkins job.
 
 ### OBS and GitHub Webhook integration
 
