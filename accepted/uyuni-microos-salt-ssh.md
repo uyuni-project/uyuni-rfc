@@ -23,9 +23,9 @@ Enabling Salt SSH for TU minions is important, for example, for partially air ga
 Currently, when Uyuni bootstraps a minion by using Salt SSH, Uyuni deploys a Salt client into `/var/tmp/venv-salt-minion`.
 When Salt SSH makes a `state` call to a client, for example `state.sls example-sls-filename`, it additionally compiles the `example-sls-filename` state (and all its dependencies, such as files used by the state) into a tar file, and deploys it to a generated location in `/var/tmp`, such as `/var/tmp/.root_12345_salt/salt_state.tgz` (together with other data, such as external modules, grain info, etc).
 
-TU minions are different from non-TU minions in that they mount some partitions as read-only, for example `/etc`. To modify such partitions, users use the `transactional-update` command.
+TU minions are different from non-TU minions in that they mount some partitions as read-only, for example `/usr`. To modify such partitions, users use the `transactional-update` command.
 
-The `transactional-update` command temporarily mounts the partitions as read-write, and after the modifications are done, it creates a new BTRFS snapshot that is activated upon restart (or upon using `transactional-update apply`).
+The `transactional-update` command creates a new read-write snapshot, performs modifications (modifying the previously read-only system), and activates the latest snapshot at restart (or when using `transactional-update apply`).
 
 Note that Salt SSH relies on both file systems for functions that modify the read-only file system:
 
