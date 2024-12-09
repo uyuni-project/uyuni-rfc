@@ -23,12 +23,21 @@ Instead of using the `transactional_update` executor, Uyuni calls either `state.
 
 The operations below map to SLS files. The syntax used for operations in this document is the same that's used in for Salt `top.sls`.
 
-### Two approaches to run operations
+### Multiple approaches to running operations
 
-- `state.apply` and `transactional_update.apply`
-- Java code supports both
-- UI shows both on pages were users can schedule actions
-- API offers a way to choose between the two
+Uyuni's WebUI and API are changed to expose the different ways of running operations, based on the categorization below.
+
+1. `state.apply <mods>`
+2. `transactional_update.apply <mods>`
+3. `transactional_update.apply <mods> activate_transaction=True`
+
+Previously, everything used the first way (`state.apply`). To enable the new ways that use `transactional_update`, the Java code needs to be updated. The job result of `transcational_update.apply` is compatible with `state.apply`, only the function that's called needs to be changed.
+
+Built-in operations that in the "OS-unchanging operations" section are executed with `state.apply`, "OS-altering operations" are executed with `transactional_update.apply`. Some operations, like those defined by users, need to ask the user how they should be executed.
+
+The WebUI for custom states, recurring states, remote commands and oscap are changed to let the user decide which option should be used. The difference between 2. and 3. could be implemented with a checkbox.
+
+Like the WebUI, the API needs to be adapted to allow the user to choose, e.g. how recurring states are applied.
 
 ### Uncategorized operations
 
