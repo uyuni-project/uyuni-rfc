@@ -20,7 +20,7 @@ The purpose of this RFC is:
 - Make the Salt maintaining workflow aligned with openSUSE practices.
 - Provide a workflow that can also work the same way with packaged Salt Extensions.
 - Deprecate the usage of `salt-packaging` repository.
- 
+
 # Detailed design
 [design]: #detailed-design
 
@@ -90,8 +90,6 @@ fi
 
 echo "Update changelog files"
 echo >> _temp.changes
-echo "$(cat _temp.changes salt.changes)" > salt.changes
-git add salt.changes
 
 for i in $(ls changelogs/*/salt.changes); do
     echo "$(cat _temp.changes $i)" > $i
@@ -111,19 +109,7 @@ NOTE: I think it is better to decouple commit messages (focus on developers) fro
 
 #### `systemsmanagement:saltstack:github/salt`
 
-This OBS package will be configured as "SCM managed", via Meta configuration, as the following:
-
-```
-<package name="salt" project="systemsmanagement:saltstack:github">
-  <title/>
-  <description/>
-  <scmsync>https://github.com/openSUSE/salt?subdir=pkg/suse/#openSUSE/release/xxxx</scmsync>
-</package>
-```
-
-The `_service` file together with the rest of packaging artifacts at `pkg/suse/` directory will be automatically pulled by `scmsync`.
-
-After this, the rest of the files will be automatically pulled by the services, as they are enabled inside the `_service` file that should look like: 
+This OBS package will only contain only a `_service` file that should look like:
 
 ```
 <services>
@@ -133,6 +119,8 @@ After this, the rest of the files will be automatically pulled by the services, 
     <param name="versionformat">@PARENT_TAG@</param>
     <param name="versionrewrite-pattern">v(.*)</param>
     <param name="revision">openSUSE/release/xxxx</param>
+    <param name="extract">pkg/suse/_multibuild</param>
+    <param name="extract">pkg/suse/salt.spec</param>
     <param name="extract">pkg/suse/changelogs/factory/salt.changes</param>
   </service>
   <service name="set_version" />
@@ -143,6 +131,8 @@ After this, the rest of the files will be automatically pulled by the services, 
   </service>
 </services>
 ```
+
+The rest of the files will be automatically pulled by the service, as they are enabled here. This package will be automatically refreshed by OBS at any new commit at `openSUSE/release/xxxx` branch.
 
 NOTE: This package will be automatically refreshed by OBS at any new commit at `openSUSE/release/xxxx` branch.
 
@@ -160,8 +150,8 @@ The `_service` file here should look like:
     <param name="versionformat">@PARENT_TAG@</param>
     <param name="versionrewrite-pattern">v(.*)</param>
     <param name="revision">openSUSE/release/xxxx</param>
-    <param name="extract">pkg/suse/salt.spec</param>
     <param name="extract">pkg/suse/_multibuild</param>
+    <param name="extract">pkg/suse/salt.spec</param>
     <param name="extract">pkg/suse/changelogs/factory/salt.changes</param>
   </service>
   <service name="set_version" mode="manual" />
@@ -171,7 +161,8 @@ The `_service` file here should look like:
     <param name="compression">gz</param>
   </service>
 </services>
-``` 
+```
+
 And it should only contain the following files:
 
 ```
@@ -240,11 +231,11 @@ This way, we ensure `salt.spec` and `salt.changes` and obscpio/obsinfo files get
 
 I've implemented this structure and automation here:
 
-- GitHub repository: https://github.com/meaksh/salt/ (`openSUSE/devel/master-version-2` branch)
+- GitHub repository: https://github.com/meaksh/salt/ (`openSUSE/devel/master` branch)
 - OBS:
-  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests/fake-package
-  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github/fake-package
-  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github:CI:....:PR-XX/fake-package
+  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests/salt
+  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github/salt
+  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github:CI:....:PR-XX/salt
 
 - Example PR:
   * https://github.com/meaksh/salt/pull/10
