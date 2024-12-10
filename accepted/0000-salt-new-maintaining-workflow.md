@@ -13,7 +13,7 @@ Our current workflow for maintaining Salt requires manual user intervention afte
 
 All these steps needs to be performed manually, with the help of some tooling, to eventually create a manual Submit Request to our Salt package in OBS.
 
-With Salt Extensions appearing now in the upcoming Salt 3008 release, we want to introduce a new workflow that suits better and solves some the limitations we currently have. 
+With Salt Extensions appearing now in the upcoming Salt 3008 release, we want to introduce a new workflow that suits better and solves some the limitations we currently have.
 
 The purpose of this RFC is:
 - Define an new workflow for Salt that reduces user intervention to zero after a given PR is merged in `openSUSE/salt` repository until getting the package ready to consume at OBS.
@@ -27,7 +27,7 @@ The purpose of this RFC is:
 In this new workflow the `openSUSE/salt` GitHub repository will become the unique source of trust, and it will contain:
 
 - Salt codebase
-- Packaging artifacts: spec file, changelog and extra sources
+- Packaging artifacts: spec file, changelogs, \_multibuild file and extra sources
 - OBS workflow file
 
 Taking inspiration from the [OBS/SCM integration guide](https://openbuildservice.org/help/manuals/obs-user-guide/cha-obs-scm-ci-workflow-integration), the new workflow will use OBS workflows and GitHub Webhooks to automate pulling the changes from GitHub to OBS.
@@ -55,7 +55,7 @@ For `systemsmanagement:saltstack:products` OBS target, it is not really necessar
 
 ### Packaging artifacts
 
-All current extra "Sources" files in our RPM package, together with spec file and changelog file will go now to a `pkg/suse/` directory in `openSUSE/salt`:
+All current extra "Sources" files in our RPM package will go now to a `pkg/suse/` directory in `openSUSE/salt`, together with the spec file, the different maintained changelogs files:
 
 ```
 pkg/suse/README.SUSE
@@ -63,25 +63,67 @@ pkg/suse/html.tar.bz2
 pkg/suse/salt-tmpfiles.d
 pkg/suse/transactional_update.conf
 pkg/suse/update-documentation.sh
+pkg/suse/mkchlog.sh
+pkg/suse/_multibuild
 pkg/suse/salt.spec
-pkg/suse/salt.changes
+pkg/suse/changelogs/factory/salt.changes
+pkg/suse/changelogs/sles15sp2/salt.changes
+pkg/suse/changelogs/sles15sp3/salt.changes
+pkg/suse/changelogs/sles15sp4/salt.changes
+pkg/suse/changelogs/sles15sp5/salt.changes
 ```
 
 This is the place now where all those files will be maintained.
 
-#### Salt RPM changelog
+#### Salt RPM changelogs
 
-As mentioned this is now at `pkg/suse/salt.changes` in `openSUSE/salt` GitHub repo.
+As mentioned, the changelog files are now maintained in the `openSUSE/salt` GitHub repo, under `pkg/suse/changelogs/` directory.
 
-When creating a PR to `openSUSE/salt` the user must also include the corresponding changes to the changes file, that can be generated as usual with `osc vc`.
+Our packaging artifacts will contain a `mkchlog.sh`, which is a helper script to generate a changelog entry to all maintained changelog in one shot. Something like this:
+
+```bash
+echo "Generating changelog entry for Salt package"
+if ! osc vc _temp.changes;
+then
+    exit 1;
+fi
+
+echo "Update changelog files"
+echo >> _temp.changes
+echo "$(cat _temp.changes salt.changes)" > salt.changes
+git add salt.changes
+
+for i in $(ls changelogs/*/salt.changes); do
+    echo "$(cat _temp.changes $i)" > $i
+    git add $i
+done
+
+rm _temp.changes
+```
+
+When creating a PR to `openSUSE/salt` the user must also include the corresponding changelog entry for all maintained changelog files.
 
 Similarly to the main Uyuni repository, we should add a GitHub action to warn the user in case no changelog entry is added in the PR.
+
+NOTE: I think it is better to decouple commit messages (focus on developers) from changelog entries (focus on users/customers), so I prefer to not use commit messages from "openSUSE/salt" to autogenerate the changelog entries but rather to manually write a meaningful changelog message to be included in your PR as part of your changes. Similarly to what we do in other Uyuni repositories.
 
 ### OBS project structure
 
 #### `systemsmanagement:saltstack:github/salt`
 
-This OBS package will only contain `_multibuild` file and a `_service` file that should look like: 
+This OBS package will be configured as "SCM managed", via Meta configuration, as the following:
+
+```
+<package name="salt" project="systemsmanagement:saltstack:github">
+  <title/>
+  <description/>
+  <scmsync>https://github.com/openSUSE/salt?subdir=pkg/suse/#openSUSE/release/xxxx</scmsync>
+</package>
+```
+
+The `_service` file together with the rest of packaging artifacts at `pkg/suse/` directory will be automatically pulled by `scmsync`.
+
+After this, the rest of the files will be automatically pulled by the services, as they are enabled inside the `_service` file that should look like: 
 
 ```
 <services>
@@ -91,7 +133,7 @@ This OBS package will only contain `_multibuild` file and a `_service` file that
     <param name="versionformat">@PARENT_TAG@</param>
     <param name="versionrewrite-pattern">v(.*)</param>
     <param name="revision">openSUSE/release/xxxx</param>
-    <param name="extract">pkg/suse/salt.*</param>
+    <param name="extract">pkg/suse/changelogs/factory/salt.changes</param>
   </service>
   <service name="set_version" />
   <service name="tar" mode="buildtime"/>
@@ -102,13 +144,13 @@ This OBS package will only contain `_multibuild` file and a `_service` file that
 </services>
 ```
 
-The rest of the files will be automatically pulled by the service, as they are enabled here. This package will be automatically refreshed by OBS at any new commit at `openSUSE/release/xxxx` branch.
+NOTE: This package will be automatically refreshed by OBS at any new commit at `openSUSE/release/xxxx` branch.
 
 #### `systemsmanagement:saltstack/salt`
 
-This is our ready-to-consume OBS package. It is linked to `systemsmanagement:saltstack:github/salt`, but here we disable the services and manually run them to get the spec file, changelog and obsinfo/obscpio files, so the package can be submitted to openSUSE or SLE.
+This is our ready-to-consume OBS package. We set the devel package (osc setdevelpackage) for this OBS package to `systemsmanagement:saltstack:github/salt`, but here we disable the services and manually run them to get the spec file, changelog and obsinfo/obscpio files, so the package can be submitted to openSUSE or SLE.
 
-The `_service` file should look like:
+The `_service` file here should look like:
 
 ```
 <services>
@@ -118,7 +160,9 @@ The `_service` file should look like:
     <param name="versionformat">@PARENT_TAG@</param>
     <param name="versionrewrite-pattern">v(.*)</param>
     <param name="revision">openSUSE/release/xxxx</param>
-    <param name="extract">pkg/suse/salt.*</param>
+    <param name="extract">pkg/suse/salt.spec</param>
+    <param name="extract">pkg/suse/_multibuild</param>
+    <param name="extract">pkg/suse/changelogs/factory/salt.changes</param>
   </service>
   <service name="set_version" mode="manual" />
   <service name="tar" mode="buildtime"/>
@@ -196,11 +240,11 @@ This way, we ensure `salt.spec` and `salt.changes` and obscpio/obsinfo files get
 
 I've implemented this structure and automation here:
 
-- GitHub repository: https://github.com/meaksh/salt/ (`openSUSE/devel/master` branch)
+- GitHub repository: https://github.com/meaksh/salt/ (`openSUSE/devel/master-version-2` branch)
 - OBS:
-  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests/salt
-  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github/salt
-  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github:CI:....:PR-XX/salt
+  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests/fake-package
+  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github/fake-package
+  * https://build.opensuse.org/package/show/home:PSuarezHernandez:tests:github:CI:....:PR-XX/fake-package
 
 - Example PR:
   * https://github.com/meaksh/salt/pull/10
@@ -247,8 +291,9 @@ NOTE: We are using a single GitHub repo and single OBS package which provides al
 [alternatives]: #alternatives
 
 1. Stick to our current workflow based on "salt-packaging" -> The workflow doesn't currently fit with Salt Extensions and we don't want to have different workflows between Salt and Salt Extensions.
-1. One dedicated GitHub repository and OBS package per each Salt Extension -> It won't save resources and will cause more submissions.
-2. The usage of "git submodules" as an alternative to adding the Salt Extensions sources manually would make it tricky to generate patches manually and also to integrate with "obs_scm".
+2. One dedicated GitHub repository and OBS package per each Salt Extension -> It won't save resources and will cause more submissions.
+3. The usage of "git submodules" as an alternative to adding the Salt Extensions sources manually would make it tricky to generate patches manually and also to integrate with "obs_scm".
+4. Use OBS `scmsync` integration -> while this allows to integrate even the `_service` file into the GitHub repo, it does not work well with SCM/CI workflow, therefore we cannot test the build of the package for an open PR because the branched package is not reflecting the actual changes on the PR.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
