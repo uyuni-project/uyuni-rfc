@@ -257,7 +257,7 @@ For the Salt Extensions that are packaged separately from the main Salt package,
 This "openSUSE/salt-extensions" repository will contain:
 - a common salt-extension spec file that will generate all RPM packages
 - The sources for each Salt Extension we package
-- A changelog file
+- The changelog files for each maintained codestream
 - OBS workflow file
 
 When it comes to OBS, we will use the same SCM integration and OBS subprojects schema than the proposed for the main Salt codebase. Unique workflow for Salt and Salt Extensions.
