@@ -75,6 +75,14 @@ pkg/suse/changelogs/sles15sp5/salt.changes
 
 This is the place now where all those files will be maintained.
 
+#### Tracking upstream and downstream patches
+
+This RFC proposes the usage of "obs_scm" service as the mechanism to pull the sources for the Salt package to build. This service will automatically produce a sources tarball according to a configured GitHub branch.
+
+For the regular Salt maintenance, this means it won't be needed anymore to manually produce patch files to add them to the spec file, as the tarball now contains the updated sources (with the exception of EMBARGOED bugs, where patches are still needed as we cannot push any fix to public GitHub repositories).
+
+To avoid losing the useful labeling of "PATCH-FIX_UPSTREAM" and "PATCH-FIX_OPENSUSE" (with a direct link to the origin PR on the spec file for each new patch we introduced into our Salt package), we will keep adding this information to the spec file on every new PR but this time without adding the patch itself, only the comment.
+
 #### Salt RPM changelogs
 
 As mentioned, the changelog files are now maintained in the `openSUSE/salt` GitHub repo, under `pkg/suse/changelogs/` directory.
