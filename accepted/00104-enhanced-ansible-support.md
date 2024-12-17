@@ -28,7 +28,7 @@ These points will be discussed one-by-one in detail in the next section.
 
 #### Raw output
 
-To show the raw output returned by the ansible command itself instead of the output returned by salt a change to the [runplaybook.sls](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/ansible/runplaybook.sls) will have to be made.
+To show the raw output returned by the Ansible command itself instead of the output returned by Salt a change to the [runplaybook.sls](https://github.com/uyuni-project/uyuni/blob/master/susemanager-utils/susemanager-sls/salt/ansible/runplaybook.sls) will have to be made.
 
 We're currently using the `state module`:
 ```
@@ -60,24 +60,51 @@ run_ansible_playbook:
 
 #### Displaying targeted systems
 
-Since the list of systems targeted by an ansible playbook can be very long, I propose to display the used inventory as a link in the event history details instead.
+In case the selected event details are of the playbook action type we will set an additional request parameter called `inventory` in `SystemHistoryEventAction.java` and render the list of systems.
 
-In case the selected event details are of the playbook action type we will set an additional request parameter called `inventory` in `SystemHistoryEventAction.java` and render an extra row that would look like:
 ```
-Inventory: <link_to_inventory>
+Inventory: <column_with_inventory_sytems>
 ```
 
-Clicking the link would then forward the user to the inventory file in `System` > `Ansible` > `Inventories`.
+There are two ways to acquire this list of sytems:
 
-The inventory then displays the list of systems registered in Uyuni that were targeted by the playbook execution.
+1) We will use the inotify beacon (see more info below), and add a new table (e.g. `suseAnsibleInventorySystems`) with a one-to-many relation to the inventory in suseAnsiblePath. In that table we would store all the systems we get from parsing the inventory file whenever there are changes to it. Columns would be:
 
-Since pre selecting a specific inventory based on the provided URL is not currently supported by the [ansible-path-content.tsx](https://github.com/uyuni-project/uyuni/blob/master/web/html/src/manager/minion/ansible/ansible-path-content.tsx) component, it will have to be adapted to support it.
-The URL to load a specific inventory would look like:
-```
-manager/systems/details/ansible/inventories?sid=<system_id>&iid=<inventory_id>
-```
-with `<system_id>` being the system id of the ansible control node and
-`<inventory_id` being the id of the inventory to load.
+    - inventory_id
+    - server_id
+
+2) Since we'll have the raw output of the Ansible playbook available in the event summary, we can parse this output to acquire the list of targeted systems. All the systems results are listed in `tasks` -> `hosts` of the output. See example output below.
+
+    ```
+    mgrcompat_|-run_ansible_playbook_|-run_ansible_playbook_|-module_run:
+        name:
+        - ansible.playbooks
+        changes:
+            ansible.playbooks:
+                custom_stats: {
+                    }
+                global_custom_stats: {
+                    }
+                plays:
+                -   play:
+                        duration:
+                            end: '2024-12-12T09:37:57.079186Z'
+                            start: '2024-12-12T09:37:51.668830Z'
+                        id: 52540032-6a07-cce6-30f6-000000000006
+                        name: Example Simple Playbook
+                    tasks:
+                    -   hosts:
+                            uyuni-minion-sles15sp4.tf.local:
+                                <output>
+                            <another_host>:
+                                <output>
+                            <yet_another_one>:
+                                .
+                                .
+                                .
+    ```
+    
+    This option has the upside that we don't need another table to store the list of systems and the systemlist can be parsed at runtime (when visiting the page).
 
 ## Add UI support to allow editing of variables defined in the playbook
 
@@ -112,20 +139,30 @@ For example
 The UI would generate input fields based on variable type (list, dict, string) that are pre-populated with the default variables set in the playbook (if any).
 Changing the values of the generated input fields will allow users to override the defaults and schedule the playbook using the variables set in said UI.
 
-Additionally we should add a `free-form` text field to allow users to define additonal variables that were not part of the `vars` section and thus don't have an input field generated. This input would have to be in JSON format.
+In the UI we already have yaml parsing and input field generation as part of formula with forms. During implementation we should investigate if this can be reused or extended to support our new use case.
 
-Based on the variables we will generate a JSON string called `extra_vars` that will be send to the backend along with other parameters needed to schedule the playbook.
+Additionally we should add a `free-form` text field to allow users to define additonal variables that were not part of the `vars` section and thus don't have an input field generated. This input would accept yaml or JSON. This input field could be hidden behind an advanced configuration option.
+
+In later iterations we can improve upon this and allow the user to set extra variables through a dynamically generated UI. The workflow would be the following:
+
+1) Click a button to add a new variable
+2) Select the variable type (list, dictionary, string)
+3) Based on the select we would generate input fields to allow the user to define new variables and set their values
+
+The set variables and `extra_vars` from the text field we will be sent to the backend and stored in the `rhnActionPlaybook` table, so they can be added to the event summary in a similar way then the list of targeted systems.
+
+Before sending the variables to Ansible we'll have to parse and merge the two generated strings. When merging one of the two strings needs to have priority in case there is variables defined in both of them. The current consensus is for the free-form defined variables to take priority.
 
 The workflow on the frontend would look like:
 1) Parse the selected playbook.
 2) Generate input fields based on the `vars` section of the playbook.
-3) Compile a JSON string from the inputs that will be send to the backend.
+3) Compile a yaml string from the inputs that will be send to the backend.
 
-The `ansible.playbooks` salt state we use to execute playbooks at the scheduled time supports a parameter called `extra_vars` and accepts a JSON string. Variables set through this parameter will take precedence over the ones defined in the playbook and thus allow us to override them.
+The `ansible.playbooks` Salt execution module function we use to execute playbooks at the scheduled time supports a parameter called `extra_vars` and accepts a JSON or yaml string. Variables set through this parameter will take precedence over the ones defined in the playbook and thus allow us to override them.
 
-To support scheduling playbooks using `extra_vars` on the backend we will have to to add a new column to the `rhnActionPlaybook` table and adapt the corresponding hibernate entity. The JSON string could either be stored as `varchar` or alternatively as `blob` if we expect them to be large.
+To support scheduling playbooks using `extra_vars` on the backend we will have to to add a new column to the `rhnActionPlaybook` table and adapt the corresponding hibernate entity. The yaml string could either be stored as `varchar` or alternatively as `blob` if we expect them to be large.
 
-During execution of the action the `extra_vars` will then be passed as pillar data to the `runplaybook.sls` state that then executes the `ansible.playbooks` state using the pillar data.
+During execution of the action the `extra_vars` will then be passed as pillar data to the `runplaybook.sls` state that then executes the `ansible.playbooks` execution module function using the pillar data.
 
 This state will have to be changed to look like:
 ```
@@ -163,7 +200,7 @@ Along with this we should also provide a reset button to restore the input field
 
 ## Support the recurrent scheduling of Ansible playbooks.
 
-To support the execution of Ansible playbooks using recurring actions we'll have to implement the follwoing steps:
+To support the execution of Ansible playbooks using recurring actions we'll have to implement the following steps:
 
 1) Create a new `RecurringActionType` called `PLAYBOOK`.
 2) Add a new database table called `suseRecurringPlaybook` with the following columns:
@@ -182,11 +219,9 @@ This includes changes to the `RecurringActionManager/Controller` classes.
 
 This newly created action type would be a minion only recurring action that would only be configurable from Ansible control nodes.
 
-As for the entry point to the new UI I see two options:
+As for the entry point to the new UI we will do the following:
 
-1) On `System` > `Ansible` > `Playbooks` UI create a `Schedule Recurring` button that will link to `System` > `Recurring Actions` > `Create`. Here we will add the `Ansible Playbook` option to the dropdown to select the recurring action type. The action specific UI would then generate based on the type selected (like we do for existing types).
-
-2) Create a new `Recurring (Playbooks)` tab in `System` > `Ansible` that would allow the creation of Ansible Playbook recurring actions without having to select the action type first. Viewing created action details as well as editing/deleting existing actions would still have to be done from the `System` > `Recurring Actions` tab.
+On `System` > `Ansible` > `Playbooks` UI create a `Schedule Recurring` button that will link to `System` > `Recurring Actions` > `Create`. Here we will add the `Ansible Playbook` option to the dropdown to select the recurring action type (this will be pre selected if forwarded from the playbooks UI). The action specific UI would then generate based on the type selected (like we do for existing types).
 
 ## Set default playbook and inventory paths when adding a new control node in Uyuni
 
@@ -203,7 +238,7 @@ Inventory: `/etc/ansible/hosts`
 We will add a new entity called `ansible_managed (Ansible Managed)` to the `rhnServerGroupType` and `rhnServerGroup` tables.
 To get the list of systems managed by an Ansible control node we'll scan all the inventories registered in `suseAnsiblePath`.
 
-There is currently a salt state called `ansible.targets inventory=<some_inventory>` available that returns inventory data. The list of systems can be parsed from that data (this mechanism was already part of the original Ansible implementation).
+There is currently a Salt state called `ansible.targets inventory=<some_inventory>` available that returns inventory data. The list of systems can be parsed from that data (this mechanism was already part of the original Ansible implementation).
 
 However there are two problems that need two be solved here:
 1) We need a way to automate collecting Ansible managed systems to make sure the list is up to date.
@@ -225,13 +260,17 @@ However there are two problems that need two be solved here:
         - disable_during_state_run: True
     ```
 
-    This beacon would be updated whenever a inventory file is added/removed on Uyuni.
+    The beacons will be executed by `venv-salt-minion`. To add support for the `inotify` beacon the` saltbundlepy-inotify` package is required, which is already included in the `venv-salt-minion` package, so no additional changes are required.
 
-    Along with the beacon we'll have to add a new `reactor` to the salt master that will react to events send by the beacons.
+    The beacon would be updated whenever a inventory file is added/removed on Uyuni. To support this we will add the beacon to the minions pillar data and use the `MinionPillarManager.generatePillar(...)` function to update it whenever needed. In addition we will have to run `saltutil.refresh_pillar` and `saltutil.refresh_beacons` to refresh data on the running minion process
+
+    On the java backend we will add support for the beacon to the `SaltReactor.java` and trigger an update of the Ansible managed systems whenever there were changes to the inventory files.
 
     Additionally we'll trigger a manual update of the minion list whenever inventories are added/removed.
 
-2) Calling `ansible.targets` for every inventory regularly can put a lot of extra load on the salt master if there is a greater number of inventories to be scanned.
+    One thing to mention is that this approach (using the beacon) will `NOT` work with Ansible control nodes managed through Salt SSH.
+
+2) Calling `ansible.targets` for every inventory regularly can put a lot of extra load on the Salt master if there is a greater number of inventories to be scanned.
 
     To address this we should update the `ansible.targets` function to be able to receive a list of inventories instead of a single one.
     ```
@@ -276,7 +315,7 @@ However there are two problems that need two be solved here:
         .
         .
     ```
-    This way we'd only have to do one single salt execution per control node. We would then parse the output and compile it into a list of systems. This list will be used to add/remove the `ansible_managed` entitlement from systems registered in Uyuni.
+    This way we'd only have to do one single Salt execution per control node. We would then parse the output and compile it into a list of systems. This list will be used to add/remove the `ansible_managed` entitlement from systems registered in Uyuni.
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -285,12 +324,9 @@ I don't currently see any drawback with the proposed implementation.
 
 # Future improvements
 - Make Ansible work with Uyunis system groups.
-- Allow adding Ansible playbooks to custom state recurring actions to support executing multiple playbooks in order.
+- Allow adding Ansible playbooks to custom state recurring actions to support executing multiple playbooks in order or have it directly integrated into existing playbook execution.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-The following points still need to be investigated in:
-- It looks like the `inotify beacon` requires `python3-inotify package` to be installed on every control node. Is this beacon already available by other means or do we have to make sure the package is installed when setting up a new control node in Uyuni?
-- How to update the `inotify` beacon from the webUI when new inventories added/removed?
-- How will the results of the `ansible.targets` state triggered through above beacon be handled by the java backend?
+There are currently no more unresolved questions.
