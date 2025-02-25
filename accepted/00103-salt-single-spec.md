@@ -9,33 +9,26 @@ Use [Python RPM Macros](https://github.com/openSUSE/python-rpm-macros) in Salt p
 # Motivation
 [motivation]: #motivation
 
-There are multiple reasons for building multiple Python flavors for Salt. A big part of Salt is a library that can be used by other Python programs. These programs might use a Python version that newer than the one we currently build Salt against. For Salt-the-application, a single Python flavor could be enough. Unlike Salt-the-library, Salt-the-application can't be co-installed in a useful manner. Still, it makes sense for us to build Salt-the-application for different Python flavors and let the user choose between them. This allows for a transition from Python 3.x to Python 3.y when it's convenient for a user. Users that only write Salt state files don't need to care about the Python flavor, but those users who have their custom Salt modules need to make sure everything plays well together.
+There are multiple reasons for building multiple Python flavors for Salt. A big part of Salt is a library that can be used by other Python programs. These programs might use a Python version that newer than the one we currently build Salt against. For Salt-the-application, a single Python flavor could be enough. Unlike Salt-the-library, Salt-the-application can't be co-installed in a useful manner. Still, it makes sense for us to allow Salt-the-application to run with different Python flavors and let the user choose between them. This allows for a transition from Python 3.x to Python 3.y when it's convenient for a user. Users that only write Salt state files don't need to care about the Python flavor, but those users who have their custom Salt modules need to make sure everything plays well together.
 
 This RFC does not apply to the Salt Bundle. It strictly targets the classic Salt package that we maintain for openSUSE, SUSE Linux (Enterprise) and some SUSE Multi-Linux Manager Client distributions. This RFC is related to [RFC#00102 Upgrade to Salt 3008](https://github.com/uyuni-project/uyuni-rfc/blob/f403c8db1707fb828dd708c8e67dabff539d4d10/accepted/00102-upgrade-to-salt-3008.md).
 
 # Detailed design
 [design]: #detailed-design
 ## Overall Structure
-Salt makes use of [Python RPM Macros](https://github.com/openSUSE/python-rpm-macros) to build sub-packages for different Python flavors. There is one sub-package for Salt-the-library (`python3-salt`) per flavor, as well as one sub-package per flavor for other sub-packages containing Python code. These other sub-packages are: `salt-api`, `salt-cloud`, `salt-master`, `salt-minion`, `salt-proxy`, `salt-ssh`, `salt-syndic`. For backwards-compatibility, the new flavored sub-packages _provide_ the old sub-package name.
+Salt makes use of [Python RPM Macros](https://github.com/openSUSE/python-rpm-macros) to build sub-packages for different Python flavors. There is one sub-package for Salt-the-library (`python3-salt`) per flavor. The rest of Salt-the-application packages are: `salt-api`, `salt-cloud`, `salt-master`, `salt-minion`, `salt-proxy`, `salt-ssh`, `salt-syndic`. Switching between the Python flavor to use with these scripts is done with `update-alternatives` for SLE15 and Leap and using `alts` in Tumbleweed.
 
 For example, we now build the following sub-packages for Leap 15.5:
 - `python3-salt-3006.0-<release>.x86_64.rpm`
-- `python3-salt-api-3006.0-<release>.x86_64.rpm`
-- `python3-salt-cloud-3006.0-<release>.x86_64.rpm`
-- `python3-salt-master-3006.0-<release>.x86_64.rpm`
-- `python3-salt-minion-3006.0-<release>.x86_64.rpm`
-- `python3-salt-proxy-3006.0-<release>.x86_64.rpm`
-- `python3-salt-ssh-3006.0-<release>.x86_64.rpm`
-- `python3-salt-syndic-3006.0-<release>.x86_64.rpm`
 - `python311-salt-3006.0-<release>.x86_64.rpm`
-- `python311-salt-api-3006.0-<release>.x86_64.rpm`
-- `python311-salt-cloud-3006.0-<release>.x86_64.rpm`
-- `python311-salt-master-3006.0-<release>.x86_64.rpm`
-- `python311-salt-minion-3006.0-<release>.x86_64.rpm`
-- `python311-salt-proxy-3006.0-<release>.x86_64.rpm`
-- `python311-salt-ssh-3006.0-<release>.x86_64.rpm`
-- `python311-salt-syndic-3006.0-<release>.x86_64.rpm`
 - `salt-3006.0-<release>.x86_64.rpm`
+- `salt-api-3006.0-<release>.x86_64.rpm`
+- `salt-cloud-3006.0-<release>.x86_64.rpm`
+- `salt-master-3006.0-<release>.x86_64.rpm`
+- `salt-minion-3006.0-<release>.x86_64.rpm`
+- `salt-proxy-3006.0-<release>.x86_64.rpm`
+- `salt-ssh-3006.0-<release>.x86_64.rpm`
+- `salt-syndic-3006.0-<release>.x86_64.rpm`
 - `salt-bash-completion-3006.0-<release>.noarch.rpm`
 - `salt-doc-3006.0-<release>.x86_64.rpm`
 - `salt-fish-completion-3006.0-<release>.noarch.rpm`
@@ -43,29 +36,44 @@ For example, we now build the following sub-packages for Leap 15.5:
 - `salt-transactional-update-3006.0-<release>.x86_64.rpm`
 - `salt-zsh-completion-3006.0-<release>.noarch.rpm`
 
-Note: both `python3-salt-master-3006.0-<release>.x86_64.rpm` and `python311-salt-master-3006.0-<release>.x86_64.rpm` provide the symbol `salt-master = 3006.0-<release>`.
+### Switching between Python flavors
+The idea is to offer choice to our users, in a predictable way. It's possible to co-install different Salt-the-library (i.e. `python<flavor>-salt`) flavors. The user is able to choose the Python flavor to use on their `salt-master`, `salt-minion` and other scripts by:
 
-### Per-flavor Dependencies and Conflicts
-The idea is to offer choice to our users, in a predictable way. It's possible to co-install Salt-the-library (i.e. `python<flavor>-salt`), but not Salt-the-application (i.e. `python<flavor>-salt-*`). It's also not possible to mix-and-match different flavors of individual components of Salt-the-application (e.g. `python<flavor-A>salt-api` with `python<flavor-B>salt-master`).
+#### SLE and Leap 15 family
 
-On the implementation level, this means each `python<flavor>-salt-master` sub-package _provides_ and _conflicts_ the rpm symbol `salt-master`. Each component sub-package _requires_ Salt-the-library with the same flavor. Dependencies between component sub-packages are implemented with _requires_, using the Python flavor. 
+On SLE/Leap 15 family, we use `update-alternatives` to control the Python favor to use with the different salt scripts:
 
-For example, let's take a look at `python3-salt-master` and `python3-salt-api` on Leap 15.5 again.
-```text
-% rpm -q --requires python3-salt-api
-[...]
-/usr/bin/python3.6
-python3-CherryPy >= 3.2.2
-python3-salt = 3006.0-lp155.76.1
-python3-salt-master = 3006.0-lp155.76.1
-[...]
-% rpm -q --provides python3-salt-master
-config(python3-salt-master) = 3006.0-lp155.76.1
-python3-salt-master = 3006.0-lp155.76.1
-python3-salt-master(x86-64) = 3006.0-lp155.76.1
-salt-master = 3006.0-lp155.76.1
-% rpm -q --conflicts python3-salt-master
-salt-master = 3006.0-lp155.76.1
+```
+# update-alternatives --config salt-minion
+There are 2 choices for the alternative salt-minion (providing /usr/libexec/salt/salt-minion).
+
+  Selection    Path                                Priority   Status
+------------------------------------------------------------
+* 0            /usr/libexec/salt/salt-minion-3.11   311       auto mode
+  1            /usr/libexec/salt/salt-minion-3.11   311       manual mode
+  2            /usr/libexec/salt/salt-minion-3.6    36        manual mode
+
+Press <enter> to keep the current choice[*], or type selection number:
+```
+
+#### SLFO and Tumbleweed
+Alternatively, we use `alts` in SLFO and Tumbleweed:
+
+```console
+#  # salt-minion --version
+salt-minion-3.11 3006.0 (Sulfur)
+
+# alts -l salt-minion
+Binary: salt-minion
+Alternatives: 3
+  Priority: 312   Target: /usr/libexec/salt/salt-minion-3.12
+  Priority: 313   Target: /usr/libexec/salt/salt-minion-3.13
+  Priority: 1311*  Target: /usr/libexec/salt/salt-minion-3.11
+
+# alts -n salt-minion -p 312
+
+# salt-minion --version
+salt-minion-3.12 3006.0 (Sulfur)
 ```
 
 ## Our Python3 Flavors in SUSE Linux Enterprise / openSUSE Leap
