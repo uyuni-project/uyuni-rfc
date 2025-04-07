@@ -242,7 +242,7 @@ When the tool has access to an Uyuni server, it can run either "standalone" or v
 
 
 # Security considerations
-In the current design, we are exposing metrics via Prometheus and making them available in Grafana, and more importantly we are exposing log messages via Loki to CLI and Grafana users. It is important to notice that after running this tool, and until related containers are destroyed, the Grafana Dashboards (and other components like Prometheus and Loki) are exposing metrics and log messages that may contain sensitive data and information to any non-root user on the system or to anyone that have access to this host in the network.
+In the current design, we are exposing metrics via Prometheus and making them available in Grafana, and more importantly we are exposing log messages via Loki to Grafana users. It is important to notice that after running this tool, and until related containers are destroyed, the Grafana Dashboards (and other components like Prometheus and Loki) are exposing metrics and log messages that may contain sensitive data and information to any non-root user on the system or to anyone that have access to this host in the network.
 
 The Promtail pipeline definition can be enhanced to use the [replace](https://grafana.com/docs/loki/latest/send-data/promtail/stages/replace/) stage in order to hide sensitive data from log files. Users must have a configuration file to define the different filters to apply to the Promtail pipeline. Filters must be also configurable via the Monitoring Formula.
 
