@@ -39,7 +39,7 @@ As an engineer responsible for maintaining the Uyuni codebase, I want to efficie
 
 ## Component Overview
 
-### Health-Check-Tool
+### Health-Check
 
 * Loki/Promtail: These two components are for log aggregation, indexing and querying. Loki acts as the centralized logging system, storing and managing logs, while Promtail is deployed on the Uyuni server to collect logs and forward them to Loki.
 
@@ -48,8 +48,6 @@ As an engineer responsible for maintaining the Uyuni codebase, I want to efficie
 * Uyuni-Health-Exporter: A custom exporter to gather specific metrics related to Uyuni server health, including database, service status, and resource usage.
 
 * Alerting System: Leveraging Loki and Prometheus alerting mechanism, configured to monitor critical metrics and log patterns, triggering alerts based on predefined thresholds. Using Alertmanager for sending notifications.
-
-* LogCLI: A command-line interface tool provided by Loki, LogCLI enables direct querying of logs stored in Loki from the terminal. It supports running LogQL queries, live tailing of logs, and viewing logs in a flexible output format. This tool is particularly useful for administrators and developers who prefer to work within a CLI environment for quick log searches, debugging, and log analysis without the need for a graphical interface.
 
 Proof-of-Concept: https://github.com/uyuni-project/poc-uyuni-health-check
 
@@ -65,7 +63,7 @@ This RFC proposes the following solutions:
 
 ### Integrated solution: extending existing monitoring stack
 
-* Monitoring Formula Integration: Loki/Promtail and `uyuni_health_exporter` configurations are managed via Uyuni's monitoring formula, ensuring seamless integration and ease of deployment. Making Saline and Health Check a part of the current Monitoring formulas.
+* Monitoring Formula Integration: Loki/Promtail and Uyuni-Health-Exporter configurations are managed via Uyuni's monitoring formula, ensuring seamless integration and ease of deployment. Making Saline and Health-Check a part of the current Monitoring formulas.
 
 * Additional Monitoring Formulas: Similar to the previous approach, integration with current Monitoring stack but using a separated formulas.
 
@@ -73,7 +71,7 @@ This RFC proposes the following solutions:
 
 ### Standalone solution: containerized deployment including Loki, Promtail and Grafana
 
-* Containerized Deployment: The Health-Check-Tool components, including Loki, Promtail, Grafana, and the Uyuni-Health-Exporter, are deployed as containers sharing the same network, allowing TCP communication between containers. Running all containers within the same POD would be also possible, but it would limit the deployment method on Kubernetes to be running all on the same cluster node.
+* Containerized Deployment: The Health-Check components, including Loki, Promtail, Grafana, and the Uyuni-Health-Exporter, are deployed as containers sharing the same network, allowing TCP communication between containers. Running all containers within the same POD would be also possible, but it would limit the deployment method on Kubernetes to be running all on the same cluster node.
 
 ![standalone diagram](images/health-check/standalone.png)
 
@@ -89,12 +87,15 @@ This RFC proposes the following solutions:
 
 ### Disconnected solution: containerized deployment without access to an Uyuni server (via supportconfig)
 
-No access to an Uyuni server or existing monitoring stack, only access to a supportconfig.
+No access to an Uyuni server or existing monitoring stack, only access to a supportconfig. The Infinity Datasource Plugin is installed in Grafana. This Datasource pulls metrics data from the Supportconfig-Exporter endpoints.
 
 ![standalone disconnected diagram](images/health-check/standalone-disconnected.png)
 
+## Components
 
-### Component 1: Uyuni-Health-Exporter
+### Component 1: Exporters
+
+#### Uyuni-Health-Exporter
 
 Goal: Configure the Uyuni-Health-Exporter to gather metrics from the Uyuni server and managed systems. The Uyuni-Health-Exporter uses Salt runners to gather metrics.
 
@@ -103,6 +104,13 @@ Steps:
   - Deploy the Uyuni-Health-Exporter as a containerized application.
   - Ensure the Uyuni-Health-Exporter is accessible for Prometheus to scrape metrics.
   - Ensure the Uyuni-Health-Exporter can run Salt runner commands targeting the server.
+
+#### Supportconfig-Exporter (disconected solution)
+
+Steps:
+
+  - Deploy the Supportconfig-Exporter as a containerized application.
+  - Ensure the Supportconfig-Exporter is accessible for the Infinity Datasource Plugin to scrape metrics.
 
 ### Component 2: Prometheus
 
@@ -147,11 +155,8 @@ Steps:
     - Edit the Promtail configuration to define the paths of log files to monitor. In the containerized Uyuni environment, the Promtail container must be configured to have read access to mapped volumes that correspond to the log locations of the Uyuni server container.
     - Configure Promtail to forward logs to the Loki instance.
 
-### Component 5: LogCLI
-Goal: Incorporate LogCLI to provide a command-line interface for querying logs stored in Loki, enhancing the toolset available for diagnostics, troubleshooting and operational reporting.
 
-
-### Component 6: Supportconfig metrics gatherer
+### Component 5: Supportconfig metrics gatherer
 
 Stakeholders: Engineers and Supporters
 
@@ -159,7 +164,7 @@ Goal: Extract relevant metrics from supportconfig files.
 
 Configuration: No extra configuration needed apart from the path to the supportconfig files.
 
-### Component 7: Saline
+### Component 6: Saline
 
 Configuration: Deploy as a monitoring formula.
 
@@ -171,8 +176,8 @@ Configuration: Deploy as a monitoring formula.
 * Notification Channels: Configured within Alertmanager to support various notification mechanisms.
 
 * Alerts and Recommendations via Loki:
-    * Loki Querying: Utilize the Loki API to query log data for patterns indicative of issues or anomalies. This requires crafting LogQL queries tailored to the types of issues Uyuni Health-Check-Tool aims to detect.
-    * Alert Generation: Employ the Loki Ruler component to define alerting rules. These rules can be dynamically generated or updated based on the Uyuni Health-Check-Tool configuration, allowing for customizable alert conditions.
+    * Loki Querying: Utilize the Loki API to query log data for patterns indicative of issues or anomalies. This requires crafting LogQL queries tailored to the types of issues Uyuni Health-Check Tool aims to detect.
+    * Alert Generation: Employ the Loki Ruler component to define alerting rules. These rules can be dynamically generated or updated based on the Uyuni Health-Check Tool configuration, allowing for customizable alert conditions.
 
 * Implementing alerts and recommendations involve:
     * Defining LogQL Queries: Writing LogQL queries that match the relevant conditions.
@@ -237,7 +242,7 @@ When the tool has access to an Uyuni server, it can run either "standalone" or v
 
 
 # Security considerations
-In the current design, we are exposing metrics via Prometheus and making them available in Grafana, and more importantly we are exposing log messages via Loki/LogCLI to CLI and Grafana users. It is important to notice that after running this tool, and until related containers are destroyed, the Grafana Dashboards (and other components like Prometheus and Loki/LogCLI) are exposing metrics and log messages that may contain sensitive data and information to any non-root user on the system or to anyone that have access to this host in the network.
+In the current design, we are exposing metrics via Prometheus and making them available in Grafana, and more importantly we are exposing log messages via Loki to Grafana users. It is important to notice that after running this tool, and until related containers are destroyed, the Grafana Dashboards (and other components like Prometheus and Loki) are exposing metrics and log messages that may contain sensitive data and information to any non-root user on the system or to anyone that have access to this host in the network.
 
 The Promtail pipeline definition can be enhanced to use the [replace](https://grafana.com/docs/loki/latest/send-data/promtail/stages/replace/) stage in order to hide sensitive data from log files. Users must have a configuration file to define the different filters to apply to the Promtail pipeline. Filters must be also configurable via the Monitoring Formula.
 
