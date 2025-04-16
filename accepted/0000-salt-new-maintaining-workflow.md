@@ -63,7 +63,7 @@ pkg/suse/html.tar.bz2
 pkg/suse/salt-tmpfiles.d
 pkg/suse/transactional_update.conf
 pkg/suse/update-documentation.sh
-pkg/suse/mkchlog.sh
+pkg/suse/rpmchangelogs
 pkg/suse/_multibuild
 pkg/suse/salt.spec
 pkg/suse/changelogs/factory/salt.changes
@@ -86,33 +86,10 @@ We will therefore not track bug fixes in the spec file anymore. The origin of a 
 
 #### Salt RPM changelogs
 
-As mentioned, the changelog files are now maintained in the `openSUSE/salt` GitHub repo, under `pkg/suse/changelogs/` directory.
+As mentioned, the changelog files are now maintained in the `openSUSE/salt` GitHub repo, under `pkg/suse/changelogs/` directory. New changelog are part of pull requests to `openSUSE/salt`.
+Our packaging artifacts will contain a `rpmchangelogs` Python script to easily `add`, `modify` and `remove` changelog entries for all changelogs at once.
 
-Our packaging artifacts will contain a `mkchlog.sh`, which is a helper script to generate a changelog entry to all maintained changelog in one shot. Something like this:
-
-```bash
-echo "Generating changelog entry for Salt package"
-if ! osc vc _temp.changes;
-then
-    exit 1;
-fi
-
-echo "Update changelog files"
-echo >> _temp.changes
-
-for i in $(ls changelogs/*/salt.changes); do
-    echo "$(cat _temp.changes $i)" > $i
-    git add $i
-done
-
-rm _temp.changes
-```
-
-When creating a PR to `openSUSE/salt` the user must also include the corresponding changelog entry for all maintained changelog files.
-
-Similarly to the main Uyuni repository, we should add a GitHub action to warn the user in case no changelog entry is added in the PR.
-
-NOTE: I think it is better to decouple commit messages (focus on developers) from changelog entries (focus on users/customers), so I prefer to not use commit messages from "openSUSE/salt" to autogenerate the changelog entries but rather to manually write a meaningful changelog message to be included in your PR as part of your changes. Similarly to what we do in other Uyuni repositories.
+We will use a Github status check to prevent us from merging pull requests without changelogs, like we already do in `uyuni-project/uyuni`
 
 ### OBS project structure
 
