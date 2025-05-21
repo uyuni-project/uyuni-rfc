@@ -231,16 +231,46 @@ Feel free to open new PRs against `openSUSE/devel/master` to see this in action.
 
 ### Salt Extensions
 
-#### Builtin extensions
-The sources for the builtin Salt Extensions will be located together with the main Salt codebase at the `openSUSE/salt` GitHub repository. No new packages or subpackages will be created for these extensions as they will be part of the main `python3*-salt` package.
+Salt extensions are collections of Salt modules that are maintained outside of the Salt repository.
+They can be maintained by the upstream Salt Core team, by our openSUSE Salt maintainers or anyone
+else. By convention, most Salt extensions are maintained in repositories in the
+[salt-extensions](https://github.com/salt-extensions) Github organization.
 
-If a fix is needed for any of the builtin extensions, workflow would be the same as for a code fix in the main Salt package.
+#### Extensions Maintained by openSUSE
+
+- transactional\_update
+- zypperpkg
+- rebootmgr
+- btrfs
+- openscap
+- libvirt_events
+- virt
+- snapper
+- suse\_ip?
+
+
+Each of these extensions are maintained in a separate Git repository, created with
+[`salt-extension-migrate`](https://github.com/salt-extensions/salt-extension-migrate). This tool
+keeps the Git log from the main Salt repository and is the standard tool to move Salt modules to new extensions.
+
+A) We maintain these extensions in the [salt-extensions](https://github.com/salt-extensions) Github
+organization. That makes it easy to discover our Salt extensions and makes it easier for anyone to
+contribute to our Salt extensions, just like any other existing Salt extension. The standard tooling
+helps us with the configuration for publishing the documentation and the PyPI upload.
+
+B) We maintain these extensions in the [openSUSE](https://github.com/openSUSE) Github organization,
+to make the ownership and responsibility clear. We manually configure PyPI upload and docs publishing.
+
+#### RPM Packages for Extensions
+
+Salt Extensions are like any other Python package. `py2pack` can be used to generate 80% of the spec
+file for a Salt Extension. That makes it easy to add new Salt Extensions or drop old ones, e.g. when
+they are moved back to the Salt core repository.
 
 #### Packaged Salt Extensions
 
-For the Salt Extensions that are packaged separately from the main Salt package, we will create a separated GitHub repository where we will maintain these extensions.
+For the Salt Extensions that are packaged separately from the main Salt package, we will create a separated GitHub repository for each of these extensions.
 
-This "openSUSE/salt-extensions" repository will contain:
 - a common salt-extension spec file that will generate all RPM packages
 - The sources for each Salt Extension we package
 - The changelog files for each maintained codestream
