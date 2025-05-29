@@ -63,7 +63,7 @@ pkg/suse/html.tar.bz2
 pkg/suse/salt-tmpfiles.d
 pkg/suse/transactional_update.conf
 pkg/suse/update-documentation.sh
-pkg/suse/mkchlog.sh
+pkg/suse/rpmchangelogs
 pkg/suse/_multibuild
 pkg/suse/salt.spec
 pkg/suse/changelogs/factory/salt.changes
@@ -77,41 +77,19 @@ This is the place now where all those files will be maintained.
 
 #### Tracking upstream and downstream patches
 
-This RFC proposes the usage of "obs_scm" service as the mechanism to pull the sources for the Salt package to build. This service will automatically produce a sources tarball according to a configured GitHub branch.
+This RFC proposes the usage of "obs_scm" service as the mechanism to pull the sources for the Salt package to build. This service generates a sources tarball based on the content of a configured GitHub repository.
 
-For the regular Salt maintenance, this means it won't be needed anymore to manually produce patch files to add them to the spec file, as the tarball now contains the updated sources (with the exception of EMBARGOED bugs, where patches are still needed as we cannot push any fix to public GitHub repositories).
+Except for bugs under embargo, we won't use patches in the spec file. The generated tarball includes the latest changes we merged into our `openSUSE/release/<current release>` branch.
+Bugs under embargo use a different workflow with manually created patches since we cannot push fixes for such bugs to our public Github repository.
 
-To avoid losing the useful labeling of "PATCH-FIX_UPSTREAM" and "PATCH-FIX_OPENSUSE" (with a direct link to the origin PR on the spec file for each new patch we introduced into our Salt package), we will keep adding this information to the spec file on every new PR but this time without adding the patch itself, only the comment.
+We will therefore not track bug fixes in the spec file anymore. The origin of a bug fix, i.e. whether it is backport from upstream or not, will be stored in a Git note attached to the commit of each bug fix. Git notes can be added after bug fixes are merged  without modifying the Git history.
 
 #### Salt RPM changelogs
 
-As mentioned, the changelog files are now maintained in the `openSUSE/salt` GitHub repo, under `pkg/suse/changelogs/` directory.
+As mentioned, the changelog files are now maintained in the `openSUSE/salt` GitHub repo, under `pkg/suse/changelogs/` directory. New changelog are part of pull requests to `openSUSE/salt`.
+Our packaging artifacts will contain a `rpmchangelogs` Python script to easily `add`, `modify` and `remove` changelog entries for all changelogs at once.
 
-Our packaging artifacts will contain a `mkchlog.sh`, which is a helper script to generate a changelog entry to all maintained changelog in one shot. Something like this:
-
-```bash
-echo "Generating changelog entry for Salt package"
-if ! osc vc _temp.changes;
-then
-    exit 1;
-fi
-
-echo "Update changelog files"
-echo >> _temp.changes
-
-for i in $(ls changelogs/*/salt.changes); do
-    echo "$(cat _temp.changes $i)" > $i
-    git add $i
-done
-
-rm _temp.changes
-```
-
-When creating a PR to `openSUSE/salt` the user must also include the corresponding changelog entry for all maintained changelog files.
-
-Similarly to the main Uyuni repository, we should add a GitHub action to warn the user in case no changelog entry is added in the PR.
-
-NOTE: I think it is better to decouple commit messages (focus on developers) from changelog entries (focus on users/customers), so I prefer to not use commit messages from "openSUSE/salt" to autogenerate the changelog entries but rather to manually write a meaningful changelog message to be included in your PR as part of your changes. Similarly to what we do in other Uyuni repositories.
+We will use a Github status check to prevent us from merging pull requests without changelogs, like we already do in `uyuni-project/uyuni`
 
 ### OBS project structure
 
@@ -253,16 +231,46 @@ Feel free to open new PRs against `openSUSE/devel/master` to see this in action.
 
 ### Salt Extensions
 
-#### Builtin extensions
-The sources for the builtin Salt Extensions will be located together with the main Salt codebase at the `openSUSE/salt` GitHub repository. No new packages or subpackages will be created for these extensions as they will be part of the main `python3*-salt` package.
+Salt extensions are collections of Salt modules that are maintained outside of the Salt repository.
+They can be maintained by the upstream Salt Core team, by our openSUSE Salt maintainers or anyone
+else. By convention, most Salt extensions are maintained in repositories in the
+[salt-extensions](https://github.com/salt-extensions) Github organization.
 
-If a fix is needed for any of the builtin extensions, workflow would be the same as for a code fix in the main Salt package.
+#### Extensions Maintained by openSUSE
+
+- transactional\_update
+- zypperpkg
+- rebootmgr
+- btrfs
+- openscap
+- libvirt_events
+- virt
+- snapper
+- suse\_ip?
+
+
+Each of these extensions are maintained in a separate Git repository, created with
+[`salt-extension-migrate`](https://github.com/salt-extensions/salt-extension-migrate). This tool
+keeps the Git log from the main Salt repository and is the standard tool to move Salt modules to new extensions.
+
+A) We maintain these extensions in the [salt-extensions](https://github.com/salt-extensions) Github
+organization. That makes it easy to discover our Salt extensions and makes it easier for anyone to
+contribute to our Salt extensions, just like any other existing Salt extension. The standard tooling
+helps us with the configuration for publishing the documentation and the PyPI upload.
+
+B) We maintain these extensions in the [openSUSE](https://github.com/openSUSE) Github organization,
+to make the ownership and responsibility clear. We manually configure PyPI upload and docs publishing.
+
+#### RPM Packages for Extensions
+
+Salt Extensions are like any other Python package. `py2pack` can be used to generate 80% of the spec
+file for a Salt Extension. That makes it easy to add new Salt Extensions or drop old ones, e.g. when
+they are moved back to the Salt core repository.
 
 #### Packaged Salt Extensions
 
-For the Salt Extensions that are packaged separately from the main Salt package, we will create a separated GitHub repository where we will maintain these extensions.
+For the Salt Extensions that are packaged separately from the main Salt package, we will create a separated GitHub repository for each of these extensions.
 
-This "openSUSE/salt-extensions" repository will contain:
 - a common salt-extension spec file that will generate all RPM packages
 - The sources for each Salt Extension we package
 - The changelog files for each maintained codestream
