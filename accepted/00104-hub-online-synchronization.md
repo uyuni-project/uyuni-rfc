@@ -1,5 +1,5 @@
 - Feature Name: Hub Online synchronization
-- Start Date: (fill with today's date, YYYY-MM-DD)
+- Start Date: 2023-11-28
 
 # Summary
 [summary]: #summary
