@@ -75,7 +75,7 @@ Create and associate a repository to that channel
 
 Click the Sync button to initiate repository synchronization.
 
-For Snap support, we follow a similar logic. However, installing a Snap package requires not just a binary file (.snap), but also three associated assertion files:
+For Snap support, i want to  follow a similar logic. However, installing a Snap package requires not just a binary file (.snap), but also three associated assertion files:
 
 snap-revision.assert
 
@@ -189,7 +189,6 @@ publisher->account-id: Used to fetch the account and account-key assertions
 These values form the foundation for verifying Snap packages and organizing metadata in Uyuni.
 
 
-
 ### Synchronization (Cron Job)
 A scheduled cron job should:
 
@@ -199,6 +198,41 @@ GET https://api.snapcraft.io/api/v1/snaps/search?q=a  # Repeated for a–z
 Update the snap_repo table with the latest Snap metadata.
 
 Ensure new packages and updated revisions are stored and ready for selection in the UI/CLI.
+
+```
+
+        [Scheduled Task: Cron Job]                      [User Workflow]
++----------------------------------------+       +-----------------------------+
+| Every week (or on a schedule):         |       | User opens Uyuni Web UI    |
+| - Call Snap search API (a to z)        |       +-----------------------------+
+| - Fetch snap_id, publisher_id, etc.    |                   |
+| - Store into preloaded metadata table  |                   v
++----------------------------------------+            +-----------------------------+
+               |                                      | Create Snap Channel        |
+               |                                      +-----------------------------+
+               v                                                  |
+     +--------------------------------+                           v
+     |   Snap Metadata DB (preloaded) |              +-----------------------------+
+     +--------------------------------+              | Create Snap Repo            |
+               |                                     | - Select Snap package       |
+               `----when click dropdown------------> |   from preloaded DB table   |
+                                                     | - Bind repo to a channel    |
+                                                     +-----------------------------+
+                                                                 |
+                                                                 v
+                                                     +-----------------------------+
+                                                     | Download Files (on demand): |
+                                                     | - .snap binary              |
+                                                     | - snap-revision.assert      |
+                                                     | - account-key.assert        |
+                                                     | - snap-declaration.assert   |
+                                                     +-----------------------------+
+                                                                 |
+                                                                 v
+                                                     +-----------------------------+
+                                                     |     Repo Ready to Serve     |
+                                                     +-----------------------------+
+```
 
 ## Stage 2 Offline Snap Package Management in Uyuni
 
@@ -422,7 +456,7 @@ Emulate the assertion format and signature validation logic.
 Two technical approaches are considered for enabling offline Snap package support in Uyuni:
 
 Approach 1: Mock API Simulation
-Simulates key Snap Store API endpoints (e.g., /v2/snaps/refresh, /v2/assertions/*) and serves locally cached assertion files and .snap binaries. This avoids Canonical registration and custom CA setup, allowing Uyuni to act as a fake Snap Store. While simpler to implement, this method is fundamentally hacky and may break if snapd behavior changes.
+Simulates key Snap Store API endpoints (e.g., /v2/snaps/refresh, /v2/assertions/*) and serves locally cached assertion files and .snap binaries. This avoids Canonical registration and custom CA setup, allowing Uyuni to act as a Snap Store. While simpler to implement, this method is fundamentally hacky and may break if snapd behavior changes.
 
 Approach 2: Snap Store Proxy with Custom CA
 Deploys a local Snap Store Proxy instance and replaces Canonical’s signing chain with a custom Uyuni-owned CA. This requires setting up a certificate infrastructure, generating assertions signed by the custom CA, and distributing trust anchors to clients. Although closer to official enterprise usage, building and maintaining the entire CA trust chain is complex and time-consuming.
