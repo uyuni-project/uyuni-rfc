@@ -120,6 +120,75 @@ snap_repo Table Structure:
 | `sha3_384_b64`      | Base64-URL-encoded SHA3-384         |
 | `sign_key_sha3_384` | Signer's key fingerprint            |
 
+Metadata Extraction Process
+To populate the table, we use the Snap Store API via a refresh call to retrieve key metadata:
+
+```
+curl -X POST https://api.snapcraft.io/v2/snaps/refresh \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Snap-Device-Series: 16" \
+  -H "Snap-Device-Architecture: amd64" \
+  --data-binary @refresh.json \
+  -o refresh-response.json
+
+cat > refresh.json <<EOF
+{
+  "context": [],
+  "actions": [
+    {
+      "action": "install",
+      "instance-key": "install-htop",
+      "name": "htop",
+      "channel": "stable"
+    }
+  ],
+  "fields": [
+    "architectures",
+    "base",
+    "confinement",
+    "links",
+    "contact",
+    "created-at",
+    "description",
+    "download",
+    "epoch",
+    "license",
+    "name",
+    "prices",
+    "private",
+    "publisher",
+    "revision",
+    "snap-id",
+    "snap-yaml",
+    "summary",
+    "title",
+    "type",
+    "version",
+    "website",
+    "store-url",
+    "media",
+    "common-ids",
+    "categories"
+  ]
+}
+EOF
+
+```
+Key Fields Returned
+From the refresh-response.json, the following fields are extracted:
+
+snap-id: Used for assertion requests (e.g., snap-declaration, snap-revision)
+
+revision: Used to fetch the Snap binary and match its hash
+
+sha3-384: Used to verify the integrity of the .snap binary
+
+publisher->account-id: Used to fetch the account and account-key assertions
+
+These values form the foundation for verifying Snap packages and organizing metadata in Uyuni.
+
+
 
 ### Synchronization (Cron Job)
 A scheduled cron job should:
