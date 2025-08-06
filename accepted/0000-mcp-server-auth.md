@@ -3,7 +3,7 @@
 # Summary
 [summary]: #summary
 
-This RFC presents two architectural patterns for securely connecting the Uyuni MCP server to the Uyuni API. The core challenge is bridging an OAuth-based system with Uyuni's existing credential-based API. This document details two viable solutions: a "Service Account with Internal Authorization" pattern that requires no changes to Uyuni's codebase, and an "OAuth Token Exchange" pattern that offers tighter integration at the cost of modifying Uyuni. Both designs aim to enable secure, user-delegated actions from an LLM-based agent.
+This RFC presents three architectural patterns for securely connecting the Uyuni MCP server to the Uyuni API. The core challenge is bridging an OAuth-based system with Uyuni's existing credential-based API. This document details three viable solutions: a "Service Account with Internal Authorization" pattern that requires no changes to Uyuni's codebase, an "OAuth Token Exchange" pattern that offers tighter integration at the cost of modifying Uyuni, and a "Per-User API Key" pattern, which would first require adding a new API key generation and management system to Uyuni. All designs aim to enable secure, user-delegated actions from an LLM-based agent.
 
 # Motivation
 [motivation]: #motivation
@@ -15,7 +15,7 @@ The expected outcome is a secure and auditable system where the MCP server can r
 # Detailed design
 [design]: #detailed-design
 
-To solve the authentication and authorization challenge, this RFC presents two distinct patterns. The choice between them depends on the trade-off between implementation effort and the desired level of security and auditing granularity.
+To solve the authentication and authorization challenge, this RFC presents three distinct patterns. The choice between them depends on the trade-off between implementation effort and the desired level of security and auditing granularity.
 
 ---
 
@@ -60,6 +60,35 @@ This pattern is the "gold standard" for security and auditing. It involves modif
 
 5.  **Auditing**: All actions are natively logged and audited in Uyuni against the actual user (`alice`), as the execution is performed with their temporary session. No secondary audit log is required for tracing actions.
 
+---
+
+### Pattern 3: Per-User API Key
+
+This pattern proposes a new, native API key system in Uyuni to provide strong security and auditing. It is a significant feature development for Uyuni but offers a clear and secure integration path.
+
+**Architecture:**
+
+1.  **Prerequisite: Implement Native API Key Management in Uyuni**:
+    - A new feature must be added to Uyuni allowing users to generate, manage, and revoke their own personal API keys through the Uyuni UI and/or API.
+    - These keys must be securely stored and tied directly to the user's account and permissions.
+
+2.  **User Authentication (OAuth)**: Same as other patterns. The end-user authenticates via OAuth, and the LLM agent receives a JWT access token.
+
+3.  **Per-User API Key Storage**:
+    - The MCP server maintains a secure, encrypted key-value store that maps each user's OAuth identity (e.g., `user:alice`) to their individual Uyuni API key.
+    - Each user must perform a one-time action to generate a personal API key within Uyuni and securely register it with the MCP server.
+
+4.  **Authorization Flow**:
+    1. The MCP server receives a tool call from the LLM with the user's JWT.
+    2. After validating the JWT and extracting the user's identity, the MCP server retrieves that user's specific Uyuni API key from its store.
+    3. The MCP server executes the command against the Uyuni API using the user's key.
+
+5.  **Auditing & RBAC**:
+    - **Native Auditing**: All actions would be natively logged and audited in Uyuni against the correct user.
+    - **Native RBAC**: Authorization is handled directly by Uyuni's Role-Based Access Control.
+
+---
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
@@ -73,6 +102,12 @@ This pattern is the "gold standard" for security and auditing. It involves modif
 - **Extra Development Effort**: Requires significant changes to the core Uyuni product to support JWT validation and session exchange.
 - **Increased Coupling**: Tightly couples Uyuni's authentication mechanism with the external Authorization Server.
 - **Complex Setup**: The initial configuration of the trust relationship between Uyuni and the Authorization Server is more complex.
+
+**Of Pattern 3 (Per-User API Key):**
+- **Requires Uyuni Development**: This pattern requires building a new, secure API key management system within Uyuni.
+- **Credential Storage Risk**: The MCP server must still securely store and manage a collection of user API keys. A compromise of this credential store would be high-impact.
+- **User Onboarding Friction**: Requires a manual, one-time setup process for each user to generate and register their key.
+- **Key Lifecycle Management**: The platform must provide a secure process for users to rotate or revoke their keys, and users must be educated to do so.
 
 # Alternatives
 [alternatives]: #alternatives
