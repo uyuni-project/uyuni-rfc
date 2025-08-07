@@ -47,6 +47,9 @@ Average package size: 76.82 MB
 At this stage, we may be able to store the beta and candidate Snap packages in the cache.
 However, since .snap binary packages are typically two to three times larger than .deb packages, it may be more efficient to use a pre-selection strategy for the stable channel.
 
+
+## Method 1: Simulating the Snap Store with a Mock API for Offline Snap Package Deployment
+
 Proposed approach:
 
 1. Load the full list of available packages.
@@ -55,7 +58,7 @@ Proposed approach:
 
 3. Download only the selected packages to the repository cache. (by this way support part of airgap environment)
 
-## Stage 1 Download the file from Snapcraft
+### Stage 1 Download the file from Snapcraft
 
 From my observation, there are two ways to create a channel in Uyuni: via CLI and Web UI.
 
@@ -85,7 +88,7 @@ account.assert + account-key.assert
 
 In Stage 1, we focus on supporting the Stable channel from Snapcraft.
 
-### UI Proposal for Snap:
+#### UI Proposal for Snap:
 
 When creating a channel for Snap, the form structure remains similar to existing deb/yum workflows (channel name, label, summary, etc.).
 
@@ -97,7 +100,7 @@ Instead, a dropdown list of available Snap packages should be provided.
 
 The user can select one or more packages to download from Snapcraft.
 
-### CLI Proposal for Snap:
+#### CLI Proposal for Snap:
 We propose extending spacewalk-repo-sync with support for Snap packages:
 
 spacewalk-repo-sync --channel=snap_stable_ubuntu2204 --type=snap --add-snaps="hello-world,vlc"
@@ -106,7 +109,7 @@ In addition, we could provide a helper function to list all Snap packages Uyuni 
 spacewalk-repo-sync --list-snaps
 This will return a list of available Snap packages that can be selected during channel creation.
 
-### Snap Package Repository Design
+#### Snap Package Repository Design
 To support package discovery, we propose maintaining a pre-defined Snap repository list in the Uyuni database.
 
 snap_repo Table Structure:
@@ -189,7 +192,7 @@ publisher->account-id: Used to fetch the account and account-key assertions
 These values form the foundation for verifying Snap packages and organizing metadata in Uyuni.
 
 
-### Synchronization (Cron Job)
+#### Synchronization (Cron Job)
 A scheduled cron job should:
 
 Call the Snapcraft API to fetch updated package metadata:
@@ -234,11 +237,8 @@ Ensure new packages and updated revisions are stored and ready for selection in 
                                                      +-----------------------------+
 ```
 
-## Stage 2 Offline Snap Package Management in Uyuni
+### Stage 2 Implement API on uyuni backend
 
-### Method 1: Simulating the Snap Store with a Mock API for Offline Snap Package Deployment
-
-#### Mock Api : 
 This describes how to simulate the Snap Store API locally, allowing Snap packages to be installed in air-gapped environments by intercepting and serving Snap metadata and binaries from a Uyuni server. 
 
 To understand how Snap package installation works, I used mitmproxy to intercept and analyze network traffic during a snap install operation. When executing a command such as snap install <package>, the Snap client sends several HTTPS requests to the Snapcraft API endpoint at https://api.snapcraft.io. The key requests observed include:
@@ -261,7 +261,7 @@ GET https://api.snapcraft.io/v2/assertions/account-key/<key-id>?max-format=1
 To simulate the Snap Store (api.snapcraft.io) within Uyuni, the Uyuni server must be able to mock at least these four types of API routes, providing valid responses for the assertions and refresh logic expected by snapd. All my mock api designs proposed are based on these observed interactions.
 
 
-##### Step 1: Download Snap Binary and Assertion Files 
+#### Step 1: Download Snap Binary and Assertion Files 
 
 In Snap, installing a package requires not only the .snap binary itself, but also a set of assertion files. These assertions are cryptographically signed metadata used by snapd to verify the authenticity, origin, and permissions of the package.
 
@@ -284,7 +284,7 @@ On the Uyuni server, the local repository should be structured as follows:
 └── hellp_42.account-key.assert
 ```
 
-##### Step 2: DNS Configuration
+#### Step 2: DNS Configuration
 
 To redirect Snap client traffic to the Uyuni server instead of the official Snap Store, DNS interception must be configured on the client (minion) machine.
 
@@ -293,7 +293,7 @@ One simple method is to modify the /etc/hosts file on the minion:
 echo "<UYUNI_SERVER_IP> api.snapcraft.io" | sudo tee -a /etc/hosts
 This maps api.snapcraft.io to the Uyuni server's IP address, effectively redirecting all Snap API requests to the mock server.
 
-##### Step 3: Generate TLS Certificates:
+#### Step 3: Generate TLS Certificates:
 
 Because Snap uses HTTPS for secure communication, simulating the Snap Store requires a valid TLS setup on the Uyuni server.
 
@@ -318,8 +318,7 @@ uyuni-server:/ # scp api.snapcraft.io.pem root@192.168.122.56:/usr/local/share/c
 
 ```
 
-
-##### Step 4 Construct API server
+#### Step 4 Construct API server
 
 In the proof-of-concept (PoC) stage, I used Flask, a lightweight Python web framework, to construct the mock API server. Flask allows for rapid prototyping and testing of API behavior. If this approach proves viable, I plan to design a production-ready version using Java, aligned with Uyuni's existing backend stack.
 
@@ -359,105 +358,153 @@ Content-Type: application/octet-stream
 
 This setup allows the snapd client to behave as if it is interacting with the official Snap Store, enabling offline or internal deployments of Snap packages within Uyuni.
 
-##### Step 5 : Test Install Snap Locally (Minion or Client Machine)
+#### Step 5 : Test Install Snap Locally (Minion or Client Machine)
 On the minion, run:
 
 snap install hello_42.snap
 
 This manually acknowledges the signatures and installs the snap fully offline.
 
-## Method 2 Emulating a Local Snap Store in Uyuni Using a Custom CA and Snap Store Proxy
+## Method 2: Integrate Snap Store Proxy into Uyuni
 
-#### Step 1: Design the Signing System(to be investigated)
+Canonical provides a solution called the **Snap Store Proxy**. This proxy allows devices (called minions in Uyuni) to:
 
-#### Step 2: Configure Client Trust Chain
+- Cache and mirror Snap packages locally
+- Enforce network policies
+- Provide limited offline support
+- Retain some visibility into package usage
 
-##### 2.1 Distribute Uyuni Root CA
+### Basic Steps to Use Snap Store Proxy
 
-Send the Uyuni root CA to all managed clients via Uyuni or Salt, and run:
+To set up and use a Snap Store Proxy (either in online or offline mode), follow these core steps:
 
-sudo mkdir -p /etc/snapd/assertions
+- Install a Snap Store Proxy
+- Register a Snap Store Proxy
+- Configure HTTPS
+- Configure devices
 
-sudo cp uyuni-root-ca.assert /etc/snapd/assertions/
+However, using Snap Store Proxy comes with several caveats:
+- It only runs on **Ubuntu LTS** systems
+- Requires **manual registration** with an Ubuntu One account
+- Becomes a **paid feature** if used to manage more than 25 devices
+- Configuration of proxy, TLS, and client trust relationships must be done manually
 
-sudo snap ack /etc/snapd/assertions/uyuni-root-ca.assert
+## 1.  Platform-Level Automation (Snap Proxy Setup)
 
-##### 2.2 Acknowledge Uyuni Assertions
+### 1.1 Provide a Pre-Built Container Image
+- Build and offer a container image based on **Ubuntu LTS** with:
+  - Snap Store Proxy pre-installed
+  - PostgreSQL pre-installed
+- Customer can run it easily:
+  ```bash
+  podman run -d -p 80:80 -p 443:443 uyuni/snap-proxy
+  ```
 
-Send these assertion files to the client and run:
+### 1.2 Automate `snap-proxy config` via Uyuni UI/CLI
+- Provide UI form or Salt module to set `proxy.domain`:
+  ```bash
+  sudo snap-proxy config proxy.domain="snaps.myorg.internal"
+  ```
 
-sudo snap ack uyuni-store.assert
+### 1.3 Assist with Proxy Registration
+- Snap Proxy **registration must be done manually** due to Canonical requirements.
+- Uyuni can:
+  - Open a guided registration web link
+  - Pre-fill known values
+  - Let users upload the resulting **Store ID** to Uyuni UI
 
-sudo snap set core proxy.store=<STORE_ID>
+---
 
-#### Step 3: Deploy Snap Store Proxy
+## 2.  Client-Side Automation (Minion Setup)
 
-##### 3.1 Install Snap Store Proxy
+### 2.1 Use Salt to Configure Proxy Trust
+- Provide a Uyuni Salt module like:
+  ```bash
+  snapproxy.set_store <proxy-domain> <store-id>
+  ```
+- This encapsulates:
+  ```bash
+  curl -sL http://<proxy-domain>/v2/auth/store/assertions | sudo snap ack /dev/stdin
+  sudo snap set core proxy.store=<STORE_ID>
+  ```
 
-Due to the requirement that Snap Store Proxy must be deployed on Ubuntu LTS, while most Uyuni users operate on openSUSE systems, we propose to provide a dedicated image—similar to a container—that includes both the Snap client and the Snap Store Proxy. This would allow Uyuni to support Snap functionality in a cross-distro environment.
+### 2.2 Bind Snap Proxy Settings to Channels
+- Allow Snap channels in Uyuni to be associated with a proxy config.
+- When a minion subscribes to the channel, proxy setup is triggered automatically.
 
-```
-eg 
+### 2.3 Auto-Deploy TLS Certificates
+- If using HTTPS, Uyuni can distribute Snap Proxy CA certs to all minions via Salt:
+  ```bash
+  /var/lib/snapd/certs/mitmproxy-ca-cert.pem
+  ```
 
-docker run -d --name=snap-store-proxy \
-  -v /path/to/config:/config \
-  -p 80:80 -p 443:443 \
-  snapcore/snap-store-proxy
-```
+---
 
-##### 3.2 Mock snap-proxy register (Bypass Canonical)
+## 3.  Visibility and Control
 
-Normally should run:
+### 3.1 Log Collection from Minions
+- Use Salt to fetch and parse `/var/log/snapd.log`
+- Display installed Snap packages per minion on the Uyuni dashboard
 
-sudo snap-proxy register
+### 3.2 Parse Snap Proxy Logs
+- Snap Proxy has an API to access download logs.
+- Uyuni can collect and visualize Snap installs via the proxy.
 
-But this contacts Canonical. To bypass it:
+---
+## Method 3: Import Brand Store and Perform Controlled Updates
 
-Skip this step entirely.
-Manually load Uyuni-signed assertions and CA certificate created by step1:
+Building on Method 2, we understand that the key requirement for using Snap Store Proxy is the **registration step** with Canonical. This process involves:
 
-cat uyuni-root-ca.crt | sudo snap-proxy use-ca-certs
+- A registration interaction between the **proxy host and Canonical**.
+- Providing an **email address** and answering **personal verification questions**.
+- Once validated, Canonical assigns a **Store ID** and issues a **store assertion**, which binds the proxy to that Store ID.
 
-sudo snap restart snap-store-proxy
+### Challenge: Skipping Canonical Registration
 
-This simulates a “registration” using uyuni own root CA.
+If we want to **bypass this registration process**, one extreme approach would be to have **Uyuni act like Canonical**, generating its own store assertion and serving as the trust root. 
+
+However, this would require **re-implementing Snap's core trust model**, introducing significant complexity and security risks.
+
+---
+
+### An Alternative Approach: Use a Brand Store
+
+Instead of emulating Canonical, we propose using Canonical’s **official enterprise solution** — the **Brand Store**.
+
+#### Proposal:
+
+1. **Register a Brand Store for Uyuni**  
+   Canonical offers a private, managed Snap Store (called a Brand Store) for a fee. This gives Uyuni its own dedicated Snap publishing and validation environment.
+
+2. **Make the Uyuni Brand Store the Upstream for Snap Store Proxy**  
+   Rather than communicating with the public `api.snapcraft.io`, the Snap Store Proxy would talk to Uyuni’s Brand Store instance.
+
+3. **Manage and Curate Snaps via the Brand Store**  
+   Uyuni could publish, test, approve, and distribute specific Snap packages. This gives us full control over:
+   - Which Snap revisions are allowed
+   - Software lifecycle and patching
+   - Security and compliance
+
+---
+
+###  Benefits
+
+- **Full control** over Snap content and device access.
+- **Leverages Canonical’s supported infrastructure** without rebuilding the trust system.
+- **Supports offline/air-gapped deployment** with strong assurance.
+- **Brand-specific authentication** via serial assertions (if needed).
+
+---
+
+### Trade-offs
+
+- This is a **paid service**.
+- Uyuni needs to evaluate its **cost-effectiveness** based on:
+  - Customer scale
+  - Frequency of Snap changes
+  - Value of controlled software supply chain
+
+---
 
 
-#### Step 4: Validate & Automate
-##### 4.1 Validation
-On a Uyuni-managed client, try:
-
-sudo snap install hello
-
-If the client was configured correctly, the Snap should be pulled from your local Snap Store Proxy, which in turn forwards API requests to your Uyuni-hosted Mock API.
-
-##### 4.2 Automation
-Integrate this flow into Uyuni’s Salt modules or installer scripts:
-
-Generate & sign assertions
-
-Distribute root CA to clients
-
-Configure Snapd and Store Proxy
-
-Install & configure Snap Store Proxy with Uyuni upstream
-
-##### Notes
-Key aspects of this architecture:
-
-The client (snapd) must trust Uyuni’s custom CA.
-
-The Snap Store Proxy must trust the same CA for upstream HTTPS requests to Uyuni.
-
-Emulate the assertion format and signature validation logic.
-
-
-### Approach Comparison
-Two technical approaches are considered for enabling offline Snap package support in Uyuni:
-
-Approach 1: Mock API Simulation
-Simulates key Snap Store API endpoints (e.g., /v2/snaps/refresh, /v2/assertions/*) and serves locally cached assertion files and .snap binaries. This avoids Canonical registration and custom CA setup, allowing Uyuni to act as a Snap Store. While simpler to implement, this method is fundamentally hacky and may break if snapd behavior changes.
-
-Approach 2: Snap Store Proxy with Custom CA
-Deploys a local Snap Store Proxy instance and replaces Canonical’s signing chain with a custom Uyuni-owned CA. This requires setting up a certificate infrastructure, generating assertions signed by the custom CA, and distributing trust anchors to clients. Although closer to official enterprise usage, building and maintaining the entire CA trust chain is complex and time-consuming.
 
