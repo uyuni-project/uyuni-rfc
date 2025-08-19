@@ -106,7 +106,7 @@ Proposed approach:
         |                                                       |
         |                                                       | 4. snap list | grep pkg   # verify
         |                                                       |
-        |                                                       | 5. rm -rf /tmp/snaps /tmp/asserts  # optional cleanup
+        |                                                       |
 
 ```
 
