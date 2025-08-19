@@ -44,11 +44,7 @@ Total unique packages checked: 13746
 Total size: 493 GB  around 500GB
 Average package size: 76.82 MB
 
-At this stage, we may be able to store the beta and candidate Snap packages in the cache.
-However, since .snap binary packages are typically two to three times larger than .deb packages, it may be more efficient to use a pre-selection strategy for the stable channel.
-
-
-## Method 1: Simulating the Snap Store with a Mock API for Offline Snap Package Deployment
+## Detailed Design
 
 Proposed approach:
 
@@ -56,9 +52,65 @@ Proposed approach:
 
 2. Allow the client to select which packages they want to manage.
 
-3. Download only the selected packages to the repository cache. (by this way support part of airgap environment)
+3. Download only the selected packages to the repository cache. 
 
-### Stage 1 Download the file from Snapcraft
+4. Use Salt to copy the corresponding assertions and .snap files to the minions, thereby supporting partially air-gapped environments.
+
+```
+
+        [Scheduled Task: Cron Job]                      [User Workflow]
++----------------------------------------+       +-----------------------------+
+| Every week (or on a schedule):         |       | User opens Uyuni Web UI    |
+| - Call Snap search API (a to z)        |       +-----------------------------+
+| - Fetch snap_id, publisher_id, etc.    |                   |
+| - Store into preloaded metadata table  |                   v
++----------------------------------------+            +-----------------------------+
+               |                                      | Create Snap Channel        |
+               |                                      +-----------------------------+
+               v                                                  |
+     +--------------------------------+                           v
+     |   Snap Metadata DB (preloaded) |              +-----------------------------+
+     +--------------------------------+              | Create Snap Repo            |
+               |                                     | - Select Snap package       |
+               `----when click dropdown------------> |   from preloaded DB table   |
+                                                     | - Bind repo to a channel    |
+                                                     +-----------------------------+
+                                                                 |
+                                                                 v
+                                                     +-----------------------------+
+                                                     | Download Files (on demand): |
+                                                     | - .snap binary              |
+                                                     | - snap-revision.assert      |
+                                                     | - account-key.assert        |
+                                                     | - snap-declaration.assert   |
+                                                     +-----------------------------+
+                                                                 |
+                                                                 v
+                                                     +-----------------------------+
+                                                     |     Repo Ready to Serve     |
+                                                     +-----------------------------+
+```
+```
++-------------------+                                     +-------------------+
+|    Salt Master    |                                     |      Minion       |
++-------------------+                                     +-------------------+
+        |                                                       |
+        | 1. salt cp (send *.assert, *.snap) ------------------>|
+        |                                                       |
+        | 2. salt cmd.run on minion:                            |
+        |       snap ack /tmp/asserts/*.assert                  |
+        |                                                       |
+        |                                                       | 3. snap install /tmp/snaps/pkg.snap \
+        |                                                       |        --offline
+        |                                                       |    (or --dangerous if no assertions)
+        |                                                       |
+        |                                                       | 4. snap list | grep pkg   # verify
+        |                                                       |
+        |                                                       | 5. rm -rf /tmp/snaps /tmp/asserts  # optional cleanup
+
+```
+
+### Web UI and CLI Desgin 
 
 From my observation, there are two ways to create a channel in Uyuni: via CLI and Web UI.
 
@@ -109,7 +161,7 @@ In addition, we could provide a helper function to list all Snap packages Uyuni 
 spacewalk-repo-sync --list-snaps
 This will return a list of available Snap packages that can be selected during channel creation.
 
-#### Snap Package Repository Design
+### Database Design (Snap Package Repository Design)
 To support package discovery, we propose maintaining a pre-defined Snap repository list in the Uyuni database.
 
 snap_repo Table Structure:
@@ -192,56 +244,92 @@ publisher->account-id: Used to fetch the account and account-key assertions
 These values form the foundation for verifying Snap packages and organizing metadata in Uyuni.
 
 
-#### Synchronization (Cron Job)
+### List Packages and Synchronization (Cron Job)
 A scheduled cron job should:
 
 Call the Snapcraft API to fetch updated package metadata:
 
 GET https://api.snapcraft.io/api/v1/snaps/search?q=a  # Repeated for a–z
+
+```
+all_packages = {}
+limit = 100
+keywords = list(string.ascii_lowercase)  # a-z
+
+for keyword in keywords:
+    page = 1
+    same_count = 0
+    while True:
+        url = f"https://api.snapcraft.io/api/v1/snaps/search?q={keyword}&limit={limit}&page={page}"
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        packages = data.get("_embedded", {}).get("clickindex:package", [])
+
+        if not packages:
+            break
+
+        prev_count = len(all_packages)
+
+        for pkg in packages:
+            name = pkg.get("package_name")
+            if name not in all_packages:
+                all_packages[name] = {
+                    "name": name,
+                    "version": pkg.get("version"),
+                    "channel": pkg.get("channel"),
+                    "arch": pkg.get("architecture"),
+                }
+
+        curr_count = len(all_packages)
+
+        if curr_count == prev_count:
+            same_count += 1
+        else:
+            same_count = 0
+
+        if same_count >= 5:
+            break
+
+        page += 1
+        time.sleep(0.3)
+
+```
 Update the snap_repo table with the latest Snap metadata.
 
 Ensure new packages and updated revisions are stored and ready for selection in the UI/CLI.
 
+
+### Download Snap Binary and Assertion Files 
+
+In Snap, installing a package requires not only the .snap binary itself, but also a set of assertion files. These assertions are cryptographically signed metadata used by snapd to verify the authenticity, origin, and permissions of the package.
+
+The following components must be prepared in advance. 
+
+On the Uyuni server, the local repository should be structured as follows:
 ```
+/srv/salt/
+├── snap/                       
+│   ├── init.sls
+│   └── ensure_snapd.sls
+│   └── ensure_snapd_core.sls
+└── snaps/                      
+    ├── htop/
+    │   ├── htop.snap
+    │   └── htop_snap-revision.assert
+    │   └── htop_snap-declaration.assert
+    │   └── htop_account-key.assert
+    │   └── htop_account.assert
+    └── kubectl/
+        ├── kubectl.snap
+        └── kubect_snap-revision.assert
+        └── kubect_snap-declaration.assert
+        └── kubect_account-key.assert
+        └── kubect_account.assert
 
-        [Scheduled Task: Cron Job]                      [User Workflow]
-+----------------------------------------+       +-----------------------------+
-| Every week (or on a schedule):         |       | User opens Uyuni Web UI    |
-| - Call Snap search API (a to z)        |       +-----------------------------+
-| - Fetch snap_id, publisher_id, etc.    |                   |
-| - Store into preloaded metadata table  |                   v
-+----------------------------------------+            +-----------------------------+
-               |                                      | Create Snap Channel        |
-               |                                      +-----------------------------+
-               v                                                  |
-     +--------------------------------+                           v
-     |   Snap Metadata DB (preloaded) |              +-----------------------------+
-     +--------------------------------+              | Create Snap Repo            |
-               |                                     | - Select Snap package       |
-               `----when click dropdown------------> |   from preloaded DB table   |
-                                                     | - Bind repo to a channel    |
-                                                     +-----------------------------+
-                                                                 |
-                                                                 v
-                                                     +-----------------------------+
-                                                     | Download Files (on demand): |
-                                                     | - .snap binary              |
-                                                     | - snap-revision.assert      |
-                                                     | - account-key.assert        |
-                                                     | - snap-declaration.assert   |
-                                                     +-----------------------------+
-                                                                 |
-                                                                 v
-                                                     +-----------------------------+
-                                                     |     Repo Ready to Serve     |
-                                                     +-----------------------------+
 ```
+This repository can be populated from the Snapcraft API, with all relevant metadata also stored in the database (as prepared in the previous synchronization step).
 
-### Stage 2 Implement API on uyuni backend
-
-This describes how to simulate the Snap Store API locally, allowing Snap packages to be installed in air-gapped environments by intercepting and serving Snap metadata and binaries from a Uyuni server. 
-
-To understand how Snap package installation works, I used mitmproxy to intercept and analyze network traffic during a snap install operation. When executing a command such as snap install <package>, the Snap client sends several HTTPS requests to the Snapcraft API endpoint at https://api.snapcraft.io. The key requests observed include:
+#### Endpoints Desgin
 
 POST https://api.snapcraft.io/v2/snaps/refresh
 (Initiates the refresh or installation of the Snap package.)
@@ -258,253 +346,138 @@ GET https://api.snapcraft.io/v2/assertions/account/<account-id>?max-format=0
 GET https://api.snapcraft.io/v2/assertions/account-key/<key-id>?max-format=1
 (Retrieves the public key assertion for the account.)
 
-To simulate the Snap Store (api.snapcraft.io) within Uyuni, the Uyuni server must be able to mock at least these four types of API routes, providing valid responses for the assertions and refresh logic expected by snapd. All my mock api designs proposed are based on these observed interactions.
-
-
-#### Step 1: Download Snap Binary and Assertion Files 
-
-In Snap, installing a package requires not only the .snap binary itself, but also a set of assertion files. These assertions are cryptographically signed metadata used by snapd to verify the authenticity, origin, and permissions of the package.
-
-The following components must be prepared in advance. This preparation should be completed during Stage 1, when the client creates a channel for Snap packages:
-
-The actual Snap package binary (compressed squashfs, e.g., hello_42.snap)
-
-snap-revision.assert
-
-snap-declaration.assert
-
-account-key.assert
-
-On the Uyuni server, the local repository should be structured as follows:
+### Salt Part
 ```
-/snap_repo/
-├── hello_42.snap
-├── hello_42.assert
-├── hello_42.snap-declaration.assert
-└── hellp_42.account-key.assert
+/srv/pillar/
+├── top.sls                    
+└── snaps.sls   
+
+/srv/salt/
+└── snap/
+    ├── ensure_snapd.sls
+    ├── ensure_bases_store.sls
+    └── init.sls
 ```
-
-#### Step 2: DNS Configuration
-
-To redirect Snap client traffic to the Uyuni server instead of the official Snap Store, DNS interception must be configured on the client (minion) machine.
-
-One simple method is to modify the /etc/hosts file on the minion:
-
-echo "<UYUNI_SERVER_IP> api.snapcraft.io" | sudo tee -a /etc/hosts
-This maps api.snapcraft.io to the Uyuni server's IP address, effectively redirecting all Snap API requests to the mock server.
-
-#### Step 3: Generate TLS Certificates:
-
-Because Snap uses HTTPS for secure communication, simulating the Snap Store requires a valid TLS setup on the Uyuni server.
-
-Follow these steps:
-
-Use a tool such as mkcert to generate a TLS certificate for uyuni server.
-
-Install the Root CA on the Client
-
-The root CA generated by mkcert must be installed into the system trust store of the client (minion), so that it trusts the Uyuni server's TLS certificate.
-
-Establish Secure Communication
-
-Once the Uyuni server is set up with the certificate, and the minion trusts the CA, the Snap client will be able to communicate securely with the Uyuni server over HTTPS as if it were api.snapcraft.io.
+#### Design pillar for the package list
+The package list to be managed is defined in a dedicated Salt pillar. 
+This pillar is automatically generated when the user selects packages through the UI/CLI.
 
 ```
-uyuni-server:mkcert -install
-uyuni-server: mkcert api.snapcraft.io
-uyuni-server:/ # scp api.snapcraft.io.pem root@192.168.122.56:/usr/local/share/ca-certificates/
-(venv-salt-minion) root@minion: sudo update-ca-certificates
-(venv-salt-minion) root@minion: curl -vk https://api.snapcraft.io:443/
+/srv/pillar/top.sls
+
+  base:
+  '*':
+    - snaps
+
+/srv/pillar/snaps.sls 
+
+snap_pkgs:
+  - name: htop
+    mode: local
+    src_dir: salt://snaps/htop
+    dst_dir: /tmp/snap-airgap/htop
+    sequence:
+      - {name: htop,    file: htop_*.snap}
+
+  - name: kubectl
+    mode: local
+    src_dir: salt://snaps/kubectl
+    dst_dir: /tmp/snap-airgap/kubectl
+    sequence:
+      - {name: kubectl, file: kubectl_*.snap}
 
 ```
 
-#### Step 4 Construct API server
-
-In the proof-of-concept (PoC) stage, I used Flask, a lightweight Python web framework, to construct the mock API server. Flask allows for rapid prototyping and testing of API behavior. If this approach proves viable, I plan to design a production-ready version using Java, aligned with Uyuni's existing backend stack.
-
-To redirect Snap client traffic to the mock API server, configure DNS resolution by either:
-
-Adding an entry in /etc/hosts, or
-
-Setting up internal DNS to resolve api.snapcraft.io to the Uyuni server's IP address (e.g., 127.0.0.1 for local development).
-
-Implementing API Endpoints
-
-The mock server should simulate the key Snap Store API routes required for package installation and verification. In Flask, the following routes are implemented:
+#### Step 3: Salt State Design 
 ```
+/srv/salt/snap/ensure_snapd.sls
 
-@app.route('/v2/snaps/refresh', methods=['POST'])
+  {% if grains['os_family'] in ['Ubuntu'] %}
+  snapd:
+    pkg.installed: []
+    service.running:
+      - enable: True
+      - require:
+        - pkg: snapd
+  {% endif %}
 
-@app.route('/api/v1/snaps/download/<snap_id>.snap', methods=['GET'])
+/srv/salt/snap/ensure_bases_store.sls
 
-@app.route('/v2/assertions/snap-revision/<assertion_id>', methods=['GET'])
+{% set bases = pillar.get('snap_bases', ['core22']) %}
 
-@app.route('/v2/assertions/account/<account_id>', methods=['GET'])
+include:
+  - snap.ensure_snapd
 
-@app.route('/v2/assertions/account-key/<key_id>', methods=['GET'])
+{% for b in bases %}
+snap-base-{{ b }}-store:
+  cmd.run:
+    - name: "snap install {{ b }}"
+    - unless: "snap list | awk '{print $1}' | grep -qx {{ b }}"
+    - require:
+      - service: snapd-service
+{% endfor %}
 
-Each route should serve the corresponding file from the local repository (e.g., /snap_repo/) with the appropriate headers. 
+/srv/salt/snap/init.sls
 
-For example:
+  {% set pkgs = pillar.get('snap_pkgs', []) %}
 
-Assertion files must be served with:
+include:
+  - snap.ensure_snapd
+  - snap.ensure_bases_store     ）
 
-Content-Type: application/x.ubuntu.assertion
+{% macro SNAP_LOCAL(block) %}
+{% set pkg = block.name %}
+{% set src = block.get('src_dir', 'salt://snaps/' + pkg) %}
+{% set dst = block.get('dst_dir', '/tmp/snap-airgap/' + pkg) %}
+{% set seq = block.get('sequence', [{"name":pkg,"file": pkg + "_*.snap"}]) %}
 
-Snap packages must be served with:
+{{ pkg }}-dir:
+  file.directory:
+    - name: {{ dst }}
+    - mode: '0755'
 
-Content-Type: application/octet-stream
+{{ pkg }}-stage:
+  file.recurse:
+    - name: {{ dst }}
+    - source: {{ src }}
+    - include_empty: False
+    - clean: False
+    - require:
+      - file: {{ pkg }}-dir
+
+{{ pkg }}-ack:
+  cmd.run:
+    - name: >
+        bash -lc 'shopt -s nullglob; cd {{ dst }};
+                  for a in *.assert; do snap ack "$a" || true; done'
+    - require:
+      - file: {{ pkg }}-stage
+      - service: snapd-service
+{% if not pkgs %}
+No-Packages-Defined:
+  test.show_notification:
+    - text: "pillar:snap_pkgs Not provided, currently offline pkg will not be processed"
+{% else %}
+{%   for b in pkgs %}
+{{ SNAP_LOCAL(b) }}
+{%   endfor %}
+{% endif %}
+
+              
 ```
+#### Sync Pillars and Apply Snap States
 
-This setup allows the snapd client to behave as if it is interacting with the official Snap Store, enabling offline or internal deployments of Snap packages within Uyuni.
+salt-run fileserver.update
+salt 'minion2.tf.local' saltutil.refresh_pillar
+salt 'minion2.tf.local' pillar.items snap_bases
+salt 'minion2.tf.local' pillar.items snap_pkgs
+salt 'minion2.tf.local' state.apply snap
 
-#### Step 5 : Test Install Snap Locally (Minion or Client Machine)
+### Test Install Snap Locally (Minion or Client Machine)
 On the minion, run:
 
-snap install hello_42.snap
+cd /tmp/snap-htop/
 
-This manually acknowledges the signatures and installs the snap fully offline.
-
-## Method 2: Integrate Snap Store Proxy into Uyuni
-
-Canonical provides a solution called the **Snap Store Proxy**. This proxy allows devices (called minions in Uyuni) to:
-
-- Cache and mirror Snap packages locally
-- Enforce network policies
-- Provide limited offline support
-- Retain some visibility into package usage
-
-### Basic Steps to Use Snap Store Proxy
-
-To set up and use a Snap Store Proxy (either in online or offline mode), follow these core steps:
-
-- Install a Snap Store Proxy
-- Register a Snap Store Proxy
-- Configure HTTPS
-- Configure devices
-
-However, using Snap Store Proxy comes with several caveats:
-- It only runs on **Ubuntu LTS** systems
-- Requires **manual registration** with an Ubuntu One account
-- Becomes a **paid feature** if used to manage more than 25 devices
-- Configuration of proxy, TLS, and client trust relationships must be done manually
-
-## 1.  Platform-Level Automation (Snap Proxy Setup)
-
-### 1.1 Provide a Pre-Built Container Image
-- Build and offer a container image based on **Ubuntu LTS** with:
-  - Snap Store Proxy pre-installed
-  - PostgreSQL pre-installed
-- Customer can run it easily:
-  ```bash
-  podman run -d -p 80:80 -p 443:443 uyuni/snap-proxy
-  ```
-
-### 1.2 Automate `snap-proxy config` via Uyuni UI/CLI
-- Provide UI form or Salt module to set `proxy.domain`:
-  ```bash
-  sudo snap-proxy config proxy.domain="snaps.myorg.internal"
-  ```
-
-### 1.3 Assist with Proxy Registration
-- Snap Proxy **registration must be done manually** due to Canonical requirements.
-- Uyuni can:
-  - Open a guided registration web link
-  - Pre-fill known values
-  - Let users upload the resulting **Store ID** to Uyuni UI
-
----
-
-## 2.  Client-Side Automation (Minion Setup)
-
-### 2.1 Use Salt to Configure Proxy Trust
-- Provide a Uyuni Salt module like:
-  ```bash
-  snapproxy.set_store <proxy-domain> <store-id>
-  ```
-- This encapsulates:
-  ```bash
-  curl -sL http://<proxy-domain>/v2/auth/store/assertions | sudo snap ack /dev/stdin
-  sudo snap set core proxy.store=<STORE_ID>
-  ```
-
-### 2.2 Bind Snap Proxy Settings to Channels
-- Allow Snap channels in Uyuni to be associated with a proxy config.
-- When a minion subscribes to the channel, proxy setup is triggered automatically.
-
-### 2.3 Auto-Deploy TLS Certificates
-- If using HTTPS, Uyuni can distribute Snap Proxy CA certs to all minions via Salt:
-  ```bash
-  /var/lib/snapd/certs/mitmproxy-ca-cert.pem
-  ```
-
----
-
-## 3.  Visibility and Control
-
-### 3.1 Log Collection from Minions
-- Use Salt to fetch and parse `/var/log/snapd.log`
-- Display installed Snap packages per minion on the Uyuni dashboard
-
-### 3.2 Parse Snap Proxy Logs
-- Snap Proxy has an API to access download logs.
-- Uyuni can collect and visualize Snap installs via the proxy.
-
----
-## Method 3: Import Brand Store and Perform Controlled Updates
-
-Building on Method 2, we understand that the key requirement for using Snap Store Proxy is the **registration step** with Canonical. This process involves:
-
-- A registration interaction between the **proxy host and Canonical**.
-- Providing an **email address** and answering **personal verification questions**.
-- Once validated, Canonical assigns a **Store ID** and issues a **store assertion**, which binds the proxy to that Store ID.
-
-### Challenge: Skipping Canonical Registration
-
-If we want to **bypass this registration process**, one extreme approach would be to have **Uyuni act like Canonical**, generating its own store assertion and serving as the trust root. 
-
-However, this would require **re-implementing Snap's core trust model**, introducing significant complexity and security risks.
-
----
-
-### An Alternative Approach: Use a Brand Store
-
-Instead of emulating Canonical, we propose using Canonical’s **official enterprise solution** — the **Brand Store**.
-
-#### Proposal:
-
-1. **Register a Brand Store for Uyuni**  
-   Canonical offers a private, managed Snap Store (called a Brand Store) for a fee. This gives Uyuni its own dedicated Snap publishing and validation environment.
-
-2. **Make the Uyuni Brand Store the Upstream for Snap Store Proxy**  
-   Rather than communicating with the public `api.snapcraft.io`, the Snap Store Proxy would talk to Uyuni’s Brand Store instance.
-
-3. **Manage and Curate Snaps via the Brand Store**  
-   Uyuni could publish, test, approve, and distribute specific Snap packages. This gives us full control over:
-   - Which Snap revisions are allowed
-   - Software lifecycle and patching
-   - Security and compliance
-
----
-
-###  Benefits
-
-- **Full control** over Snap content and device access.
-- **Leverages Canonical’s supported infrastructure** without rebuilding the trust system.
-- **Supports offline/air-gapped deployment** with strong assurance.
-- **Brand-specific authentication** via serial assertions (if needed).
-
----
-
-### Trade-offs
-
-- This is a **paid service**.
-- Uyuni needs to evaluate its **cost-effectiveness** based on:
-  - Customer scale
-  - Frequency of Snap changes
-  - Value of controlled software supply chain
-
----
-
+snap install ./htop.snap --dangerous
 
 
