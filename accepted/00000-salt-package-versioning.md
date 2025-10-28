@@ -4,7 +4,7 @@
 # Summary
 [summary]: #summary
 
-We are releasing our branch of Salt with its original version (currently `3006.0`) with no any changes in version number with each next release.
+We are releasing our branch of Salt with its original version (currently `3006.0`) without any changes in version number with each next release.
 This approach is causing some confusions on detecting the exact salt code used with the package as the `release` of the packages, delivered
 for different clients can't be aligned and is not reliable. The only reliable for now is the data from the package changelog.
 
