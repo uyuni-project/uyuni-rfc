@@ -15,7 +15,7 @@ The aim of this RFC is to improve the visibility of the state of the salt code r
 
 - We need to have clear way to identify the exact salt code used with the salt packages as the release number is not reliable.
 - There were some issues detected for the cases when the outdated salt is used either on `salt-master` or `salt-minion` side, but such cases are hard to identify as the only reliable data is the changelog of the package.
-- Make it easier to ensure that newer version of Salt is used on the `salt-master` side by enforce preventing adding higher `salt-minion` version to bootstrap repos.
+- Make it easier to ensure that newer version of Salt is used on the `salt-master` side by enforce preventing adding higher `salt-minion` version to bootstrap and client tools repos.
 - Unify the same approach for classic salt package used on the `salt-master` side and for the salt bundle to make the check, if the versions aligned, clear for the supporters and the users.
 
 # Detailed design
@@ -28,7 +28,8 @@ The only changing part is the `release` of the package, but it depends on the pr
 To avoid the confusions and better tracking the alignment of the package version across different targets for classic salt package and the salt bundle,
 we could extend the version of the package with the patch level like `MAJOR.MINIOR.PATCH` instead of `MAJOR.MINOR` which is used now.
 
-The patch level could be either increased manually on each maintenance update submission or adjusted automatically on the build time with the current number of patches included.
+The patch level could be either increased manually on each maintenance update submission or adjusted automatically.
+Mixed approach is also possible here, which can be easily adopted to the new git workflow automation.
 
 With such approach we would have constantly increasing version number and the content of each package release will be easier to identify.
 
