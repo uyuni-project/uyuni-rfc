@@ -10,13 +10,16 @@ Linux Micro) in Uyuni.
 # Detailed design
 [design]: #detailed-design
 
-## Uyuni does not use `transactional_update` executor anymore
-The smallest unit Salt can handle is the SLS file. To control which SLS files are applied in a
-transaction or not, Uyuni stops relying on the `transactional_update` executor. Instead, Uyuni either
-calls `state.apply $list_of_sls_files` or `transactional_update.apply $list_of_sls_files`.
+## State Apply Functions
+Uyuni does not use `transactional_update` executor anymore. The smallest unit Salt can handle is the
+SLS file. To control which SLS files are applied in a transaction or not, Uyuni stops relying on the
+`transactional_update` executor.
 
-All internal states that interact with the live system are applied with `state.apply.`. Internal states
-that change the operating system, e.g. by installing packages, are applied with
+Uyuni uses both _State Apply Functions_: `state.apply $list_of_sls_files` and
+`transactional_update.apply $list_of_sls_files`.
+
+All internal states that interact with the live system are applied with `state.apply`.
+Internal states that change the operating system, e.g. by installing packages, are applied with
 `transactional_update.apply`. Today, many of our SLS files combine installing and using packages. 
 That does not fit the transactional model and we need to split these SLS files.
 
@@ -47,7 +50,11 @@ enhanced with a hard-coded mapping of SLS files to the respective Salt function 
 
 Some states need to be split into two SLS files, one for prerequisites and a second for the actual
 work. The Java backend code first trigger the prerequisites state. When that job returns
-successfully, Uyuni reacts with the "actual work" state without any further user interaction.
+successfully and the system has rebooted, Uyuni reacts with the "actual work" state without any further user interaction.
+
+The flow is similar to _Action Chains_ that contain a reboot. Uyuni configures a Salt Reactor
+listening to `/salt/minion/*/start` events. The same mechanism could be used for applying the second
+state. Alternatively, the "Uyuni built-in Reactor" (`SaltReactor.java`) could also be used.
 
 #### Example Workflow with Salt CLI
 The following example first installs prerequisites for the `hardware.profileupdate` state, reboots
@@ -62,8 +69,40 @@ the minion and then triggers the `hardware.profileupdate`.
 % mgrctl exec -- salt slmicro61 state.apply hardware.profileupdate'
 ```
 
-This mimics an action chain of `transactional_update.apply hardware.prereq -> reboot -> state.apply hardware.profileupdate`.
+### Salt Highstate
+A Salt Highstate is group of Salt States that describe the overall configuration of a system. For
+transactional systems, this fits the idea of preparing a new snapshot and boot into it.
 
+In Uyuni, we use the Highstate to ensure packages for different features are installed and that
+access tokens to Uyuni's repositories are kept up-to-date. Additionally, _custom States_ are part of
+Uyuni's highstate configuration. 
+
+Uyuni uses a [global variable](#configurable-states-javasalt_custom_states_use_transactional_update)
+to decide which function to use to apply _custom states_ for transactional systems. This variable is
+used by the Java code to decide which function to call, but this information
+(`transactional_update.apply` vs `state.apply`) is not available when our `mgr_master_tops.py` tops
+module composes the list of states for a highstate. Therefore, `mgr_master_tops.py` excludes custom
+states from the highstate for transactional systems.
+
+The following states are part of the highstate for transactional systems.
+
+- `ansible.prereq`
+- `channels`
+- `certs`
+- `services.docker`
+- `services.kiwi-image-server`
+- `services.salt-minion`
+- `switch_to_bundle.mgr_switch_to_venv_minion`
+
+### Salt Formulas
+
+On non-transactional systems, Salt Formulas are applied as part of the Salt Highstate. Similar to
+_custom states_, Uyuni can't decide upfront if all formulas can be applied with
+`transactional_update.apply` or if `state.apply` is to be used.
+
+Salt Formulas are not part of the highstate for transactional systems.
+
+The `formulas` state is added to the list of states that can be selected for recurring actions with type "Custom state".
 
 ### Internal States - `state.apply`
 - `actionachains.{startssh,resumessh}`
@@ -147,6 +186,39 @@ backend code consults `java.salt_custom_states_use_transactional_update` to deci
 Uyuni bootstraps new systems through different mechanisms: `state.apply` over Salt SSH, running a
 bash script, or by reacting to a newly connected Salt Minion. During the bootstrap procedure, Uyuni
 installs the Salt Bundle on the client. This requires a reboot of transactional systems.
+
+
+The following flowchart describes the different bootstrap methods and if a reboot is triggered automatically.
+```mermaid
+flowchart TD
+  start["Bootstrap Transactional System"]
+  bundle{"Salt Bundle already installed?"}
+  bootstrapMethod{"Bootstrap method?"}
+  
+  rebootRequired["Reboot required"]
+  noReboot["No reboot needed"]
+  rebootRequest["Reboot is requested"]
+  manualReboot["Manual reboot required"]
+  systemdReboot["Instant reboot (systemd)"]
+  rebootmgrReboot["Scheduled reboot (rebootmgr)"]
+  bootstrapScript{"Value of `SCHEDULE_REBOOT_AFTER_TRANSACTION` variable"}
+  rebootMethod{"Reboot Method for transactional-update"}
+  
+  start --> bundle
+  bundle --| yes | --> noReboot
+  bundle --| no |--> rebootRequired --> bootstrapMethod
+  
+  bootstrapMethod --| Salt SSH |--> rebootRequest
+  bootstrapMethod --| Bootstrap Script |--> bootstrapScript
+  bootstrapMethod --| Salt-initiated | --> manualReboot
+  bootstrapScript --| 1 |--> rebootRequest
+  bootstrapScript --| Anything else |--> manualReboot
+  
+  rebootRequest --> rebootMethod
+  rebootMethod --| auto (default) |--> systemdReboot
+  rebootMethod --| systemd |--> systemdReboot
+  rebootMethod --| rebootmgr |--> rebootmgrReboot
+```
 
 ### `state.apply` over Salt SSH
 This is the mechanism used when users navigate to "Systems > Bootstrapping" in the WebUI.
