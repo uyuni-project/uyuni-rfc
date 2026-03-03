@@ -117,6 +117,7 @@ The `formulas` state is added to the list of states that can be selected for rec
 - `packages.redhatproductinfo`
 - `proxy.apply_proxy_config`
 - `reboot`
+- `rebootifneeded`
 - `services.docker`
 - `services.kiwi-image-server`
 - `services.reportdb-user`
@@ -150,8 +151,8 @@ The `formulas` state is added to the list of states that can be selected for rec
 - `supportdata.prereq` (renamed from `init.sls`)
 - `switch_to_bundle.mgr_switch_to_venv_minion`
 - `update-salt`
+- `uptodate`
 - `util.mgr_switch_to_venv_minion`
-
 
 ### Unsupported Internal States
 Not all internal states we have make sense on MicroOS / SUSE Linux Micro. These states are unsupported.
@@ -159,8 +160,6 @@ Not all internal states we have make sense on MicroOS / SUSE Linux Micro. These 
 - `appstreams.configure` - only useful for RHEL systems
 - `bootstrap.remove_traditional_stack` - traditional stack was never supported on these systems
 - `cocoattest.requestdata`- only supports SLES 15 SP6
-- `rebootifneeded` - The way this is written is incompatible with transactional systems
-- `uptodate` - The way this is written is incompatible with transactional systems
 
 ### Configurable States (`java.salt_custom_states_use_transactional_update`)
 These states could either be applied with `state.apply` or `transactional_update.apply`. The Java
