@@ -55,6 +55,15 @@ If you are interested in implementing an 'accepted' RFC, but unable to determine
 
 The Uyuni team expects that all development work is tracked in GitHub issues. Please validate that a related issue exists (or create one otherwise) before starting to implement any accepted RFC.
 
+### RFC Status Definition
+To keep our proposal process transparent and manageable, we use the following labels to categorize the status of Request for Comments (RFCs):
+
+**label:deferred:** This proposal contains a solid idea that aligns with Uyuni's goals, but it is not a priority for the current roadmap. We are closing it to keep the active queue focused, but it remains a candidate for future implementation when resources or architectural dependencies allow.
+
+**label:stale:** This label is applied to RFCs that have seen no activity or feedback from the author for an extended period. These are closed to prevent the backlog from becoming outdated, but they can be reconsidered if a contributor steps forward to drive the discussion again.
+
+**label:superseded:** This indicates that the problem described has been addressed by a different RFC, a direct Pull Request, or a change in the project's technical direction. This RFC is closed in favor of the newer solution linked in the comments.
+
 - - -
 
 This RFC process owes its inspiration to the [React RFC process], [Yarn RFC process], [Rust RFC process], and [Ember RFC process].
