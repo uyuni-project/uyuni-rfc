@@ -56,33 +56,79 @@ The flow is similar to _Action Chains_ that contain a reboot. Uyuni configures a
 listening to `/salt/minion/*/start` events. The same mechanism could be used for applying the second
 state. Alternatively, the "Uyuni built-in Reactor" (`SaltReactor.java`) could also be used.
 
+#### Reboot Detection
+
+Uyuni uses a new custom grain that shows when a system was booted. This is then used to determine if
+a `salt/minion/*/start` event is caused by a reboot of the system.
+
+```python
+def boot_time():
+    """Return boot time as epoch.
+
+    Provides:
+      boot_time
+    """
+    grains = {}
+    with salt.utils.files.fopen("/proc/stat", "r") as fh:
+        for line in fh:
+            if line.startswith("btime"):
+                btime = int(line.split(" ")[1])
+                grains["boot_time"] = btime
+    return grains
+```
+
+The grain is added to the `start_event_grains` list, producing `salt/minion/*/start` events such as:
+
+```json
+{
+  "id": "slmicro61.virt",
+  "cmd": "_minion_event",
+  "pretag": null,
+  "data": "Minion slmicro61.virt started at Mon Apr 20 17:09:31 2026",
+  "tag": "salt/minion/slmicro61.virt/start",
+  "grains": {
+    "machine_id": "a549452138519b2579266fa46995beeb",
+    "boot_time": 1776685034,
+    "susemanager": {
+      "activation_key": null
+    }
+  },
+  "ts": 1776697771,
+  "_stamp": "2026-04-20T15:09:31.711438"
+}
+```
+
+The `grains:boot_time` epoch timestamp can be compared to the start event time stamp `ts` to
+determine if the start event was caused by a recent system boot.
+
 #### Example Workflow with Salt CLI
 The following example first installs prerequisites for the `hardware.profileupdate` state, reboots
-the minion and then triggers the `hardware.profileupdate`.
+the minion and then triggers the `hardware.profileupdate`. For brevity, this example does not use
+the previously mentioned [reboot detection](#reboot-detection).
 
 ```sh
-% mgrctl exec -- salt slmicro61 transactional_update.apply hardware.prereq
-% rebootRequired=$(mgrctl exec -- salt --out=json slmicro61 transactional_update.pending_transaction | jq --exit-status '.["slmicro61"] == true')
+% mgrctl exec -- salt slmicro61.virt transactional_update.apply hardware.prereq
+% rebootRequired=$(mgrctl exec -- salt --out=json slmicro61 transactional_update.pending_transaction | jq --exit-status '.["slmicro61.virt"] == true')
 % if [[ $rebootRequired = "true"]]; then
-> mgrctl exec -it 'salt slmicro61 transactional_update.reboot && salt-run state.event salt/minion/slmicro61/start count=1'
+> mgrctl exec -it 'salt slmicro61.virt transactional_update.reboot && salt-run state.event salt/minion/slmicro61/start count=1'
 > fi
-% mgrctl exec -- salt slmicro61 state.apply hardware.profileupdate'
+% mgrctl exec -- salt slmicro61.virt state.apply hardware.profileupdate'
 ```
 
 ### Salt Highstate
 A Salt Highstate is group of Salt States that describe the overall configuration of a system. For
-transactional systems, this fits the idea of preparing a new snapshot and boot into it.
+transactional systems, this fits the idea of preparing a new snapshot and boot into it. 
 
 In Uyuni, we use the Highstate to ensure packages for different features are installed and that
 access tokens to Uyuni's repositories are kept up-to-date. Additionally, _custom States_ are part of
-Uyuni's highstate configuration. 
+Uyuni's highstate configuration.
 
 Uyuni uses a [global variable](#configurable-states-javasalt_custom_states_use_transactional_update)
 to decide which function to use to apply _custom states_ for transactional systems. This variable is
 used by the Java code to decide which function to call, but this information
 (`transactional_update.apply` vs `state.apply`) is not available when our `mgr_master_tops.py` tops
 module composes the list of states for a highstate. Therefore, `mgr_master_tops.py` excludes custom
-states from the highstate for transactional systems.
+states from the highstate for transactional systems. The highstate is applied with `transactional_update.apply`.
 
 The following states are part of the highstate for transactional systems.
 
@@ -299,12 +345,17 @@ Why should we **not** do this?
 # Alternatives
 [alternatives]: #alternatives
 
-- Full control over custom states for the user. Requires changes to the WebUI / API and database
-  schema. This is something we could do later if the global config approach is not enough.
 - Support for two system states ("live" and "next") in the database, WebUI and API. This would allow
   users to know not only what the current live system looks like, but also how it will look like
   after a reboot. This is a lot of work, everything expects a system to be in a singular state all the time.
 - Make sure a small subset of SLS files work on transactional systems and document the rest as unsupported.
+
+# Future Improvements
+[future]: #future
+- Directly apply Salt Formulas from the WebUI/API, without having to add it to recurring states. This will also benefit non-transactional system management that currently requires adding formulas to the highstate.
+- Full control over custom states for the user. Requires changes to the WebUI / API and database
+  schema. This is something we could if the global config approach is not enough.
+
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
