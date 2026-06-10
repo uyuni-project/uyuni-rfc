@@ -1,5 +1,5 @@
 - Feature Name: native_ldap_authentication
-- Start Date: 2026-06-04
+- Start Date: 2026-06-03
 
 # Summary
 [summary]: #summary
@@ -41,7 +41,9 @@ The design reuses two existing patterns rather than reinventing them:
 - The **PAM service/factory shape** (`PamServiceFactory` → `DefaultPamServiceFactory` → `PamServiceWrapper`) is the structural template for isolating an external credential check behind a factory.
 - The **external-auth lifecycle** in `LoginHelper` already performs just-in-time user creation (`CreateUserCommand`), profile updates (`UpdateUserCommand`), external group to role mapping (`UserGroupFactory.lookupExtGroupByLabel`), and temporary-role assignment. This is the model for the LDAP user and role lifecycle.
 
-A standalone proof of concept (UnboundID LDAP SDK 7.0.4, Java 17) was run against a seeded OpenLDAP fixture to confirm the operations the design depends on: service-account bind, pooled connections, user search, group resolution by `(member=<userDN>)` without a `memberOf` overlay, a successful credential bind, and rejection of invalid credentials.
+A standalone proof of concept (UnboundID LDAP SDK 7.0.4, Java 17) was run against a seeded OpenLDAP fixture to confirm the operations the design depends on: service-account bind, pooled connections, user search, group resolution by `(member=<userDN>)` without a `memberOf` overlay, a successful credential bind, and rejection of invalid credentials. The POC was then extended to exercise the full proposed pipeline end to end (search, credential bind, group resolution, group-label-to-role-type mapping mirroring `LoginHelper.getRolesFromExtGroups`, and the just-in-time provisioning decision) for both a new directory-only user and an existing local user. This validated three design-critical assumptions and surfaced one gap: (a) the external-group mapping path is live, not dormant; (b) mapping is at the role-*type* level with org scoping already present on `rhnUserExtGroup`; (c) the reusable lifecycle methods in `LoginHelper` are currently `private` and must be extracted; and (d) profile attributes such as `givenName` are not guaranteed on `inetOrgPerson` entries, so first-name mapping needs a fallback. A second pass confirmed the remaining reuse claims against code: the `PasswordBasedCredentials` Base64-at-rest pattern and `CredentialsType` enum, the `PamServiceFactory` interface plus default implementation and wrapper (the structural template), and `UserManager.resetTemporaryRoles` as the shared temporary-role reset used by both `CreateUserCommand` and `UpdateUserCommand`. The one schema subtlety found in that pass is the `suseCredentials` `cred_type_check` constraint, discussed under Database design.
+
+**Scope of validation.** To be precise about what this evidence does and does not cover: the POC ran against **OpenLDAP only**, over **plain LDAP** (no TLS), as a **standalone simulation** of the orchestration logic. It did not run against Active Directory or FreeIPA, did not exercise LDAPS/StartTLS or trust-store validation, did not test anonymous bind or the `memberOf` path (only group-side `member=` search), and was not wired into the real `UserManager.loginUser` flow or `CreateUserCommand` against a live database. Those paths are designed from code reading and precedent, not yet executed; the unresolved questions below call out the ones that carry risk.
 
 ## Proposed architecture
 
@@ -101,7 +103,7 @@ The provider uses the standard bind/search/bind sequence:
 
 1. Bind with the configured service account (or anonymous bind if explicitly enabled).
 2. Search for the user under the configured base DN using the configured filter; require **exactly one** match.
-3. Bind as the discovered user DN with the password supplied at login.
+3. Reject an empty supplied password outright, then bind as the discovered user DN with that password. (Many directories treat a bind with a valid DN and an empty password as a successful unauthenticated bind, so an empty password must never reach the bind call.)
 4. Resolve the user's groups.
 5. Return the normalized login, profile attributes, and group labels to the lifecycle adapter.
 
@@ -143,24 +145,27 @@ The portable baseline is a group-side search, which the POC confirmed works with
 
 `memberOf` on the user entry is supported as an optional optimization where the directory exposes it. Group labels are normalized to a configured attribute (default `cn`), with full-DN matching available where simple names are ambiguous. Nested groups are AD-specific (matching-rule OID `1.2.840.113556.1.4.1941`) and are deferred to a later iteration.
 
-Role mapping reuses the existing external group mechanism rather than introducing a new model. `rhnUserGroup` remains the role-assignment model; `rhnUserExtGroup` / `rhnUserExtGroupMapping` are dormant but reusable; `access.accessGroup` is the authorization layer for new endpoints, not the LDAP role target.
+Role mapping reuses the existing external group mechanism rather than introducing a new model. `rhnUserGroup` remains the role-assignment model. The `rhnUserExtGroup` / `rhnUserExtGroupMapping` tables are live, not dormant: they are already consumed by the header-based `REMOTE_USER` path (`LoginHelper.checkExternalAuthentication`) and managed through `ExtGroupDetailAction` (UI) and `UserExternalHandler` (API). A mapping row associates an external group label with one or more role *types* (`rhnUserExtGroupMapping.int_group_type_id -> rhnUserGroupType`) and is org-scoped through the existing nullable `rhnUserExtGroup.org_id`. `access.accessGroup` is the authorization layer for new endpoints, not the LDAP role target.
 
 ```text
 LDAP groups
-  -> normalize to external group labels
+  -> normalize to external group labels (cn by default)
   -> UserGroupFactory.lookupExtGroupByLabel(label)   (rhnUserExtGroup -> rhnUserExtGroupMapping)
-  -> resolve org-scoped rhnUserGroup rows (the roles)
+  -> collect mapped role types (rhnUserGroupType), unmapped labels skipped
+  -> resolve org-scoped roles for the user's org
   -> assign as temporary roles (CreateUserCommand/UpdateUserCommand.setTemporaryRoles)
   -> on each login, UserManager.resetTemporaryRoles recomputes the set
 ```
 
+The POC reproduced this exact resolution (loop, lookup, skip-if-unmapped, union of role types) against the fixture: `uyuni-admins` mapped to Org Admin and `uyuni-users` to a system-group role, with a directory-only user provisioned just-in-time and an existing user taking the update path.
+
 Manually assigned permanent roles are never removed by LDAP login; only temporary (LDAP-derived) roles are recomputed, so a user removed from a directory group loses the corresponding Uyuni role on next login. The existing `EXTAUTH_KEEP_TEMPROLES` switch (`UserExternalHandler.setKeepTemporaryRoles`) governs whether temporary roles survive a later non-LDAP login.
 
-This also promotes the LDAP group to a first-class, managed entity: the `rhnUserExtGroup` row becomes the persisted representation of a known LDAP group, optionally scoped to a specific server (see Database design), managed from the Admin UI/API. The existing `REMOTE_USER` path is left untouched in v1; the LDAP adapter calls the same `LoginHelper.getRolesFromExtGroups()` resolution, and integration tests cover these previously dormant paths.
+This also promotes the LDAP group to a first-class, managed entity: the `rhnUserExtGroup` row becomes the persisted representation of a known LDAP group, optionally scoped to a specific server (see Database design), managed from the Admin UI/API. The existing `REMOTE_USER` path is left untouched in v1. The resolution logic currently lives in `private` methods of `LoginHelper` (`getRolesFromExtGroups`, `newRemoteUser`, `updateRemoteUser`), so a prerequisite refactor extracts it into a reusable component that both the header-based path and the new LDAP adapter call, with tests covering the shared seam.
 
 ## RBAC integration
 
-The new RBAC model (`access.namespace`, `access.endpoint`, `access.accessGroup`) is used only to protect the new LDAP configuration endpoints: the setup pages and API methods are registered in the RBAC endpoint mapping[^3] so only privileged administrators can read or change LDAP configuration. LDAP-derived user roles continue to flow through `rhnUserGroup`. Automatic population of `access.accessGroup` from LDAP groups is out of scope for v1.
+The new RBAC model (`access.namespace`, `access.endpoint`, `access.accessGroup`) is used only to protect the new LDAP configuration endpoints: the setup pages and API methods are registered in the RBAC endpoint mapping[^3] so only privileged administrators can read or change LDAP configuration. LDAP-derived user roles continue to flow through `rhnUserGroup`. Automatic population of `access.accessGroup` from LDAP groups is out of scope for v1 and left as future work once the RBAC model stabilizes.
 
 ## Database design
 
@@ -171,22 +176,22 @@ Reused tables:
 | `web_contact` | user identity; JIT users get a non-usable placeholder password |
 | `rhnUserGroup` / `rhnUserGroupType` | org-scoped role instances (unchanged) |
 | `rhnUserGroupMembers` | role membership; `temporary='Y'` for LDAP-derived roles |
-| `rhnUserExtGroup` / `rhnUserExtGroupMapping` | external group to role mapping (revived) |
+| `rhnUserExtGroup` / `rhnUserExtGroupMapping` | external group to role-type mapping (live; also used by header-based external auth); `rhnUserExtGroup.org_id` already scopes a mapping to an org |
 | `suseCredentials` | bind password, via a new `ldap` credential type (see below) |
 
 One new entity (working name `suseLdapAuthServer`, one row per configured directory) holds the connection and mapping configuration. Rather than fix the exact columns, types, and constraints now, the design captures the data the entity must hold, grouped by purpose; the concrete schema is settled during implementation:
 
 - **Connection** - label, enabled flag, server type, host, port, transport, and a connect/response timeout. Server type (`ACTIVE_DIRECTORY` / `FREE_IPA` / `OPENLDAP` / `POSIX`) and transport (`LDAPS` / `STARTTLS` / `PLAIN`) are modeled as Java enums, as CoCo attestation models `env_type`[^6].
-- **Bind account** - the service-account bind DN (null meaning anonymous bind) and a reference to the stored bind password (see below).
+- **Bind account** - a reference to the stored bind credentials (the bind DN as the credential `username` and the bind password; no credential row means anonymous bind), as described under bind-password storage below.
 - **User lookup** - user base DN, user search filter, login attribute, and optional first-name, last-name, and email attributes.
 - **Group lookup** - group base DN, group filter, group-name attribute (default `cn`), a `memberOf` toggle, and an optional pre-authentication scope filter.
 - **Provisioning** - provisioning mode (`JIT` / `EXISTING_ONLY`) and the default org applied to JIT-created users.
 
 This entity is the single source of truth for a directory, and the enum-backed fields keep server-type and transport handling type-safe in Java rather than relying on free-form strings.
 
-To make external groups first-class and optionally LDAP-scoped, the design adds a nullable reference from `rhnUserExtGroup` to the new directory entity. A null value preserves today's server-agnostic behavior (used by `REMOTE_USER`); a set value scopes the mapping to one directory. Modeling this as a nullable link on the existing table, rather than a parallel new table, avoids duplicating the established external-group mechanism.
+To make external groups first-class and optionally LDAP-scoped, the design adds a nullable reference from `rhnUserExtGroup` to the new directory entity. A null value preserves today's server-agnostic behavior (used by `REMOTE_USER`); a set value scopes the mapping to one directory. Modeling this as a nullable link on the existing table, rather than a parallel new table, avoids duplicating the established external-group mechanism. Note that `rhnUserExtGroup` already carries a nullable `org_id` and a unique index on `(label, org_id)`; adding directory scoping must extend that uniqueness accordingly (for example `(label, org_id, directory_id)`), which is one reason this is flagged as an unresolved question rather than settled here.
 
-The **bind password** is stored in `suseCredentials` under a new `ldap` credential type, reusing the `PasswordBasedCredentials` pattern already used for SCC, registry, and cloud-RMT credentials (Base64-encoded at rest). In practice this adds an `ldap` type to the credential model and a corresponding credentials entity; the password is write-only in the UI/API, as SCC credentials are. Whether Base64-at-rest is sufficient or stronger encryption is required is left open below.
+The **bind password** is stored in `suseCredentials` under a new `ldap` credential type, reusing the `PasswordBasedCredentials` pattern already used for SCC, registry, and cloud-RMT credentials (the abstract superclass Base64-encodes on `setPassword` and decodes on `getPassword`, persisting to the `password` column). In practice this adds an `LDAP` value to the `CredentialsType` enum and an `LdapCredentials` entity, plus two schema touches confirmed by reading `suseCredentials.sql`: the `rhn_type_ck` `IN (...)` list must gain `'ldap'`, and the per-type `cred_type_check` `CASE` (which today requires both `username` and `password` for every existing type) must be handled deliberately. LDAP does not fit that username+password pair cleanly: the service account is identified by a full bind DN, and anonymous bind has no credentials at all. The cleaner of two options is taken as the working assumption: store the bind DN as the credential `username` (keeping the existing pair shape, with anonymous bind meaning no credential row), rather than adding a relaxed `ldap` branch that requires only a password. The password remains write-only in the UI/API, as SCC credentials are. Whether Base64-at-rest is sufficient or stronger encryption is required is left open below.
 
 ## Transport security
 
@@ -222,11 +227,11 @@ Both API interfaces are provided, following the HTTP API RFC convention: the exi
 1. **Backend authentication** - `LdapServiceFactory` + `LdapAuthenticationService`, bind/search/bind, Local -> LDAP -> PAM ordering, minimal config, unit + integration tests against the fixture.
 2. **Provisioning + roles** - JIT user creation, profile sync, group-to-role mapping via `rhnUserExtGroup`, temporary-role reset.
 3. **UI + API** - four-tab Admin UI, test actions, XML-RPC + JSON endpoints, RBAC registration.
-4. **Advanced** - auth-source filter, multiple servers/failover, `memberOf` and AD nested groups.
+4. **Advanced** - auth-source filter, multiple servers/failover, the `memberOf` path, AD nested groups, and AD large-group range retrieval (`member;range=`).
 
 ## Testing
 
-A local OpenLDAP fixture (seeded with `alice`/`bob` and `uyuni-admins`/`uyuni-users`) backs integration tests, seeded from the existing POC. Unit tests cover filter construction/escaping, attribute mapping, group normalization, role mapping, and temporary-role reset. Regression tests confirm local and PAM logins and the ordering are unaffected. Note: the core test tree currently has pre-existing compile breakage (`RhnMockHttpServletHttpServletResponse`, `SimpleTestingResponse`); whether it is fixed as part of this work is for the maintainers to decide.
+A local OpenLDAP fixture (seeded with `alice`/`bob` and `uyuni-admins`/`uyuni-users`) backs integration tests, seeded from the existing POC. Unit tests cover filter construction/escaping, attribute mapping, group normalization, role mapping, and temporary-role reset. Regression tests confirm local and PAM logins and the ordering are unaffected. The primary validation target for the v1 test matrix and documentation is still to be confirmed with maintainers (Active Directory, FreeIPA, or OpenLDAP); other directories are best-effort. Note: the core test tree currently has pre-existing compile breakage (`RhnMockHttpServletHttpServletResponse`, `SimpleTestingResponse`); whether it is fixed as part of this work is for the maintainers to decide.
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -234,7 +239,8 @@ A local OpenLDAP fixture (seeded with `alice`/`bob` and `uyuni-admins`/`uyuni-us
 - It adds code to a security-sensitive path; mistakes in ordering, fallback, filter escaping, or mapping could cause auth/authz bugs.
 - It introduces a runtime dependency on an external directory; timeouts and failure modes must be disciplined.
 - It likely adds a new third-party Java dependency (UnboundID LDAP SDK) that must clear licensing/packaging review.
-- It revives dormant `rhnUserExtGroup` code that may need repair and test coverage.
+- It reuses the existing external-group mapping code, whose resolution logic currently sits in `private` `LoginHelper` methods and must be extracted into a shared component (with test coverage) before the LDAP adapter can call it.
+- The role-assignment path it reuses (`CreateUserCommand` and the temporary-role mechanism) is itself mid-migration to the new RBAC model (`CreateUserCommand` already bypasses legacy roles in favor of RBAC implied roles), so the temporary-role semantics this design depends on may shift while RBAC lands.
 - LDAP/AD deployments vary widely; v1 must choose clear defaults and document its limits rather than support every schema.
 
 # Alternatives
@@ -248,12 +254,12 @@ A local OpenLDAP fixture (seeded with `alice`/`bob` and `uyuni-admins`/`uyuni-us
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-1. **Secret and trust material** - is Base64-at-rest (as for SCC/registry credentials) acceptable for the bind password, or is encryption required, and where should the directory CA live: the JVM trust store, the container's `/etc/pki/trust/anchors/`, or an upload-through-UI flow?
-2. **Scoping external groups to a server** - is the nullable `rhnUserExtGroup.ldap_server_id` FK the right approach, or should mappings stay server-agnostic?
+1. **Secret storage and trust material** - is Base64-at-rest (as for SCC/registry credentials) acceptable for the bind password, or is encryption required, and where should the directory CA live: the JVM trust store, the container's `/etc/pki/trust/anchors/`, or an upload-through-UI flow?
+2. **Scoping external groups to a server** - is a nullable directory FK on `rhnUserExtGroup` the right approach (extending the existing `(label, org_id)` uniqueness to include it), or should mappings stay server-agnostic and rely only on the existing `org_id` scoping?
 3. **Superuser reachability** - may an LDAP group grant the top-level admin role, or should the highest privileges remain local-only?
 4. **Org assignment for JIT users** - is a single configured default org enough for v1, or is attribute-/group-based mapping needed early?
-5. **`access.accessGroup` future** - should the RFC commit to a later phase mapping LDAP groups into the new RBAC access groups, or leave it out of scope?
-6. **Primary target directory** - which directory is the primary path for the test matrix and docs: Active Directory, FreeIPA, or OpenLDAP?
+5. **Identity collisions** - login order is local-first, so a local user shadows an LDAP user with the same login, and an LDAP user whose login matches an existing local account cannot authenticate via LDAP. Is shadowing the intended behavior, or should collisions be rejected or namespaced?
+6. **Temporary roles under the RBAC migration** - the reused `CreateUserCommand` / temporary-role path is being migrated to the new RBAC access-group model. Should this design target the legacy temporary-role mechanism for v1 and adapt later, or align with the RBAC migration now? Input from the RBAC authors would help settle this.
 
 # References
 [references]: #references
