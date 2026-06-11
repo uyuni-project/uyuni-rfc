@@ -230,11 +230,11 @@ admins view and modify feature states.
    without a namespace, it cannot be toggled. This requires discipline when
    adding new RBAC namespaces.
 
-3. **SAT_ADMIN bypass change** — Placing the disabled check **before** the
-   SAT_ADMIN bypass changes the traditional behavior where system admins could
-   access everything. This is intentional (disabled features are truly disabled)
-   but may surprise operators who expect admin access to override all
-   restrictions.
+3. **SAT_ADMIN bypass change** — System administrators traditionally bypass
+   all RBAC checks. By placing the disabled check **before** the SAT_ADMIN bypass,
+   we ensure that disabled features are truly unavailable to everyone. This is
+   intentional (a disabled feature is a hard system-wide off-switch) but may
+   surprise operators who expect admin access to override all restrictions.
 
 4. **Toggle accumulation** — Each new feature added to Uyuni should ideally get
    a toggle. Without enforcement (e.g., a CI check), toggles will gradually
@@ -255,26 +255,22 @@ admins view and modify feature states.
    - *Verdict*: Rejected — the reviewer pointed out the significant overlap
      with existing RBAC infrastructure
 
-2. **Positive-config naming** (`java.enable_*` instead of `java.disable_*`)
-   - *Pros*: More intuitive
-   - *Cons*: Inconsistent with existing toggles; would require migration
-   - *Verdict*: Rejected — we use `java.disabled_namespaces` which is
-     semantically clear
-
-3. **Database-backed toggles** (new `suseFeatureToggles` table)
+2. **Database-backed toggles** (new `suseFeatureToggles` table)
    - *Pros*: Easier to query programmatically; could support per-org granularity
    - *Cons*: Adds schema migration overhead; `rhn.conf` is simpler
    - *Verdict*: Rejected — `rhn.conf` is the established admin-config pattern
 
-4. **Environment variables** (`UYUNI_DISABLE_IMAGES=1`)
-   - *Pros*: Works well for containerized deployments
-   - *Cons*: Requires restart; no admin UI
-   - *Verdict*: Rejected — restart requirement is unacceptable
+3. **Per-organization granularity** (DB table with `org_id`)
+   - *Pros*: Different orgs can have different features enabled
+   - *Cons*: Significantly more complex UI and backend; most deployments
+     want global toggles
+   - *Verdict*: Deferred — may be added as a future enhancement if needed
 
-5. **Feature branches** (Git branch per feature)
-   - *Pros*: Clean separation
-   - *Cons*: Does not solve runtime configuration
-   - *Verdict*: Rejected — branching is a development practice, not runtime config
+4. **Environment variables** (`UYUNI_DISABLE_FEATURES=images,patches`)
+   - *Pros*: Works well for containerized deployments
+   - *Cons*: Requires restart; no admin UI; inconsistent with existing config
+   - *Verdict*: Rejected — restart requirement is unacceptable for a toggle
+     system meant to be changed at runtime
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
