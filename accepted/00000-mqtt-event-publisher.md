@@ -63,7 +63,7 @@ graph LR
 
 ## Why MQTT?
 
-- MQTT 3.1.1 is an OASIS standard with broad tooling support.
+- MQTT is an OASIS standard with broad tooling support.
 - Mosquitto is lightweight (< 1 MB RSS), runs as a single process,
   and is already available in openSUSE and SLES package repositories.
 - The publish/subscribe model is a natural fit: Uyuni publishes events
@@ -209,10 +209,8 @@ The Eclipse Paho MQTT v3 client library is added as a Maven dependency:
 The version is declared in the parent `java/pom.xml` BOM and consumed
 without version in `java/core/pom.xml`, following the existing convention.
 
-MQTT 3.1.1 is chosen over MQTT 5 because the Mosquitto broker shipped
-with openSUSE and SLES defaults to 3.1.1 and the feature does not
-require any v5-specific capabilities (shared subscriptions, request/
-response, user properties).
+MQTT is chosen because the Mosquitto broker shipped with openSUSE and SLES
+is lightweight and the feature does not require complex capabilities.
 
 ## MqttPublisherService
 
