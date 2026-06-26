@@ -4,36 +4,41 @@
 # Summary
 [summary]: #summary
 
-Add an MQTT event publisher to the Uyuni reactor pipeline. When certain
-Salt events come in (system registered, job finished, state applied, etc.),
-we publish a JSON message to a local Mosquitto broker so that external
-tools — Node-RED, Grafana, custom scripts — can subscribe and react
-without polling the API.
+This document describes the addition of an MQTT-based event publishing
+mechanism to the Uyuni server. The reactor pipeline will publish selected
+Salt event types as structured JSON messages to a local Mosquitto MQTT
+broker, making them available for external consumption by automation tools
+such as Node-RED, Grafana alerting pipelines, or custom scripts.
 
-The first version covers five event types: system registration, job
+The first iteration covers five event types that represent the most
+operationally significant lifecycle moments: system registration, job
 completion, state application, image deployment, and batch operations.
 
 # Motivation
 [motivation]: #motivation
 
-Right now Uyuni keeps all Salt events inside the Java server. If an
-external tool wants to know when a minion registers or a highstate fails,
-the only option is polling the XML-RPC / HTTP API. That adds latency
-and puts extra load on the server for no good reason.
+Today, Uyuni processes Salt events entirely inside the Java application
+server. External tools that want to react to fleet-wide events (a new
+system registering, a highstate failing, a batch operation starting) have
+no way to subscribe to these events in real time. The available options
+are polling the XML-RPC or HTTP API, which introduces latency and adds
+unnecessary load on the server.
 
 MQTT is a lightweight publish/subscribe protocol that is already widely
 adopted in infrastructure automation and IoT. Mosquitto, the reference
 broker implementation, is packaged and available on openSUSE and SLES.
-Publishing reactor events to MQTT gives us:
+By publishing reactor events to an MQTT broker, we enable:
 
-- Admins can see registration, job, and state events as they happen,
-  no polling needed.
-- Node-RED or similar tools can subscribe and trigger workflows
-  (post to Slack on a failed highstate, open a ticket on new registration).
-- Consumers subscribe to the broker, not to Uyuni directly. Adding or
-  removing a consumer does not touch the server at all.
-- Event streams can feed into Prometheus Alertmanager, Grafana, or
-  anything that speaks MQTT.
+- **Real-time fleet visibility** — administrators can see registration,
+  job, and state events the moment they happen, without polling.
+- **Low-code automation** — tools like Node-RED can subscribe to event
+  topics and trigger workflows (e.g. post to Slack when a highstate
+  fails, open a ticket when a new system registers).
+- **Decoupled integration** — external consumers subscribe to the broker
+  independently of the Uyuni server. Adding or removing consumers has
+  zero impact on reactor performance.
+- **Monitoring and alerting** — event streams can feed into Prometheus
+  Alertmanager, Grafana, or any system that speaks MQTT.
 
 ### Current State vs. Proposed State
 
@@ -84,14 +89,10 @@ graph LR
   must know about every consumer, handle retries, and manage
   authentication. With MQTT, consumers subscribe independently.
 
-# Detailed design
+# Detailed Design
 [design]: #detailed-design
 
 ## Architecture Overview
-
-![MQTT Event Publisher Architecture](images/mqtt-architecture.png)
-
-![Event Type Mapping](images/mqtt-event-types.png)
 
 ```mermaid
 flowchart TB
@@ -143,7 +144,7 @@ sequenceDiagram
         MQ->>EA: execute(RegisterMinionEventMessage)
         EA->>EA: instanceof check → handleRegisterMinion()
         EA->>EA: Extract minionId, machineId, etc.
-        EA->>PS: publish("uyuni/events/systems/registered", data)
+        EA->>PS: publish("uyuni/<fqdn>/systems/registered", data)
         PS->>PS: Wrap in envelope (eventId, timestamp)
         PS->>PS: Serialize to JSON
         PS-->>Broker: PUBLISH (QoS 1, async)
@@ -214,7 +215,7 @@ is lightweight and the feature does not require complex capabilities.
 
 ## MqttPublisherService
 
-`MqttPublisherService` handles all communication with the MQTT broker.
+A new class `MqttPublisherService` encapsulates all broker communication.
 
 **Responsibilities:**
 
@@ -230,9 +231,10 @@ is lightweight and the feature does not require complex capabilities.
 
 **Key design decisions:**
 
-1. **Asynchronous client.** The reactor sits on a hot path — we cannot
-   block it waiting for a broker ACK. `MqttAsyncClient` returns right
-   away and deals with delivery in the background.
+1. **Asynchronous client.** The reactor processes Salt events on a hot
+   path. A synchronous publish call would block the reactor thread
+   while waiting for a broker ACK. `MqttAsyncClient` returns immediately
+   and handles delivery acknowledgement in the background.
 
 2. **Single-thread executor.** All publish operations are submitted to a
    single-thread executor. This guarantees message ordering and avoids
@@ -244,10 +246,11 @@ is lightweight and the feature does not require complex capabilities.
    containerized deployment. It can be overridden via the JVM system
    property `uyuni.mqtt.broker.url`.
 
-4. **Broker down? Keep going.** If the broker is not reachable at startup
-   or drops mid-run, we log a warning and skip publishing. The reactor
-   keeps working as usual. Once the broker is back, Paho reconnects on
-   its own and events start flowing again.
+4. **Graceful degradation.** If the broker is unavailable at startup or
+   disconnects at runtime, events are logged and skipped. The reactor
+   continues to process events normally. When the broker becomes
+   available again, Paho reconnects automatically and new events are
+   published.
 
 5. **Envelope pattern.** Every published message includes a UUID
    `eventId` for deduplication (relevant at QoS 1, which may redeliver)
@@ -270,24 +273,30 @@ stateDiagram-v2
 
 ## MqttEventAction
 
-`MqttEventAction` implements the existing `MessageAction` interface.
-It maps each internal event message to the right MQTT topic and
-builds the JSON payload to publish.
+A new class `MqttEventAction` implements the existing `MessageAction`
+interface from the Uyuni messaging framework. It acts as the mapping
+layer between internal event message objects and MQTT topics/payloads.
 
 **Supported event types and topics:**
 
-| Internal Event Class            | MQTT Topic                        | Trigger                    |
-|---------------------------------|-----------------------------------|----------------------------|
-| `RegisterMinionEventMessage`    | `uyuni/events/systems/registered` | New minion bootstrapped    |
-| `JobReturnEventMessage`         | `uyuni/events/jobs/returned`      | Salt job completed         |
-| `ApplyStatesEventMessage`       | `uyuni/events/states/applied`     | Highstate / state.apply    |
-| `ImageDeployedEventMessage`     | `uyuni/events/images/deployed`    | OS image deployed          |
-| `BatchStartedEventMessage`      | `uyuni/events/batches/started`    | Batch operation started    |
+Topics use the server's fully qualified domain name (FQDN) instead of a
+static segment. This allows multiple Uyuni instances to publish to a
+shared broker while consumers can subscribe per-instance or across all
+instances using MQTT wildcards.
 
-**Payload extraction:** Each handler picks out only the fields that
-make sense for external consumers. For example, `handleRegisterMinion`
-publishes `minionId`, `machineId`, `saltbootInitrd`, and
-`managementKey` — we do not dump the entire event message object.
+| Internal Event Class            | MQTT Topic                              | Trigger                    |
+|---------------------------------|-----------------------------------------|----------------------------|
+| `RegisterMinionEventMessage`    | `uyuni/<fqdn>/systems/registered`       | New minion bootstrapped    |
+| `JobReturnEventMessage`         | `uyuni/<fqdn>/jobs/returned`            | Salt job completed         |
+| `ApplyStatesEventMessage`       | `uyuni/<fqdn>/states/applied`           | Highstate / state.apply    |
+| `ImageDeployedEventMessage`     | `uyuni/<fqdn>/images/deployed`          | OS image deployed          |
+| `BatchStartedEventMessage`      | `uyuni/<fqdn>/batches/started`          | Batch operation started    |
+
+**Payload extraction:** Each handler method extracts only the fields
+that are relevant for external consumers. Internal implementation
+details are not exposed. For example, `handleRegisterMinion` publishes
+`minionId`, `machineId`, `saltbootInitrd`, and `managementKey` — but
+not the full event message object.
 
 **Concurrency:** `canRunConcurrently()` returns `true` because the
 action delegates all work to the publisher service's executor thread.
@@ -305,15 +314,15 @@ flowchart TD
     msg["EventMessage received"] --> null_check{"msg == null?"}
     null_check -- Yes --> discard["Return (no-op)"]
     null_check -- No --> reg{"instanceof<br/>RegisterMinionEventMessage?"}
-    reg -- Yes --> handle_reg["Extract: minionId, machineId,<br/>saltbootInitrd, managementKey<br/>→ uyuni/events/systems/registered"]
+    reg -- Yes --> handle_reg["Extract: minionId, machineId,<br/>saltbootInitrd, managementKey<br/>→ uyuni/&lt;fqdn&gt;/systems/registered"]
     reg -- No --> job{"instanceof<br/>JobReturnEventMessage?"}
-    job -- Yes --> handle_job["Extract: minionId, jid,<br/>fun, success, retcode<br/>→ uyuni/events/jobs/returned"]
+    job -- Yes --> handle_job["Extract: minionId, jid,<br/>fun, success, retcode<br/>→ uyuni/&lt;fqdn&gt;/jobs/returned"]
     job -- No --> apply{"instanceof<br/>ApplyStatesEventMessage?"}
-    apply -- Yes --> handle_apply["Extract: serverId, userId,<br/>stateNames, forcePackageListRefresh<br/>→ uyuni/events/states/applied"]
+    apply -- Yes --> handle_apply["Extract: serverId, userId,<br/>stateNames, forcePackageListRefresh<br/>→ uyuni/&lt;fqdn&gt;/states/applied"]
     apply -- No --> image{"instanceof<br/>ImageDeployedEventMessage?"}
-    image -- Yes --> handle_image["Extract: machineId, grains<br/>→ uyuni/events/images/deployed"]
+    image -- Yes --> handle_image["Extract: machineId, grains<br/>→ uyuni/&lt;fqdn&gt;/images/deployed"]
     image -- No --> batch{"instanceof<br/>BatchStartedEventMessage?"}
-    batch -- Yes --> handle_batch["Extract: jid, availableMinions,<br/>downMinions, timestamp<br/>→ uyuni/events/batches/started"]
+    batch -- Yes --> handle_batch["Extract: jid, availableMinions,<br/>downMinions, timestamp<br/>→ uyuni/&lt;fqdn&gt;/batches/started"]
     batch -- No --> log_debug["LOG.debug: Unhandled event type"]
 
     handle_reg --> publish["MqttPublisherService.publish()"]
@@ -335,20 +344,28 @@ The `SaltReactor.start()` method is extended to:
 The `SaltReactor.stop()` method calls `mqttPublisherService.shutdown()`
 to close the broker connection and shut down the executor thread.
 
-This is the same pattern every other handler in `SaltReactor` uses.
-The MQTT action runs alongside the existing handlers — nothing
-changes for current event processing.
+This follows the exact pattern used by every other event handler in
+`SaltReactor`. The MQTT action is registered alongside (not instead of)
+the existing handlers, so all current event processing continues
+unchanged.
 
 ## Topic Hierarchy
 
+Topics include the Uyuni server's FQDN as the second segment. This
+replaces the previous static `events/` segment and enables multi-instance
+deployments where each server publishes to the same shared broker.
+
+The FQDN is read from `java.net.InetAddress.getLocalHost().getCanonicalHostName()`
+at service startup and cached for the lifetime of the publisher.
+
 ```mermaid
 graph TD
-    root["uyuni/"] --> events["events/"]
-    events --> systems["systems/"]
-    events --> jobs["jobs/"]
-    events --> states["states/"]
-    events --> images["images/"]
-    events --> batches["batches/"]
+    root["uyuni/"] --> fqdn["&lt;fqdn&gt;/"]
+    fqdn --> systems["systems/"]
+    fqdn --> jobs["jobs/"]
+    fqdn --> states["states/"]
+    fqdn --> images["images/"]
+    fqdn --> batches["batches/"]
     systems --> registered["registered"]
     jobs --> returned["returned"]
     states --> applied["applied"]
@@ -356,7 +373,7 @@ graph TD
     batches --> started["started"]
 
     style root fill:#e94560,stroke:#fff,color:#fff
-    style events fill:#533483,stroke:#fff,color:#fff
+    style fqdn fill:#533483,stroke:#fff,color:#fff
     style systems fill:#0f3460,stroke:#fff,color:#fff
     style jobs fill:#0f3460,stroke:#fff,color:#fff
     style states fill:#0f3460,stroke:#fff,color:#fff
@@ -367,9 +384,10 @@ graph TD
 This hierarchy allows consumers to subscribe at different granularity
 levels using MQTT wildcards:
 
-- `uyuni/events/#` — all events
-- `uyuni/events/systems/#` — only system lifecycle events
-- `uyuni/events/jobs/#` — only job events
+- `uyuni/#` — all events from all instances
+- `uyuni/uyuni.example.com/#` — all events from one specific instance
+- `uyuni/+/systems/#` — system lifecycle events from all instances
+- `uyuni/uyuni.example.com/jobs/#` — only job events from one instance
 
 ## Message Envelope Format
 
@@ -379,7 +397,7 @@ Every message published to the broker has a consistent JSON envelope:
 {
   "eventId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "timestamp": "2026-06-11T10:30:00.000Z",
-  "topic": "uyuni/events/systems/registered",
+  "topic": "uyuni/uyuni.example.com/systems/registered",
   "data": {
     "minionId": "web-server-01.example.com",
     "machineId": "550e8400-e29b-41d4-a716-446655440000",
@@ -391,7 +409,7 @@ Every message published to the broker has a consistent JSON envelope:
 
 ### Payload Fields per Event Type
 
-**`uyuni/events/systems/registered`**
+**`uyuni/<fqdn>/systems/registered`**
 
 | Field            | Type    | Description                                  |
 |------------------|---------|----------------------------------------------|
@@ -400,7 +418,7 @@ Every message published to the broker has a consistent JSON envelope:
 | `saltbootInitrd` | Boolean | Whether this is a Saltboot PXE registration   |
 | `managementKey`  | String  | Activation key used (if any)                  |
 
-**`uyuni/events/jobs/returned`**
+**`uyuni/<fqdn>/jobs/returned`**
 
 | Field       | Type    | Description                      |
 |-------------|---------|----------------------------------|
@@ -411,7 +429,7 @@ Every message published to the broker has a consistent JSON envelope:
 | `retcode`   | Integer | Return code                      |
 | `timestamp` | String  | When the job completed           |
 
-**`uyuni/events/states/applied`**
+**`uyuni/<fqdn>/states/applied`**
 
 | Field                     | Type     | Description                        |
 |---------------------------|----------|------------------------------------|
@@ -421,14 +439,14 @@ Every message published to the broker has a consistent JSON envelope:
 | `forcePackageListRefresh` | Boolean  | Whether package list refresh forced |
 | `directCall`              | Boolean  | Whether this was a direct call      |
 
-**`uyuni/events/images/deployed`**
+**`uyuni/<fqdn>/images/deployed`**
 
 | Field       | Type   | Description                        |
 |-------------|--------|------------------------------------|
 | `machineId` | String | Target machine ID                  |
 | `grains`    | Object | Salt grains from the deployed host |
 
-**`uyuni/events/batches/started`**
+**`uyuni/<fqdn>/batches/started`**
 
 | Field              | Type     | Description                    |
 |--------------------|----------|--------------------------------|
@@ -534,7 +552,7 @@ with `mosquitto_sub` or by connecting a Node-RED flow to the broker.
 - **Apache Kafka** — Much heavier infrastructure requirement. MQTT is
   sufficient for the expected event throughput and is simpler to deploy.
 
-# Unresolved questions
+# Unresolved Questions
 [unresolved]: #unresolved-questions
 
 - Should the set of published event types be configurable (e.g. via a
@@ -543,9 +561,11 @@ with `mosquitto_sub` or by connecting a Node-RED flow to the broker.
 - Should the publisher buffer a bounded number of events when the broker
   is temporarily unavailable, or is the current skip-and-log behavior
   acceptable?
-- Should the MQTT topic prefix (`uyuni/events/`) be configurable to
+- ~~Should the MQTT topic prefix (`uyuni/events/`) be configurable to
   support multi-server environments where each Uyuni instance publishes
-  to a shared broker?
+  to a shared broker?~~ **Resolved:** Topics now include the server FQDN
+  as the second segment (`uyuni/<fqdn>/...`), enabling multi-instance
+  environments natively.
 - Authentication and TLS: should the first version support
   username/password or TLS client certificates for broker connections,
   or is unauthenticated localhost-only access sufficient initially?
