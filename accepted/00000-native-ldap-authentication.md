@@ -13,7 +13,8 @@ Add a native, Java-based LDAP/Active Directory authentication provider to Uyuni'
 - **Login orchestration** — `LoginController` → `LoginHelper` (same layer as `checkExternalAuthentication`), not inside `UserManager.loginUser`.
 - **Per-user routing** — `auth_type` on `rhnUserInfo` (`LOCAL` / `PAM` / `LDAP`); no cascade between backends for known users.
 - **JIT** — unknown logins probe configured LDAP servers (priority order); on success, create the user with `auth_type = LDAP`.
-- **Out of scope for v1** — nested AD groups, `access.accessGroup` population from LDAP, multi-server HA failover.
+- **Role mapping** — LDAP groups map to RBAC access groups by default; `org_admin`/`satellite_admin` stay on legacy roles until they migrate.
+- **Out of scope for v1** — nested AD groups, multi-server HA failover, migrating `org_admin`/`satellite_admin` to RBAC, and a generic CA-storage service.
 
 # Motivation
 [motivation]: #motivation
@@ -136,7 +137,18 @@ Step 2 is a dispatch, not a cascade: each login hits exactly one credential back
 
 **Migration:** existing users with `use_pam_authentication = Y` become `auth_type = PAM`; all others default to `LOCAL`. JIT-created LDAP users get `auth_type = LDAP`.
 
-This is why LDAP does not belong inside `UserImpl.authenticate()`: provisioning and group mapping require the `LoginHelper` lifecycle, and `UserManager.loginUser` assumes the user already exists.
+### Two authentication entry points (Web UI/HTTP API vs. XML-RPC)
+
+Uyuni has two credential-checking entry points, and LDAP must be reachable from both:
+
+- **Interactive path** — `LoginController.performLogin()` → `LoginHelper`. Runs the full lifecycle: credential check, JIT provisioning, profile sync, and group-to-role mapping.
+- **Programmatic path** — `auth.login` (`AuthHandler`) → `UserManager.loginReadOnlyUser` → `UserManager.loginUser(login, password)` → `UserImpl.authenticate(password)`. This path does **not** pass through `LoginController`/`LoginHelper`; it is what `spacecmd` and XML-RPC API clients use.
+
+Because credential verification lives in the standalone `LdapAuthenticationService`, both paths call the same service. `UserManager.loginUser(login, password)` becomes `auth_type`-aware: for an `auth_type = LDAP` user it verifies the password through `LdapAuthenticationService` instead of the local/PAM `UserImpl.authenticate` branch, so an already-provisioned LDAP user can authenticate over XML-RPC.
+
+The **provisioning and group-to-role lifecycle stays in the `LoginHelper` path** (it needs the request-scoped external-group context). A first-time LDAP user who has never logged in interactively therefore does not yet exist in `web_contact`; JIT provisioning happens on their first Web UI/HTTP API login, after which the XML-RPC path works normally. (Whether JIT should also be driven from the XML-RPC path in v1 is an open question for review.)
+
+This refines the earlier position: the LDAP **credential check** is shared by `UserManager.loginUser` (so `UserImpl.authenticate` delegates to it for LDAP users), while **provisioning and mapping** remain in the `LoginHelper` lifecycle, which `UserManager.loginUser` does not run.
 
 ## LDAP authentication flow
 
@@ -173,6 +185,8 @@ Two modes, controlled per LDAP server (`provisioning_mode`):
 
 When JIT is enabled, the UI requires a valid `default_org_id`, mirroring `EXTAUTH_DEFAULT_ORGID`. On each successful login, profile fields (first name, last name, email) are refreshed from LDAP via `UpdateUserCommand`; missing LDAP attributes do not overwrite existing Uyuni values.
 
+`CreateUserCommand` today automatically joins every new user to the `regular_user` RBAC access group (`user.addToGroup(AccessGroupFactory.REGULAR_USER)`). A per-server `auto_join_regular_user` option (default **on**, preserving current behavior) lets an administrator turn this off for LDAP-provisioned users, so that access is driven entirely by LDAP group-to-access-group mapping.
+
 ## Group resolution and role mapping
 
 Baseline group lookup (POC-validated on OpenLDAP):
@@ -184,21 +198,27 @@ Baseline group lookup (POC-validated on OpenLDAP):
 
 `memberOf` is an optional optimization. Nested groups are deferred.
 
-Role mapping reuses `rhnUserExtGroup` / `rhnUserExtGroupMapping` (live today for `REMOTE_USER`):
+Role mapping reuses the `rhnUserExtGroup` / `rhnUserExtGroupMapping` machinery (live today for `REMOTE_USER`), but the mapping **target is dual**, reflecting the in-progress RBAC migration (reviewer input):
+
+- **RBAC access groups (default target).** Most roles have already migrated to RBAC access groups — `channel_admin`, `config_admin`, `system_group_admin`, `activation_key_admin`, `image_admin`, and `regular_user` (all present in `AccessGroupFactory`). LDAP groups map to these via `user.addToGroup(AccessGroup)` / `removeFromGroup`.
+- **Legacy roles (`rhnUserGroupType`).** `org_admin` and `satellite_admin` are **not** yet migrated (absent from `AccessGroupFactory`, still in `RoleFactory`) because of special backend handling. LDAP groups that grant these two administrative roles continue to map through the legacy `rhnUserGroup` / temporary-role mechanism.
 
 ```text
 LDAP groups -> normalize labels (cn)
-  -> UserGroupFactory.lookupExtGroupByLabel(label)
-  -> mapped role types (rhnUserGroupType); unmapped labels skipped
-  -> temporary roles via CreateUserCommand / UpdateUserCommand
-  -> UserManager.resetTemporaryRoles on each login
+  -> lookup ext-group mapping (label [, ldap_server_id])
+  -> target: RBAC access group  (channel_admin, config_admin, system_group_admin,
+             activation_key_admin, image_admin, regular_user)
+     or legacy role (org_admin, satellite_admin only); unmapped labels skipped
+  -> apply on each login, recomputing only LDAP-derived memberships
 ```
 
-Manually assigned permanent roles are never removed. Only temporary (LDAP-derived) roles are recomputed. The `private` methods in `LoginHelper` (`getRolesFromExtGroups`, `newRemoteUser`, `updateRemoteUser`) must be extracted into a shared component before the LDAP path can call them.
+Manually assigned memberships/roles are never removed; only LDAP-derived assignments are recomputed each login. The `private` methods in `LoginHelper` (`getRolesFromExtGroups`, `newRemoteUser`, `updateRemoteUser`) must be extracted into a shared component before the LDAP path (and the XML-RPC-facing credential path) can reuse them.
 
 ## RBAC integration
 
-The new RBAC model (`access.namespace`, `access.endpoint`, `access.accessGroup`) protects only the new LDAP configuration endpoints[^3]. LDAP-derived user roles continue through `rhnUserGroup`. Automatic `access.accessGroup` population from LDAP is out of scope for v1.
+The new RBAC model (`access.namespace`, `access.endpoint`, `access.accessGroup`) protects the new LDAP configuration endpoints[^3]. Beyond that, LDAP group mapping targets **RBAC access groups from the start** (not legacy-only), so the feature aligns with the migration rather than adding new legacy-only dependencies. The two unmigrated administrative roles (`org_admin`, `satellite_admin`) remain mapped through `rhnUserGroup` until they too move to RBAC.
+
+**Open design point (temporary vs. externally-managed membership).** The legacy recompute-on-login model relies on the `temporary='Y'` flag on `rhnUserGroupMembers` to distinguish auto-assigned (directory-derived) roles from manually-assigned permanent ones. RBAC access-group membership currently has **no equivalent temporary/externally-managed flag** (`User.addToGroup/removeFromGroup` are permanent add/remove only). Aligning with RBAC therefore requires deciding how LDAP-derived access-group memberships are marked so they can be recomputed without clobbering manual grants — see Unresolved questions.
 
 ## Database design
 
@@ -207,23 +227,24 @@ Reused tables:
 | Table | Use |
 | --- | --- |
 | `web_contact` | user identity; JIT users get a non-usable placeholder password |
-| `rhnUserInfo` | per-user `auth_type` (`LOCAL` / `PAM` / `LDAP`); replaces `use_pam_authentication` over time |
-| `rhnUserGroup` / `rhnUserGroupType` | org-scoped role instances (unchanged) |
-| `rhnUserGroupMembers` | role membership; `temporary='Y'` for LDAP-derived roles |
-| `rhnUserExtGroup` / `rhnUserExtGroupMapping` | external group to role-type mapping |
+| `rhnUserInfo` | per-user `auth_type` (`LOCAL` / `PAM` / `LDAP`), replacing `use_pam_authentication` over time; plus `ldap_server_id` recording which directory authenticated/provisioned the user (reviewer-approved) |
+| `rhnUserGroup` / `rhnUserGroupType` | legacy org-scoped role instances (unchanged) |
+| `rhnUserGroupMembers` | legacy role membership; `temporary='Y'` for LDAP-derived `org_admin`/`satellite_admin` |
+| RBAC access groups (`access.accessGroup` + membership) | default target for LDAP-derived roles; membership recompute is the open design point above |
+| `rhnUserExtGroup` / `rhnUserExtGroupMapping` | external group to role/access-group mapping |
 | `suseCredentials` | bind password via new `ldap` credential type |
 
 One new entity (`suseLdapAuthServer`, one row per directory) holds connection and mapping configuration:
 
 - **Connection** — label, enabled, server type, host, port, transport, timeout, priority (for multi-server probe order).
-- **Bind account** — reference to `suseCredentials` (bind DN as `username`; no row = anonymous bind).
+- **Bind account** — bind DN stored **on `suseLdapAuthServer`** (its own column); password referenced from `suseCredentials` (no bind DN + no credential = anonymous bind).
 - **User lookup** — user base DN, filter, login and profile attribute names.
 - **Group lookup** — group base DN, filter, group-name attribute, optional `memberOf` toggle.
-- **Provisioning** — mode (`JIT` / `EXISTING_ONLY`) and default org for JIT users.
+- **Provisioning** — mode (`JIT` / `EXISTING_ONLY`), default org for JIT users, and `auto_join_regular_user` toggle.
 
 A nullable directory FK on `rhnUserExtGroup` optionally scopes external-group mappings to one server (null = server-agnostic, as today for `REMOTE_USER`).
 
-Bind passwords reuse the existing `PasswordBasedCredentials` / `suseCredentials` pattern as-is (bind DN stored as credential `username`, Base64-at-rest like SCC/registry credentials). A future migration to salted or encrypted credential storage is orthogonal to this feature and should not change the LDAP integration interface. Schema constraints on `suseCredentials` need a new `ldap` credential type.
+Bind passwords reuse the existing `PasswordBasedCredentials` / `suseCredentials` pattern (Base64-at-rest like SCC/registry credentials), needing a new `ldap` credential type. The **bind DN is not stored in `suseCredentials.username`** because that column is `VARCHAR(64)` (verified) and cannot hold long directory DNs; the DN lives on `suseLdapAuthServer` instead (reviewer input), leaving `suseCredentials` to hold only the secret. A future migration to salted or encrypted credential storage is orthogonal to this feature and should not change the LDAP integration interface.
 
 ## Transport security
 
@@ -244,7 +265,7 @@ A pooled service connection (`LDAPConnectionPool`) handles searches; each user c
 | Unknown user, all LDAP servers fail | Generic login failure |
 | User search returns 0 or >1 entries | Authentication failure; **log details** (filter, base DN, result count) for the administrator |
 | Group lookup fails after successful bind | Authenticate; no LDAP-derived roles; **log failure with details** |
-| User maps to no Uyuni roles | Login succeeds with no temporary roles |
+| User maps to no Uyuni roles | Login succeeds with no LDAP-derived roles |
 | Same login exists as `LOCAL` user | LDAP JIT blocked; `auth_type` on existing row wins |
 
 The UI shows only a generic message ("invalid credentials" or "user unknown"). It does **not** expose whether the password was wrong, the directory was unreachable, or the search was ambiguous. Those distinctions are written to the server log with enough detail for an administrator to correct configuration (LDAP URL, bind DN, filters, attribute mappings).
@@ -257,7 +278,7 @@ A new **Admin → Setup → LDAP** area follows the **Satellite 6 LDAP authentic
 2. **Account** — bind credentials, base DNs, optional search filter, JIT provisioning  
 3. **Attribute mappings** — login / name / email attributes, pre-filled per server type  
 
-External group → role mapping is **not** a fourth tab on the auth source in Satellite. It lives under **User Groups → External groups** (external group name + auth source → roles). Uyuni reuses the existing external-group UI (`ExtGroupDetailAction` / `UserExternalHandler`) for LDAP group → Uyuni role bindings, scoped to a directory where needed. Uyuni maps LDAP groups to role types directly via `rhnUserExtGroup`; Satellite uses an intermediate user group.
+External group → role mapping is **not** a fourth tab on the auth source in Satellite. It lives under **User Groups → External groups** (external group name + auth source → roles). Uyuni reuses the existing external-group UI (`ExtGroupDetailAction` / `UserExternalHandler`) for LDAP group → Uyuni role/access-group bindings, scoped to a directory where needed. Uyuni maps LDAP groups directly via `rhnUserExtGroup` (to RBAC access groups, or to legacy `org_admin`/`satellite_admin`); Satellite uses an intermediate user group.
 
 On the **Users** list, Satellite shows an **Authorized by** column (`INTERNAL` vs. the LDAP source name, e.g. `LDAP-AD-AUTH`). Uyuni exposes the same idea through per-user `auth_type` (`LOCAL` / `PAM` / `LDAP`) and, where applicable, the directory that authenticated the user.
 
@@ -328,7 +349,7 @@ External group name: [uyuni-admins]   Auth source: [corp-ad v]
 
 1. **Backend** — `LdapServiceFactory` + `LdapAuthenticationService`, bind/search/bind, fixture tests.
 2. **Login wiring** — `auth_type` on `rhnUserInfo`, `checkLdapAuthentication` in `LoginController`, extract shared `LoginHelper` lifecycle.
-3. **Provisioning + roles** — JIT creation, profile sync, group-to-role mapping, temporary-role reset.
+3. **Provisioning + roles** — JIT creation, profile sync, group-to-role mapping (RBAC access groups + legacy admin roles), recompute LDAP-derived memberships on login.
 4. **UI + API** — three-tab LDAP server UI, external-group mapping in existing Setup UI, test actions, RBAC endpoint registration.
 5. **Advanced** — HA failover, `memberOf` path, AD nested groups, `member;range=`.
 
@@ -355,8 +376,8 @@ Findings fed into this RFC: external-group mapping is live; mapping is at the ro
 - Security-sensitive path; mistakes in routing, filter escaping, or mapping could cause auth/authz bugs. Per-user `auth_type` dispatch with no ordering and no fallback between backends (per mentor feedback) mitigates part of this risk.
 - Runtime dependency on an external directory; timeouts and failure modes must be disciplined.
 - New third-party dependency (UnboundID LDAP SDK) pending licensing review.
-- `LoginHelper` lifecycle methods are `private` and must be extracted before LDAP can reuse them.
-- Temporary-role mechanism is mid-migration to RBAC; semantics may shift.
+- `LoginHelper` lifecycle methods are `private` and must be extracted before LDAP (and the XML-RPC credential path) can reuse them.
+- RBAC access-group membership has no temporary/externally-managed flag yet, so recomputing LDAP-derived access groups on login needs a design decision (see Unresolved questions #1).
 - LDAP/AD schema variety; v1 documents clear defaults and limits.
 
 # Alternatives
@@ -364,20 +385,25 @@ Findings fed into this RFC: external-group mapping is live; mapping is at the ro
 
 - **Stay on PAM/SSSD only** — no in-product configuration or group mapping. Does not meet the goal.
 - **Improve only `REMOTE_USER`** — auth stays outside Uyuni; no in-product visibility[^4].
-- **LDAP only inside `UserImpl.authenticate()`** — cannot JIT-provision; rejected in favor of `LoginController` orchestration.
+- **LDAP handling *only* inside `UserImpl.authenticate()`** — cannot JIT-provision or map groups; rejected in favor of `LoginController` orchestration. (The credential *check* is still delegated from `UserManager.loginUser`/`UserImpl.authenticate` so XML-RPC login works; provisioning/mapping stay in `LoginHelper`.)
 - **Local → LDAP → PAM cascade** — tries multiple backends per login; rejected as neither robust nor performant.
 - **Implementation choices** — JNDI vs. UnboundID SDK[^9]; bind password in `suseCredentials` vs. plain column (latter rejected).
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-1. **LDAP server per user** — should `rhnUserInfo` also store which directory server an LDAP user belongs to (`ldap_server_id`), or probe all servers in priority order on every LDAP login?
-2. **Scoping external groups to a server** — nullable directory FK on `rhnUserExtGroup` (extending `(label, org_id)` uniqueness), or server-agnostic mappings only?
-3. **Superuser reachability** — may an LDAP group grant the top-level admin role, or remain local-only?
+1. **Marking LDAP-derived RBAC access-group membership** — RBAC access-group membership has no temporary/externally-managed flag today, unlike legacy roles (`temporary='Y'` on `rhnUserGroupMembers`). To recompute LDAP-derived access groups on each login without removing manual grants, do we (a) add a temporary/externally-managed flag to access-group membership, or (b) track LDAP-derived memberships via the ext-group mapping origin and reconcile from that? (Raised by reviewer; RBAC-owner decision.)
+2. **JIT over the XML-RPC path** — an LDAP user who has only ever used the XML-RPC API is not yet provisioned (provisioning runs in the `LoginHelper` lifecycle). Is "must log in once via Web UI/HTTP API to be provisioned" acceptable for v1, or should JIT also run from `UserManager.loginUser`?
+3. **Superuser reachability** — may an LDAP group grant `satellite_admin` (top-level admin), or remain local-only?
 4. **Org assignment for JIT users** — single default org enough for v1, or attribute/group-based mapping needed early?
-5. **Temporary roles under RBAC migration** — target legacy temporary roles for v1 and adapt later, or align with RBAC migration now?
 
-**Settled assumptions (reviewer input):** bind passwords use the existing `suseCredentials` / `PasswordBasedCredentials` storage as-is; migrating to salted credentials is a separate task. Directory CA material is uploaded through the LDAP-specific UI/API (Hub upload pattern, not a shared CA service).
+**Settled assumptions (reviewer input):**
+- **LDAP server per user** — `rhnUserInfo` stores `ldap_server_id` (which directory authenticated/provisioned the user). *Confirmed by mentor.*
+- **Bind DN storage** — bind DN lives on `suseLdapAuthServer` (not `suseCredentials.username`, which is `VARCHAR(64)` and too short); `suseCredentials` holds only the password, using a new `ldap` credential type. Migrating to salted credentials is a separate task.
+- **Group mapping target** — LDAP groups map to RBAC access groups by default; only `org_admin`/`satellite_admin` use legacy `rhnUserGroupType` until they migrate.
+- **`regular_user` auto-join** — overridable per LDAP server via `auto_join_regular_user`.
+- **Directory CA material** — uploaded through the LDAP-specific UI/API (Hub upload pattern, not a shared CA service).
+- **Scoping external groups to a server** — nullable directory FK on `rhnUserExtGroup` (extends `(label, org_id)` uniqueness), enabling per-server mappings while keeping server-agnostic ones.
 
 # References
 [references]: #references
