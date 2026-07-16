@@ -38,17 +38,17 @@ The implementation of this solution relies on four primary components:
 ## Meta-data repo-sync
 
 The redesigned repo-sync process will focus exclusively on retrieving channel metadata and persisting it within the database, bypassing package downloads entirely at this stage.
-To ensure system readiness, all necessary information for Uyuni channel repository data generation must be populated, followed by a data refresh. This metadata-first approach enables immediate functionality for Content Lifecycle Management (CLM) and allows channels to be assigned to minions without delay.
+To ensure system readiness, all necessary information for Uyuni channel repository data generation must be populated, followed by a uyuni repo metadata refresh. This metadata-first approach enables immediate functionality for Content Lifecycle Management (CLM) and allows channels to be assigned to minions without delay.
 
 The specific logic for storing metadata is already established within the project, and existing Python code should facilitate much of this implementation.
 
-Following the metadata sync, a secondary process will determine download priorities and schedule package retrieval based on a globally configurable download policy. Rather than immediate downloading, the primary objective is to flag packages in the database for future retrieval—identifying those that should be acquired proactively versus those with standard priority.
+Following the metadata sync, a secondary step in this process will determine download priorities and schedule package retrieval based on a globally configurable download policy. Rather than immediate downloading, the primary objective is to flag packages in the database for future retrieval: identifying those that should be acquired proactively versus those with standard priority versus those that should not be pre-download.
 
 For instance, critical assets such as bootstrap process packages will be flagged for high-priority download. Additionally, we should store the relative download paths for each package during the initial metadata retrieval phase.
 
 | Strategy Name | Description |
 | --- | --- |
-| all | The system will flag all packages in the channel for retrieval, replicating the current MLM behavior. To ensure efficiency, high priority will be assigned to the specific packages required for bootstrap repository generation. |
+| all | The system will flag all packages in the channel for pre-downloaded, replicating the current MLM behavior. To ensure efficiency, higher priority must be assigned to the specific packages required for bootstrap repository generation. |
 | bootstrap | Flags only the specific packages required to generate the bootstrap repository. |
 | latest | Configure the system to flag only the most recent version of each package. Within this process, packages essential for the creation of the bootstrap repository will be assigned a higher priority. |
 
@@ -57,8 +57,10 @@ For instance, critical assets such as bootstrap process packages will be flagged
 
 - downloadStatus (Enun): (N)o Download, (P)ending download, (D)ownloading, (R)eady
 - downloadPriority(int): between 0-9. The higher the number, the higher the priority.
-- downloadRelativePath:(varchar): relative path from where to download the package.
+- downloadRelativePath:(varchar): relative path from where to download the package in the repository download location (remote server will be determined at download time, base on the rhncontentsource table).
 - Retry download error count (int): Number of download failed attempts
+
+The downloading status may not be needed and will depend on the implemention mechanism of the download task.
 
 ## Package asynchronous downloader
 
@@ -72,7 +74,7 @@ The operational workflow is defined as follows:
 - Upon successful completion, transition the package status to (R)eady.
 - In the event of a failure, revert the status to (P)ending. To prevent infinite loops during persistent download failures, a maximum attempt threshold must be implemented to eventually mark the package as failed.
 
-As a preparatory measure during the Taskomatic job startup, any packages stuck in the (D)ownloading state will be reset to (P)ending. This ensures that packages left in limbo due to an unexpected service termination can be retried. This step is contingent on the utilization of the download status field.
+As a preparatory measure during the Taskomatic job startup, any packages stuck in the (D)ownloading state will be reset to (P)ending. This ensures that packages left in limbo due to an unexpected service termination can be retried. This step is contingent on the utilization of the downloading status.
 
 ### Download package workflow
 
@@ -88,18 +90,19 @@ FROM rhnchannelpackage cp
 INNER JOIN rhnchannel c ON cp.channel_id = c.id
 INNER JOIN rhnchannelcontentsource cs ON c.id = cs.channel_id
 INNER JOIN rhncontentsource s ON cs.source_id = s.id
-WHERE cp.package_id = 1;
+WHERE cp.package_id = <PACKAGE_ID>;
 ```
 
-Because this query may return multiple source URLs—some of which may include token-based authentication—an ordering rule must be established (to be defined later).
+Because this query may return multiple source URLs, some of which may include token-based authentication, an ordering rule must be established (to be defined later).
 
-The system will then calculate the full package URL by combining the repository URL with the previously stored relative path. Additionally, the download process must honor any proxy configurations defined on the Uyuni server.
+The system will then calculate the full package URL by combining the repository URL with the previously stored package relative path. Additionally, the download process must honor any proxy configurations defined on the Uyuni server.
 
-The workflow for downloading is as follows:
-Save the file to a temporary location during the download.
-Verify the package checksum against the database record once the download is complete.
-Move the verified package to its permanent location in the cache directory.
-Update the database with the file path and the current download status.
+The workflow for downloading will be:
+
+1. Save the file to a temporary location during the download.
+2. Verify the package checksum against the database record once the download is complete.
+3. Move the verified package to its permanent location in the cache directory.
+4. Update the database with the file path and the current download status.
 
 ## Pre-download Enhancements
 
@@ -119,7 +122,7 @@ Each environment within a Content Lifecycle Management (CLM) project will featur
 
 The system requires a mechanism to retrieve packages from upstream sources when they are absent from the local cache. The implementation of this workflow must adhere to the following functional requirements:
 
-- **Single Retrieval Management:** To ensure efficiency, only a single upstream download session should be initiated even if multiple concurrent requests are received for the same missing package.
+- **Single Retrieval Management:** To ensure efficiency, only a single upstream download session for the same package should be initiated even if multiple concurrent requests are received for the same missing package.
 - **Concurrency and Resource Regulation:** The total number of simultaneous upstream downloads must be throttled to prevent server resource exhaustion or starvation.
 - **Cache Integration:** All successfully retrieved packages must be committed to the local cache. Specific data retention policies for these cached items will be established in subsequent design phases.
 
@@ -129,17 +132,18 @@ When a package download request is received, the system will execute the followi
 
 1. **Cache Verification:** The system first checks the local cache. If the package is present, it is served immediately via the existing implementation.
 2. **Upstream Retrieval:** If the package is missing, a download from the upstream source is triggered.
-   1. Initialize multi-thread synchronization to block redundant download attempts for the same asset.
+   1. Initialize multi-thread synchronization to block redundant download attempts for the same package.
    2. Utilize the standard download module (consistent with Taskomatic tasks) to fetch the package.
 3. **Distribution:** Once the package is persisted to the local cache, it is distributed to all waiting threads through the standard cache delivery mechanism.
+
+
+[**PoC for the parallel download control**](https://github.com/rjmateus/lazydownsuma)
 
 
 ### Performance and Scalability Considerations
 
 
 Failure to utilize pre-downloading in large-scale environments introduces significant risks. If numerous systems attempt parallel updates via zypper and experience cache misses simultaneously, the server may reach its thread limit. In such cases, threads remain parked while waiting for package retrieval, potentially leading to total server overload.
-
-[**PoC for the parallel download control**](https://github.com/rjmateus/lazydownsuma)
 
 
 # Drawbacks
@@ -153,7 +157,7 @@ While beneficial, these changes introduce specific impacts and problems:
 [alternatives]: #alternatives
 
 - Keep the existing implementation
-- Follow up with the another proposal of minion download
+- Follow up with the another proposal of [minion download](https://github.com/uyuni-project/uyuni/pull/12181)
     - That proposal have several problems, that the fix is incorporated in this document
 
 # Unresolved questions
