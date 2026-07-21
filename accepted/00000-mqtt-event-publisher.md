@@ -5,14 +5,17 @@
 [summary]: #summary
 
 This document describes the addition of an MQTT-based event publishing
-mechanism to the Uyuni server. The reactor pipeline will publish selected
-Salt event types as structured JSON messages to a local Mosquitto MQTT
+mechanism to the Uyuni server. The mechanism publishes selected Salt event
+types from the reactor pipeline as well as native Java application events
+(such as user creation, organization creation, and Content Lifecycle Management
+build events) as structured JSON messages to a local or remote Mosquitto MQTT
 broker, making them available for external consumption by automation tools
 such as Node-RED, Grafana alerting pipelines, or custom scripts.
 
-The first iteration covers five event types that represent the most
-operationally significant lifecycle moments: system registration, job
-completion, state application, image deployment, and batch operations.
+The first iteration covers nine event types across both Salt-based reactor moments
+and Java application actions:
+- Salt Reactor Events: system registration, job completion, state application, image deployment, and batch operations.
+- Java Application Events: user creation, organization creation, CLM build start, and CLM build completion.
 
 # Motivation
 [motivation]: #motivation
@@ -68,15 +71,15 @@ graph LR
 
 ## Why MQTT?
 
-- MQTT is an OASIS standard with broad tooling support.
-- Mosquitto is lightweight (< 1 MB RSS), runs as a single process,
+- [MQTT](https://mqtt.org/) is an [OASIS standard](https://www.oasis-open.org/standards/#mqtt) with broad tooling support.
+- [Mosquitto](https://mosquitto.org/) is lightweight (< 1 MB RSS), runs as a single process,
   and is already available in openSUSE and SLES package repositories.
 - The publish/subscribe model is a natural fit: Uyuni publishes events
   and any number of consumers can subscribe without coupling.
-- QoS levels (0, 1, 2) allow consumers to choose their delivery
+- [QoS levels (0, 1, 2)](https://www.hivemq.com/blog/mqtt-essentials-part-6-mqtt-quality-of-service-levels/) allow consumers to choose their delivery
   guarantee. QoS 1 ("at least once") provides a good balance between
   reliability and performance for operational events.
-- Eclipse Paho, the reference Java MQTT client, is mature, small, and
+- [Eclipse Paho](https://eclipse.dev/paho/), the reference Java MQTT client, is mature, small, and
   has no transitive dependencies beyond the JDK.
 
 ## Why Not WebSockets, Server-Sent Events, or a REST Callback?
@@ -237,9 +240,19 @@ A new class `MqttPublisherService` encapsulates all broker communication.
    and handles delivery acknowledgement in the background.
 
 2. **Single-thread executor.** All publish operations are submitted to a
-   single-thread executor. This guarantees message ordering and avoids
-   contention on the Paho client. The thread is created as a daemon
-   thread so it does not prevent JVM shutdown.
+   single-thread executor. This guarantees strict global message ordering and
+   prevents contention on the underlying Paho client. The thread is configured
+   as a daemon thread so it does not block JVM shutdown.
+
+   *Scaling & High Throughput:* For massive batch operations (e.g., mass minion
+   registrations or large-scale `state.apply` across thousands of minions), the
+   single-thread executor queues incoming events in memory using a non-blocking
+   work queue. Since serialization and publishing over local socket connections
+   is extremely fast (< 1 ms), a single thread is highly performant and keeps the
+   design simple. If strict global ordering needs to be relaxed for scaling in the
+   future, we can partition task submissions using a thread pool based on the
+   minion ID, maintaining order within each minion while processing different
+   minions concurrently.
 
 3. **Configurable broker URL.** The default broker URL is
    `tcp://mosquitto:1883`, matching the container name in the Uyuni
@@ -366,11 +379,19 @@ graph TD
     fqdn --> states["states/"]
     fqdn --> images["images/"]
     fqdn --> batches["batches/"]
+    fqdn --> users["users/"]
+    fqdn --> orgs["orgs/"]
+    fqdn --> clm["clm/"]
+    
     systems --> registered["registered"]
     jobs --> returned["returned"]
     states --> applied["applied"]
     images --> deployed["deployed"]
     batches --> started["started"]
+    users --> u_created["created"]
+    orgs --> o_created["created"]
+    clm --> clm_started["build_started"]
+    clm --> clm_completed["build_completed"]
 
     style root fill:#e94560,stroke:#fff,color:#fff
     style fqdn fill:#533483,stroke:#fff,color:#fff
@@ -379,6 +400,9 @@ graph TD
     style states fill:#0f3460,stroke:#fff,color:#fff
     style images fill:#0f3460,stroke:#fff,color:#fff
     style batches fill:#0f3460,stroke:#fff,color:#fff
+    style users fill:#0f3460,stroke:#fff,color:#fff
+    style orgs fill:#0f3460,stroke:#fff,color:#fff
+    style clm fill:#0f3460,stroke:#fff,color:#fff
 ```
 
 This hierarchy allows consumers to subscribe at different granularity
@@ -388,6 +412,8 @@ levels using MQTT wildcards:
 - `uyuni/uyuni.example.com/#` — all events from one specific instance
 - `uyuni/+/systems/#` — system lifecycle events from all instances
 - `uyuni/uyuni.example.com/jobs/#` — only job events from one instance
+- `uyuni/+/users/created` — user creation notifications from all instances
+- `uyuni/+/clm/#` — Content Lifecycle Management events (builds started/completed) from all instances
 
 ## Message Envelope Format
 
@@ -446,6 +472,8 @@ Every message published to the broker has a consistent JSON envelope:
 | `machineId` | String | Target machine ID                  |
 | `grains`    | Object | Salt grains from the deployed host |
 
+*Performance Note on Grains:* Because image deployments are relatively rare operational lifecycle events, the transient CPU and memory overhead of serializing the full `grains` map is negligible. Under extremely constrained environments, administrators can filter out the image deployment events entirely using `uyuni.mqtt.events.enabled`.
+
 **`uyuni/<fqdn>/batches/started`**
 
 | Field              | Type     | Description                    |
@@ -455,14 +483,48 @@ Every message published to the broker has a consistent JSON envelope:
 | `downMinions`      | String[] | Minions reported as down       |
 | `timestamp`        | String   | When the batch started         |
 
+**`uyuni/<fqdn>/users/created`**
+
+| Field      | Type   | Description                       |
+|------------|--------|-----------------------------------|
+| `username` | String | Username of the newly created user|
+| `creator`  | String | User who created this user (if any)|
+| `orgId`    | Long   | Organization ID of the new user   |
+
+**`uyuni/<fqdn>/orgs/created`**
+
+| Field     | Type   | Description                            |
+|-----------|--------|----------------------------------------|
+| `orgId`   | Long   | ID of the newly created organization   |
+| `orgName` | String | Name of the newly created organization |
+
+**`uyuni/<fqdn>/clm/build_started`**
+
+| Field          | Type   | Description                             |
+|----------------|--------|-----------------------------------------|
+| `projectLabel` | String | Content Lifecycle Project label         |
+| `username`     | String | User who started the build              |
+
+**`uyuni/<fqdn>/clm/build_completed`**
+
+| Field          | Type   | Description                             |
+|----------------|--------|-----------------------------------------|
+| `projectLabel` | String | Content Lifecycle Project label         |
+| `version`      | String | New version generated by the build      |
+| `username`     | String | User who completed the build            |
+
 ## Configuration
 
-| Property                    | Default                  | Description                  |
-|-----------------------------|--------------------------|------------------------------|
-| `uyuni.mqtt.broker.url`     | `tcp://mosquitto:1883`   | MQTT broker connection URL   |
+| Property                      | Default                  | Description                                                  |
+|-------------------------------|--------------------------|--------------------------------------------------------------|
+| `uyuni.mqtt.broker.url`       | `tcp://mosquitto:1883`   | MQTT broker connection URL                                   |
+| `uyuni.mqtt.broker.username`  | (none)                   | Optional username for broker authentication                  |
+| `uyuni.mqtt.broker.password`  | (none)                   | Optional password for broker authentication                  |
+| `uyuni.mqtt.events.enabled`   | (none)                   | Comma-separated list of enabled event topics to publish      |
+| `uyuni.mqtt.qos`              | `1`                      | MQTT Quality of Service level (0, 1, or 2) to use for publish|
+| `uyuni.mqtt.queue.limit`      | `10000`                  | Bounded event queue capacity to prevent memory buildup       |
 
-The property is read via `System.getProperty()` and can be set in the
-Tomcat startup configuration or via JVM arguments.
+The properties are read via `System.getProperty()` (credentials can also be loaded via `UYUNI_MQTT_BROKER_USERNAME` and `UYUNI_MQTT_BROKER_PASSWORD` environment variables) and can be set in the Tomcat startup configuration or via JVM arguments.
 
 ## Failure Modes
 
@@ -555,17 +617,17 @@ with `mosquitto_sub` or by connecting a Node-RED flow to the broker.
 # Unresolved Questions
 [unresolved]: #unresolved-questions
 
-- Should the set of published event types be configurable (e.g. via a
+- ~~Should the set of published event types be configurable (e.g. via a
   system property or database setting), or is the hardcoded set of five
-  sufficient for the initial release?
-- Should the publisher buffer a bounded number of events when the broker
+  sufficient for the initial release?~~ **Resolved:** Configurable via the `uyuni.mqtt.events.enabled` property.
+- ~~Should the publisher buffer a bounded number of events when the broker
   is temporarily unavailable, or is the current skip-and-log behavior
-  acceptable?
+  acceptable?~~ **Resolved:** The current skip-and-log behavior is acceptable. Dropping and logging offline events is preferred to avoid unbounded memory buildup.
 - ~~Should the MQTT topic prefix (`uyuni/events/`) be configurable to
   support multi-server environments where each Uyuni instance publishes
   to a shared broker?~~ **Resolved:** Topics now include the server FQDN
   as the second segment (`uyuni/<fqdn>/...`), enabling multi-instance
   environments natively.
-- Authentication and TLS: should the first version support
+- ~~Authentication and TLS: should the first version support
   username/password or TLS client certificates for broker connections,
-  or is unauthenticated localhost-only access sufficient initially?
+  or is unauthenticated localhost-only access sufficient initially?~~ **Resolved:** Username and password authentication is supported via the configuration properties `uyuni.mqtt.broker.username` and `uyuni.mqtt.broker.password` (or via environment variables). TLS client certificates are left for a future enhancement.
