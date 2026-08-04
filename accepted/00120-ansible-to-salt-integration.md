@@ -36,7 +36,7 @@ The original project covers only Ansible and Salt, it was not focused on Uyuni a
 as a source of system profiles data. The other limitation of the original project was mising Salt-SSH implementation,
 which was out of scope of the project, but it could be implemented in the context of Uyuni.
 
-As the starting point the same inventory and connection plugins could be used.
+As the starting point the same inventory and connection plugins (from the hackweek project) could be used.
 Inventory plugin requires adding Uyuni as a source of inventory data. The open question with the inventory
 is the way of presenting the group assignments. The naming of the groups is way more limited in Ansible,
 so we can't just use the System Group names from Uyuni as they could contain not allowed symbols
@@ -78,7 +78,7 @@ using this integration.
   what extends the size of the data, so the calls to Ansible through Salt ZeroMQ transport
   are bit havier than the calls to similar modules of Salt
 - Requires changes on Java side and the changes on the web UI to provide an access
-  to this inegration with web UI
+  to this integration with web UI
 - Increases the workload on release engineers and QA
 
 # Alternatives
