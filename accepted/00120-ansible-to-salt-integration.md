@@ -9,6 +9,10 @@ The key point is to let the users to use systems registered to Uyuni as Ansible 
 and use Salt ZeroMQ transport for targetting these systems with Ansible instead of SSH.
 Additionally it should allow to use Python from Salt Bundle as Ansible Python Interpreter.
 
+It is also possible to use this solution with the existing Ansible Control Nodes
+to manage existing Ansible environments and to manage the systems registered to Uyuni directly
+using this integration.
+
 # Motivation
 [motivation]: #motivation
 
@@ -27,6 +31,9 @@ Additionally the Python from Salt Bundle (`venv-salt-minion` package) could be u
 
 With such approach we can offer smooth transition to Uyuni with Salt for the users with Ansible experience.
 The Uyuni deployment could provide transparent co-existing Salt and Ansible environments providing the benefits of both.
+
+This solution can be used by the end user with CLI using `ansible`, `ansible-inventory`, `ansible-playbook` etc.
+from the CLI, but also could be integrated to the web UI the same way as it is already implemented with Ansible Control Nodes.
 
 # Detailed design
 [design]: #detailed-design
@@ -65,7 +72,7 @@ SSH connection as usual with Ansible, but with no need to keep separate credenti
 Salt Bundle could be also used for Salt-SSH clients to provide Python as an Ansible Interpreter.
 
 In case of delivering such solution with the container image, the users don't need to have separate
-Ansible Control Nodes anymore. It is also possible to mix both solution with existing Ansible Control Nodes
+Ansible Control Nodes anymore. It is also possible to use this solution with the existing Ansible Control Nodes
 to manage existing Ansible environments and to manage the systems registered to Uyuni directly
 using this integration.
 
