@@ -320,8 +320,10 @@ there is a single payload contract across all nine topics.
 
 Each event exposes only the fields relevant to external consumers; internal
 implementation details are not published. `MinionRegisteredEvent`, for example,
-emits `minionId`, `machineId`, `saltbootInitrd` and `managementKey`, not the
-underlying event message object.
+emits `minionId`, `machineId` and `saltbootInitrd`, not the underlying event
+message object. The activation key is deliberately excluded: it can be used to
+register systems, so it is a credential, and a broadcast topic would hand it to
+every subscriber.
 
 Events whose source message carries nothing to report — a job return with no
 job return event attached, for instance — are built through a static factory
@@ -343,7 +345,7 @@ flowchart TD
     msg["EventMessage received"] --> null_check{"msg == null?"}
     null_check -- Yes --> discard["Return (no-op)"]
     null_check -- No --> reg{"instanceof<br/>RegisterMinionEventMessage?"}
-    reg -- Yes --> handle_reg["Extract: minionId, machineId,<br/>saltbootInitrd, managementKey<br/>→ uyuni/&lt;fqdn&gt;/systems/registered"]
+    reg -- Yes --> handle_reg["Extract: minionId, machineId,<br/>saltbootInitrd<br/>→ uyuni/&lt;fqdn&gt;/systems/registered"]
     reg -- No --> job{"instanceof<br/>JobReturnEventMessage?"}
     job -- Yes --> handle_job["Extract: minionId, jid,<br/>fun, success, retcode<br/>→ uyuni/&lt;fqdn&gt;/jobs/returned"]
     job -- No --> apply{"instanceof<br/>ApplyStatesEventMessage?"}
@@ -443,8 +445,7 @@ Every message published to the broker has a consistent JSON envelope:
   "data": {
     "minionId": "web-server-01.example.com",
     "machineId": "550e8400-e29b-41d4-a716-446655440000",
-    "saltbootInitrd": false,
-    "managementKey": "1-default"
+    "saltbootInitrd": false
   }
 }
 ```
@@ -458,7 +459,9 @@ Every message published to the broker has a consistent JSON envelope:
 | `minionId`       | String  | Salt minion ID                               |
 | `machineId`      | String  | Hardware machine ID (from grains, if present) |
 | `saltbootInitrd` | Boolean | Whether this is a Saltboot PXE registration   |
-| `managementKey`  | String  | Activation key used (if any)                  |
+
+The activation key is not published. It can be used to register systems, so
+putting it on a broadcast topic would distribute a credential.
 
 **`uyuni/<fqdn>/jobs/returned`**
 
@@ -539,6 +542,7 @@ scheduled alignment finishes is left for a follow-up.
 
 | Property                      | Default                  | Description                                                  |
 |-------------------------------|--------------------------|--------------------------------------------------------------|
+| `uyuni.mqtt.enabled`          | `false`                  | Master switch; the publisher is not started unless `true`    |
 | `uyuni.mqtt.broker.url`       | `tcp://mosquitto:1883`   | MQTT broker connection URL                                   |
 | `uyuni.mqtt.broker.username`  | (none)                   | Optional username for broker authentication                  |
 | `uyuni.mqtt.broker.password`  | (none)                   | Optional password for broker authentication                  |
@@ -601,8 +605,8 @@ flowchart LR
 | `java/pom.xml` | Paho entry in dependency management |
 | `java/core/pom.xml` | Paho dependency |
 | `java/buildconf/ivy/ivy-suse.xml` | Paho for the Ant/Ivy build |
-| `SaltReactor.java` | Register the action for the five Salt event types |
-| `RhnServletListener.java` | Create the publisher on start-up, shut it down on context destroy |
+| `SaltReactor.java` | Register the action for the five Salt event types, after the handlers that persist the change |
+| `RhnServletListener.java` | Create the publisher on start-up when `uyuni.mqtt.enabled` is set, shut it down on context destroy |
 | `OrgFactory.java` | Publish `orgs/created` after commit |
 | `UserFactory.java` | Publish `users/created` after commit |
 | `ContentManager.java` | Publish the two CLM events after commit |
@@ -611,10 +615,17 @@ The last three touch core domain classes. Each adds a single call, and the
 publishing is deferred until the surrounding transaction commits, so a rollback
 never leaves an event announcing a change that was discarded.
 
+The Salt reactor events reach the same guarantee by a different route.
+`ActionExecutor` runs the handlers registered for a message sequentially, each
+inside its own transaction, so `MqttEventAction` does not share a transaction
+with the handler that writes the row. It is therefore registered *after* those
+handlers, which means the handler preceding it has already committed by the time
+the event is published.
+
 **New — `com/suse/manager/reactor/mqtt/`**
 
 `MqttPublisherService`, `MqttEventAction` and `MqttEventHelper`, plus the
-`event/` package containing `MqttEvent` and its ten implementations:
+`event/` package containing `MqttEvent` and its nine implementations:
 `MinionRegisteredEvent`, `JobReturnedEvent`, `StatesAppliedEvent`,
 `ImageDeployedEvent`, `BatchStartedEvent`, `UserCreatedEvent`,
 `OrgCreatedEvent`, `ClmBuildStartedEvent` and `ClmBuildCompletedEvent`.
