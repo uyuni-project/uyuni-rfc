@@ -386,8 +386,13 @@ Topics include the Uyuni server's FQDN as the second segment. This
 replaces the previous static `events/` segment and enables multi-instance
 deployments where each server publishes to the same shared broker.
 
-The FQDN is read from `java.net.InetAddress.getLocalHost().getCanonicalHostName()`
-at service startup and cached for the lifetime of the publisher.
+The FQDN is read from the server's configured hostname (`java.hostname` in
+`rhn.conf`) at service startup and cached for the lifetime of the publisher.
+`java.net.InetAddress.getLocalHost().getCanonicalHostName()` is used only as a
+fallback. The configured value is preferred because in a containerised
+deployment the host lookup returns the container's internal name, which would
+make every server publish under the same prefix and defeat the purpose of
+including the FQDN at all.
 
 ```mermaid
 graph TD
