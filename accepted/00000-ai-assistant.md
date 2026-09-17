@@ -38,28 +38,7 @@ The assistant therefore supports external and local models without requiring a p
 The solution consists of an assistant service, a Web UI integration, a documentation index, the Uyuni MCP server, and an agent sandbox.
 The assistant service coordinates model requests and external capabilities; the Uyuni backend remains responsible for identity, permissions, and business rules.
 
-```text
-Uyuni Web UI
-     ^
-     | AG-UI
-     v
-Uyuni backend
-     ^
-     | AG-UI
-     v
-Assistant service
-     |
-     +-- Model adapter --------> Configured model provider
-     |
-     +-- Documentation search -> Local knowledge artifact
-     |
-     +-- Execution runtime ----> Agent sandbox
-     |
-     +-- MCP client -----------> Uyuni MCP server
-                                      |
-                                      v
-                                 Uyuni public API
-```
+![AI assistant architecture diagram](images/00000-ai-assistant-diagram.png)
 
 Requests and user interactions pass through the backend to the assistant using the [Agent User Interaction Protocol (AG-UI)](https://docs.ag-ui.com/).
 Messages, tool activity, presentation data, interrupts, and run status return through the same protocol.
