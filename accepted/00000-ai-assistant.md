@@ -12,17 +12,17 @@ It supports customer-selected model providers, including locally hosted models, 
 [motivation]: #motivation
 
 Currently, users interact with Uyuni through the Web UI or public API and consult documentation separately.
-Both interfaces require users to translate their intended task into the corresponding product features and operations.
+Both interfaces require users to translate their intended task into the corresponding features and operations.
 
 This proposal introduces a conversational interface through which users can describe what they want to accomplish.
-The assistant uses product documentation and application data to explain the available options, collect missing information, and carry out the agreed operations.
-Its scope follows Uyuni's functionality rather than a fixed set of use cases or the tools currently available in the MCP server.
+The assistant uses product documentation and application data to explain options, troubleshoot problems, collect missing information, and carry out agreed operations.
+Its scope follows Uyuni's core functionality rather than a fixed set of use cases or the tools currently available in the MCP server.
 
 The assistant addresses three related needs:
 
-1. **Product knowledge:** Explain features and procedures using documentation appropriate to the installed release.
+1. **Product knowledge:** Explain features, procedures, and troubleshooting using documentation appropriate to the installed release.
 2. **Application context:** Relate a request to the user's current work and information available in Uyuni.
-3. **Task execution:** Translate an agreed task into authorized product operations, with confirmation where required and visible results.
+3. **Task execution:** Translate an agreed task into authorized operations, with confirmation where required and visible results.
 
 This interface complements the existing Web UI and API.
 Users retain control over product changes, and the same access rules apply regardless of how an operation is requested.
@@ -44,7 +44,6 @@ Requests and user interactions pass through the backend to the assistant using t
 Messages, tool activity, presentation data, interrupts, and run status return through the same protocol.
 
 The design is based on six components:
-
 1. **User interface:** Collects requests, supplies page context, and renders AG-UI events.
 2. **Model adapter:** Provides a common interface to supported model providers.
 3. **Knowledge retriever:** Finds relevant passages in versioned product documentation.
@@ -53,9 +52,9 @@ The design is based on six components:
 6. **Execution runtime:** Stores large tool results and runs shell commands on them in an isolated workspace.
 
 The implementation language, model SDK, search engine, and workflow library remain implementation choices.
-The following sections describe the complete feature; delivery increments are outlined under Implementation.
+The following sections describe the complete feature; the five delivery increments appear under [Implementation](#implementation).
 
-## User interface
+## 1. User interface
 
 The assistant is available in a persistent panel within the Web UI, independent of the main page content.
 It remains available during SPA navigation and restores the conversation from the backend after a full-page navigation or refresh.
@@ -65,8 +64,8 @@ Assistant messages support sanitized GitHub-Flavored Markdown without executable
 Links are restricted to supported destinations.
 
 **Page context** identifies the resources and filters relevant to the current view.
-Examples include the current route URI path, the ID of a system displayed on the page, selected resources, and active list filters.
-The frontend supplies these references explicitly rather than sending the page contents to the model.
+Examples include the current route URI path, the ID of a system displayed on the page, selected items in a table, and active list filters.
+The frontend supplies these references explicitly rather than sending the whole page content to the model.
 
 For example, a user can ask the assistant to prepare an operation on resources selected in the Web UI:
 
@@ -95,15 +94,14 @@ Threads represent conversations, runs represent individual requests, and message
 Standard lifecycle, text, tool, activity, state, and error events are used directly; Uyuni components use Custom events.
 
 AG-UI does not provide storage.
-Uyuni stores the conversation and completed events needed to restore a thread.
+The assistant persists the conversation and completed events needed to restore a thread.
 Reconnecting to a thread does not submit the same run again.
 
 Conversation content follows the configured retention policy and can be cleared by the user.
-Clearing a conversation does not remove Uyuni Actions or their history.
 
 Cancellation stops further model and tool calls where possible, but does not reverse completed operations or cancel scheduled Uyuni work.
 
-## Model adapter
+## 2. Model adapter
 
 The **model adapter** handles messages, streaming, tool requests, structured output, cancellation, errors, and usage reporting while the assistant retains control of tool execution.
 Administrators configure provider endpoints and credentials, including locally hosted models.
@@ -111,7 +109,7 @@ Administrators configure provider endpoints and credentials, including locally h
 Model independence is defined by a tested capability contract rather than API syntax alone.
 Each supported configuration declares its capabilities and limits for streaming, tool calling, structured output, context, cancellation, and errors.
 
-## Documentation and retrieval
+## 3. Documentation and retrieval
 
 The knowledge sources include:
 
@@ -161,7 +159,7 @@ Matching passages can be expanded with their heading hierarchy and adjacent proc
 Retrieved passages carry source identifiers that the service resolves into citations.
 Citations link to the material used in the answer in local or online documentation, such as a section in the product documentation or a paragraph in the release notes for the relevant version.
 
-## Uyuni MCP integration
+## 4. Uyuni MCP integration
 
 The [Uyuni MCP server](https://github.com/uyuni-project/mcp-server-uyuni) is currently a preview release and is intended to continuously grow together with the AI assistant as its toolset component.
 
@@ -231,7 +229,7 @@ Recoverable operations require a reliable correlation between the run or tool ca
 
 The storage and restart-recovery mechanisms remain open, including whether existing Uyuni Actions provide sufficient information.
 
-## Orchestration and workflows
+## 5. Orchestration and workflows
 
 The **orchestrator** coordinates model requests, retrieval, tools, and conversation state.
 The basic agent loop consists of:
@@ -247,13 +245,14 @@ Execution limits cover iterations, elapsed time, result size, and model usage.
 Conversation restoration does not resume interrupted operations; persistent checkpoints and restart recovery remain open.
 
 When MCP requires user input, the current AG-UI run finishes with an interrupt outcome.
-The response starts a new run on the same thread and references the resolved interrupt.
+Before finishing the run, the assistant persists the pending tool invocation, original arguments, and elicitation state.
+The response starts a new run on the same thread and resumes the stored invocation through the resolved interrupt.
 
 Specialized agents can handle parts of a request when separate context or tool sets are useful.
 They can use the same model and remain subject to the same authorization and elicitation.
 A workflow library may implement this coordination without determining the choice of model or retrieval engine.
 
-### Agent sandbox
+## 6. Execution runtime
 
 An **execution runtime** provides an isolated workspace for processing tool results and generating files.
 Small results go to the model; larger textual or structured results become read-only files accompanied by a preview and reference.
@@ -276,13 +275,13 @@ Limits cover runtime, CPU, memory, storage, processes, files, and output.
 The sandbox is the containment boundary for model-generated shell expressions.
 Workspaces are isolated between users and requests, and temporary files are removed after use.
 
-Workspace files follow the requesting user's access and retention rules, and derived files retain source information.
+Workspace files are accessible only to the requesting user and retain their source references until expiration.
 If a large result cannot be written to the workspace, the assistant returns a bounded result marked as incomplete.
 Unrestricted host shell access and autonomous background administration remain outside this proposal.
 
 ## Deployment and administration
 
-The assistant and MCP integration are optional components managed through Uyuni's deployment tooling.
+The assistant and MCP integration are optional components managed through Uyuni's deployment tooling (mgradm).
 Administrators configure access, providers, retention, resource limits, and write-tool availability.
 
 The assistant runs separately from the main backend with resource limits and no direct host-management privileges.
@@ -308,7 +307,7 @@ Logs exclude credentials and raw conversation or tool-result content by default.
 
 ### Reference dataset
 
-A versioned reference dataset defines the inputs and expected behavior for each scenario.
+A versioned reference dataset, also known as a golden dataset, defines the inputs and expected behavior for each scenario.
 Documentation cases include the product release, question, relevant source sections, required facts, and cases where the assistant should request clarification or report missing information.
 Workflow cases include the initial product state, user permissions, allowed operations, confirmation requirements, and expected outcome.
 
@@ -331,7 +330,7 @@ Cases also cover missing or conflicting sources, cross-language fallback, unavai
 ### Tool and workflow evaluation
 
 Contract tests use controlled MCP responses to exercise tool selection, argument validation, confirmation, and error handling.
-End-to-end tests reset a disposable Uyuni environment for each trial and compare product state, Actions, generated files, and calculated values with the expected outcome rather than requiring one tool-call sequence.
+End-to-end tests reset a disposable Uyuni environment for each trial and compare product state, Actions, generated files, and calculated values with the expected outcome.
 
 AG-UI contract tests cover lifecycle and message ordering, Custom presentation events, cancellation, thread restoration, and interrupt/resume flows for both confirmation and missing input.
 
