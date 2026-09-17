@@ -291,6 +291,12 @@ Its failure does not prevent normal Uyuni operation.
 Disconnected installations use local inference, retrieval models, documentation artifacts, and citation targets.
 External embedding and reranking services follow the same privacy and network rules as external chat providers.
 
+## Storage
+
+The assistant stores conversations, runs, pending elicitation, tool-call metadata, and links to Uyuni Actions in PostgreSQL.
+It uses an assistant-owned database role and namespace with no direct access to Uyuni product tables.
+Oversized tool results and sandbox files remain in artifact storage; PostgreSQL stores their ownership, location, integrity, and expiration metadata.
+
 ## Logging and evaluation
 
 ### Request tracing
@@ -418,4 +424,5 @@ The choice remains open pending evaluation of the documentation workload.
 - What delegation protocol should connect the Uyuni session to the MCP server?
 - Which workflows should drive the first MCP tool and API extensions?
 - Which workflows, if any, require persistent checkpoints and recovery after a service restart?
+- Can the assistant use Uyuni's existing PostgreSQL service while preserving an isolated assistant namespace and lifecycle?
 - Which sandbox runtime and command set meet the isolation, packaging, and data-processing requirements?
