@@ -131,8 +131,9 @@ The artifact contains:
 - **Build metadata:** Artifact format, chunking configuration, source digests, and embedding pipeline.
 - **Integrity information:** Data used to validate the artifact during installation.
 
-The embedding metadata identifies the immutable model revision, tokenizer, instructions, pooling, normalization, dimensions, distance metric, input limit, and export format.
-Disconnected installations include the compatible query encoder or install it as an explicit dependency.
+Documentation artifacts are built with the embedding model packaged with the assistant.
+The embedding metadata identifies the model's immutable revision, tokenizer, instructions, pooling, normalization, dimensions, distance metric, input limit, and export format.
+The assistant packages the corresponding local query encoder as a dependency; updating the model requires a compatible documentation artifact.
 An incompatible encoder is not substituted silently.
 
 Before publishing, the build validates source identifiers, citation targets, release and locale metadata, embedding compatibility, and retrieval smoke tests.
@@ -140,8 +141,8 @@ Before publishing, the build validates source identifiers, citation targets, rel
 ### Retrieval
 
 Retrieval combines full-text and semantic search.
-Full-text search covers exact terms such as configuration names and error messages; semantic search covers different wording.
-Product and release are filtered before lexical and semantic rankings are fused.
+Full-text search uses lexical ranking, such as BM25, to find exact terms including keywords, configuration names, and error messages.
+Semantic search finds passages that describe the same intent with different terms or phrasing.
 
 Retrieval distinguishes the language of the question, the language of the source, and the language of the answer.
 When a translation is unavailable, the assistant can retrieve a canonical-language source for the same compatible release and identify that fallback while answering in the user's language.
@@ -362,7 +363,7 @@ The target design can be delivered in five increments:
 1. Documentation chat, model configuration, retrieval, citations, and conversation handling.
 2. Page context and read-only product tools, together with MCP authentication and structured results.
 3. Product operations with MCP elicitation and explicit outcome handling.
-4. Additional presentation types and multi-step workflows.
+4. Additional presentation types, multi-step workflows, and specialized agents where separate context or tool sets are useful.
 5. Agent sandboxing with shell-based data processing in a secure, restricted runtime.
 
 Each increment includes the authentication, privacy controls, and evaluation needed for its functionality.
