@@ -62,6 +62,8 @@ Existing **Managers** and **Factories** are covered in [Legacy components](#lega
 
 ### Entry point
 
+*Based on:* the Controllers of the "Interface Adapters" layer in [The Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) (Martin): *"a set of adapters that convert data from the format most convenient for the use cases and entities, to the format most convenient for some external agency such as the Database or the Web"*. "Entry point" is our own umbrella term for the adapters on the calling side.
+
 Anything that starts work from outside the business logic:
 
 - Web UI controllers (Spark)
@@ -86,6 +88,8 @@ Anything that starts work from outside the business logic:
 
 ### Service
 
+*Based on:* [Service Layer](https://martinfowler.com/eaaCatalog/serviceLayer.html) (Fowler, *Patterns of Enterprise Application Architecture*, 2002).
+
 **Responsibilities**
 - implement one use case per public method. For example, subscribing a system to a channel is one method, and scheduling a patch installation is another.
 - enforce business rules and *business* validation (permissions, state, invariants)
@@ -101,6 +105,8 @@ A Service **may** call another Service. If a workflow is reused by several Servi
 
 ### Repository
 
+*Based on:* [Repository](https://martinfowler.com/eaaCatalog/repository.html) (Fowler, PoEAA) and the Repository of Evans' *Domain-Driven Design* (2003). Evans defines one Repository per aggregate; ours is the looser "one Entity or a closely related group".
+
 **Responsibilities**
 - CRUD and queries for one Entity or a closely related group of Entities
 - hide the persistence technology (HQL, named queries, native SQL, `datasource` mode queries)
@@ -111,6 +117,8 @@ A Service **may** call another Service. If a workflow is reused by several Servi
 - return DTOs built for a specific screen or API. Query projections into simple DTOs are fine.
 
 ### Entity
+
+*Based on:* the [Jakarta Persistence entity](https://jakarta.ee/learn/docs/jakartaee-tutorial/current/persist/persistence-intro/persistence-intro.html). This is not the DDD Entity, which also carries domain behavior.
 
 **Responsibilities**
 - map a database row: fields, relationships, Hibernate annotations
@@ -123,6 +131,8 @@ A Service **may** call another Service. If a workflow is reused by several Servi
 
 ### DTO
 
+*Based on:* [Data Transfer Object](https://martinfowler.com/eaaCatalog/dataTransferObject.html) (Fowler, PoEAA). Fowler's DTO exists to reduce remote calls; we use the broader Java meaning of a data carrier across any boundary (see [LocalDTO](https://martinfowler.com/bliki/LocalDTO.html)).
+
 **Responsibilities**
 - carry data across a boundary: Service ↔ Entry point, Repository projection, external API payload
 
@@ -132,6 +142,8 @@ A Service **may** call another Service. If a workflow is reused by several Servi
 - be a Hibernate-managed Entity
 
 ### Mapper
+
+*Based on:* [Mapper](https://martinfowler.com/eaaCatalog/mapper.html) (Fowler, PoEAA). Not to be confused with Fowler's *Data Mapper* (object ↔ database), which is Hibernate's job.
 
 **Responsibilities**
 - convert one representation into another, as a pure function
@@ -143,7 +155,7 @@ A Service **may** call another Service. If a workflow is reused by several Servi
 
 ## Dependency rules
 
-The arrows show who may call whom.
+The arrows show who may call whom. This is the classic layering of [Service Layer](https://martinfowler.com/eaaCatalog/serviceLayer.html) (Fowler, PoEAA): presentation calls the service layer, which calls the data source layer, never the other way round.
 
 ```
 Entry point  ──►  Service  ──►  Repository  ──►  Entity
@@ -194,11 +206,16 @@ These are conventions, not laws. Exceptions are fine when there is a good reason
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
+*Design Patterns* (Gamma et al., 1994) recommends to "program to an interface, not an implementation" ([explained by Gamma](https://www.artima.com/articles/design-principles-from-design-patterns)): callers depend on what a component offers, not on how it is implemented. Martin's [Dependency Inversion Principle](https://web.archive.org/web/20110714224327/http://www.objectmentor.com/resources/articles/dip.pdf) states the same: high-level code should not depend on low-level details; both should depend on abstractions.
+
 1. **When to enforce interfaces.** Interfaces bring the following benefits:
    - separate the contract from the implementation. Callers depend only on the contract, never on the implementation, which keeps boundaries and responsibilities respected
    - a second implementation can be added later without touching the callers, as `SaltApi` already shows
-   - tests can replace the implementation with a mock or a simple fake
-   - logging, caching or transactions can be added by wrapping the interface, without changing the implementation
+   - tests can replace the implementation with a mock or a simple fake ([Test Double](https://martinfowler.com/bliki/TestDouble.html))
+   - logging, caching or transactions can be added by wrapping the interface, without changing the implementation ([Decorator](https://refactoring.guru/design-patterns/decorator))
 
    The cost is one extra file per component, even when there is only one implementation.
-   Suggestion: at least every new Service and Repository is defined by an interface.
+
+   Suggestion: do it at least for every new Service and Repository. Not necessarily because we expect them to have multiple implementations, but because of their role:
+   - a **Service** is the contract between every Entry point and the business logic. Many callers depend on it, and it is what tests replace and what gets wrapped for transactions or logging.
+   - a **Repository** is the boundary to the persistence technology. Its callers should not know how data is stored; this is Fowler's [Separated Interface](https://martinfowler.com/eaaCatalog/separatedInterface.html) (PoEAA): *"a client that needs the dependency to the interface can be completely unaware of the implementation"*.
